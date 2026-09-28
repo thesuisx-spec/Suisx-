@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Падающие слова — 日本語</title>
+<style>
+  :root {
+    --bg: #0f1020;
+    --bg2: #1b1d3a;
+    --fg: #f2f2f7;
+    --muted: #9a9cc0;
+    --accent: #ff5c7a;
+    --good: #4ade80;
+    --word: #ffe08a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(ellipse at top, var(--bg2), var(--bg));
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  header {
+    display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: rgba(0,0,0,.25);
+  }
+  header h1 { font-size: 18px; margin: 0; }
+  .stats { display: flex; gap: 16px; font-variant-numeric: tabular-nums; }
+  .stats b { color: var(--word); }
+  #field { position: relative; flex: 1; overflow: hidden; }
+  #ground {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+    background: linear-gradient(90deg, var(--accent), #ffb86b);
+    box-shadow: 0 0 16px var(--accent);
+  }
+  .word {
+    position: absolute; top: 0; transform: translateX(-50%);
+    text-align: center; white-space: nowrap; pointer-events: none;
+    text-shadow: 0 2px 8px rgba(0,0,0,.6);
+  }
+  .word .jp { font-size: 30px; font-weight: 700; color: var(--word); }
+  .word .hint { font-size: 13px; color: var(--muted); }
+  .word.target .jp { color: #fff; }
+  .word .typed { color: var(--good); }
+  .pop {
+    position: absolute; transform: translate(-50%, 0); font-weight: 700; color: var(--good);
+    animation: pop .7s ease-out forwards; pointer-events: none;
+  }
+  @keyframes pop { to { opacity: 0; transform: translate(-50%, -40px) scale(1.4); } }
+  .field-flash { animation: flash .3s; }
+  @keyframes flash { 50% { background: rgba(255,92,122,.25); } }
+  footer { padding: 12px 16px; background: rgba(0,0,0,.25); }
+  #input {
+    width: 100%; font-size: 22px; padding: 10px 14px; border-radius: 10px;
+    border: 2px solid #3a3d6e; background: #0b0c18; color: var(--fg); outline: none;
+  }
+  #input:focus { border-color: var(--word); }
+  #overlay {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(8,8,20,.8); z-index: 10; padding: 16px;
+  }
+  .panel {
+    background: var(--bg2); border-radius: 16px; padding: 24px; max-width: 460px; width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5); text-align: center;
+  }
+  .panel h2 { margin-top: 0; font-size: 28px; }
+  .panel p { color: var(--muted); line-height: 1.5; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 12px 0; }
+  .row label {
+    display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px;
+    background: #0b0c18; border-radius: 8px; cursor: pointer; font-size: 14px;
+  }
+  button {
+    font-size: 18px; padding: 10px 28px; border: 0; border-radius: 10px; cursor: pointer;
+    background: var(--accent); color: #fff; font-weight: 700; margin-top: 8px;
+  }
+  button:hover { filter: brightness(1.1); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>落ちる言葉 · Падающие слова</h1>
+  <div class="stats">
+    <span>Очки: <b id="score">0</b></span>
+    <span>Уровень: <b id="level">1</b></span>
+    <span>Жизни: <b id="lives">❤❤❤❤❤</b></span>
+  </div>
+</header>
+
+<div id="field">
+  <div id="ground"></div>
+  <div id="overlay">
+    <div class="panel">
+      <h2 id="title">日本語 ✦ Падающие слова</h2>
+      <p id="desc">Японские слова падают сверху. Напечатай ответ, пока слово не упало на землю!</p>
+      <div class="row" id="modes">
+        <label><input type="radio" name="mode" value="romaji" checked> Ромадзи (sakura)</label>
+        <label><input type="radio" name="mode" value="ru"> Перевод (сакура → вишня)</label>
+      </div>
+      <div class="row" id="sets">
+        <label><input type="checkbox" value="hira" checked> Хирагана</label>
+        <label><input type="checkbox" value="kata" checked> Катакана</label>
+        <label><input type="checkbox" value="kanji"> Кандзи</label>
+      </div>
+      <div class="row">
+        <label><input type="checkbox" id="hints" checked> Подсказки под словами</label>
+      </div>
+      <button id="start">Старт</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <input id="input" autocomplete="off" autocapitalize="off" spellcheck="false"
+         placeholder="Печатай здесь и жми Enter…">
+</footer>
+
+<script>
+// [слово, ромадзи, перевод, набор]
+const WORDS = [
+  // хирагана
+  ["ねこ","neko","кошка","hira"], ["いぬ","inu","собака","hira"], ["さくら","sakura","вишня","hira"],
+  ["みず","mizu","вода","hira"], ["やま","yama","гора","hira"], ["かわ","kawa","река","hira"],
+  ["そら","sora","небо","hira"], ["はな","hana","цветок","hira"], ["あめ","ame","дождь","hira"],
+  ["ゆき","yuki","снег","hira"], ["うみ","umi","море","hira"], ["ほし","hoshi","звезда","hira"],
+  ["つき","tsuki","луна","hira"], ["ひ","hi","огонь","hira"], ["き","ki","дерево","hira"],
+  ["さかな","sakana","рыба","hira"], ["とり","tori","птица","hira"], ["くるま","kuruma","машина","hira"],
+  ["ほん","hon","книга","hira"], ["いえ","ie","дом","hira"], ["ともだち","tomodachi","друг","hira"],
+  ["せんせい","sensei","учитель","hira"], ["がっこう","gakkou","школа","hira"], ["たまご","tamago","яйцо","hira"],
+  ["ごはん","gohan","рис","hira"], ["おちゃ","ocha","чай","hira"], ["ありがとう","arigatou","спасибо","hira"],
+  ["こんにちは","konnichiwa","привет","hira"], ["さようなら","sayounara","до свидания","hira"],
+  ["はい","hai","да","hira"], ["いいえ","iie","нет","hira"], ["あか","aka","красный","hira"],
+  ["あお","ao","синий","hira"], ["しろ","shiro","белый","hira"], ["くろ","kuro","чёрный","hira"],
+  ["て","te","рука","hira"], ["め","me","глаз","hira"], ["みみ","mimi","ухо","hira"],
+  ["くち","kuchi","рот","hira"], ["あし","ashi","нога","hira"], ["かさ","kasa","зонт","hira"],
+  // катакана
+  ["コーヒー","koohii","кофе","kata"], ["テレビ","terebi","телевизор","kata"], ["パン","pan","хлеб","kata"],
+  ["カメラ","kamera","камера","kata"], ["ホテル","hoteru","отель","kata"], ["バス","basu","автобус","kata"],
+  ["タクシー","takushii","такси","kata"], ["アニメ","anime","аниме","kata"], ["ゲーム","geemu","игра","kata"],
+  ["ピアノ","piano","пианино","kata"], ["ロシア","roshia","россия","kata"], ["ケーキ","keeki","торт","kata"],
+  ["ミルク","miruku","молоко","kata"], ["ペン","pen","ручка","kata"], ["ノート","nooto","тетрадь","kata"],
+  ["トマト","tomato","помидор","kata"], ["バナナ","banana","банан","kata"], ["ラーメン","raamen","рамен","kata"],
+  ["スープ","suupu","суп","kata"], ["メロン","meron","дыня","kata"],
+  // кандзи
+  ["日本","nihon","япония","kanji"], ["山","yama","гора","kanji"], ["川","kawa","река","kanji"],
+  ["水","mizu","вода","kanji"], ["火","hi","огонь","kanji"], ["木","ki","дерево","kanji"],
+  ["人","hito","человек","kanji"], ["月","tsuki","луна","kanji"], ["空","sora","небо","kanji"],
+  ["雨","ame","дождь","kanji"], ["花","hana","цветок","kanji"], ["犬","inu","собака","kanji"],
+  ["猫","neko","кошка","kanji"], ["本","hon","книга","kanji"], ["先生","sensei","учитель","kanji"],
+  ["学校","gakkou","школа","kanji"], ["友達","tomodachi","друг","kanji"], ["大きい","ookii","большой","kanji"],
+  ["小さい","chiisai","маленький","kanji"], ["食べる","taberu","есть","kanji"], ["飲む","nomu","пить","kanji"],
+];
+
+// Допустимые варианты ромадзи (разные системы записи)
+function romajiVariants(r) {
+  const v = new Set([r]);
+  const alt = r
+    .replace(/shi/g, "si").replace(/chi/g, "ti").replace(/tsu/g, "tu")
+    .replace(/ou/g, "o").replace(/oo/g, "o").replace(/uu/g, "u").replace(/ii/g, "i").replace(/ee/g, "e").replace(/aa/g, "a");
+  v.add(alt);
+  v.add(r.replace(/ou/g, "o"));
+  v.add(r.replace(/(.)\1/g, "$1"));
+  v.add(r.replace(/ou/g, "oo"));
+  return v;
+}
+
+const $ = id => document.getElementById(id);
+const field = $("field"), input = $("input"), overlay = $("overlay");
+const MAX_LIVES = 5;
+
+let state = null;
+
+function norm(s) {
+  return s.trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ");
+}
+
+function answersFor(w, mode) {
+  const [jp, romaji, ru] = w;
+  const set = new Set([jp]); // можно ввести и само слово через японскую раскладку
+  if (mode === "romaji") romajiVariants(romaji).forEach(x => set.add(x));
+  else set.add(norm(ru));
+  return set;
+}
+
+function startGame() {
+  const mode = document.querySelector('input[name="mode"]:checked').value;
+  const sets = [...document.querySelectorAll('#sets input:checked')].map(x => x.value);
+  if (!sets.length) { alert("Выбери хотя бы один набор слов"); return; }
+  const pool = WORDS.filter(w => sets.includes(w[3]));
+  document.querySelectorAll(".word, .pop").forEach(e => e.remove());
+  state = {
+    mode, pool, hints: $("hints").checked,
+    words: [], score: 0, level: 1, lives: MAX_LIVES, cleared: 0,
+    spawnTimer: 0, last: performance.now(), running: true,
+  };
+  overlay.classList.add("hidden");
+  input.value = "";
+  input.focus();
+  updateHud();
+  requestAnimationFrame(loop);
+}
+
+function speed() { return 30 + state.level * 12; }          // px/сек
+function spawnEvery() { return Math.max(0.9, 3 - state.level * 0.22); } // сек
+
+function spawn() {
+  const onScreen = new Set(state.words.map(w => w.data[0]));
+  const choices = state.pool.filter(w => !onScreen.has(w[0]));
+  if (!choices.length) return;
+  const data = choices[Math.floor(Math.random() * choices.length)];
+  const el = document.createElement("div");
+  el.className = "word";
+  const hint = state.mode === "romaji" ? data[2] : data[1];
+  el.innerHTML = `<div class="jp">${data[0]}</div>` +
+    (state.hints ? `<div class="hint">${hint}</div>` : "");
+  const w = field.clientWidth;
+  const x = 60 + Math.random() * Math.max(0, w - 120);
+  el.style.left = x + "px";
+  field.appendChild(el);
+  state.words.push({ data, el, x, y: -50, answers: answersFor(data, state.mode) });
+}
+
+function loop(now) {
+  if (!state || !state.running) return;
+  const dt = Math.min(0.05, (now - state.last) / 1000);
+  state.last = now;
+
+  state.spawnTimer -= dt;
+  if (state.spawnTimer <= 0) { spawn(); state.spawnTimer = spawnEvery(); }
+
+  const floor = field.clientHeight - 60;
+  for (const w of [...state.words]) {
+    w.y += speed() * dt;
+    w.el.style.top = w.y + "px";
+    if (w.y > floor) miss(w);
+  }
+  highlight();
+  if (state.running) requestAnimationFrame(loop);
+}
+
+function removeWord(w) {
+  w.el.remove();
+  state.words = state.words.filter(x => x !== w);
+}
+
+function miss(w) {
+  removeWord(w);
+  state.lives--;
+  field.classList.remove("field-flash"); void field.offsetWidth; field.classList.add("field-flash");
+  popText(w.x, field.clientHeight - 90, `${w.data[0]} = ${w.data[1]} (${w.data[2]})`, "var(--accent)");
+  updateHud();
+  if (state.lives <= 0) gameOver();
+}
+
+function hit(w) {
+  removeWord(w);
+  const pts = 10 * state.level + w.data[1].length;
+  state.score += pts;
+  state.cleared++;
+  if (state.cleared % 10 === 0) state.level++;
+  popText(w.x, w.y, `+${pts}`);
+  updateHud();
+}
+
+function popText(x, y, text, color) {
+  const p = document.createElement("div");
+  p.className = "pop";
+  p.textContent = text;
+  p.style.left = x + "px"; p.style.top = y + "px";
+  if (color) p.style.color = color;
+  field.appendChild(p);
+  setTimeout(() => p.remove(), 700);
+}
+
+// Подсвечиваем слово, чей ответ начинается с введённого текста
+function highlight() {
+  const v = norm(input.value);
+  for (const w of state.words) {
+    const match = v && [...w.answers].some(a => a.startsWith(v));
+    w.el.classList.toggle("target", !!match);
+  }
+}
+
+function submit() {
+  if (!state || !state.running) return;
+  const v = norm(input.value);
+  if (!v) return;
+  // самое нижнее подходящее слово
+  const matches = state.words.filter(w => w.answers.has(v)).sort((a, b) => b.y - a.y);
+  if (matches.length) hit(matches[0]);
+  else { input.classList.remove("field-flash"); void input.offsetWidth; input.classList.add("field-flash"); }
+  input.value = "";
+  highlight();
+}
+
+function updateHud() {
+  $("score").textContent = state.score;
+  $("level").textContent = state.level;
+  $("lives").textContent = "❤".repeat(Math.max(0, state.lives)) + "♡".repeat(MAX_LIVES - Math.max(0, state.lives));
+}
+
+function gameOver() {
+  state.running = false;
+  const best = Math.max(state.score, +(localStorageGet("jpFallBest") || 0));
+  localStorageSet("jpFallBest", best);
+  $("title").textContent = "ゲームオーバー · Игра окончена";
+  $("desc").innerHTML = `Очки: <b>${state.score}</b> · Уровень: <b>${state.level}</b> · Слов: <b>${state.cleared}</b><br>Рекорд: <b>${best}</b>`;
+  $("start").textContent = "Ещё раз";
+  overlay.classList.remove("hidden");
+}
+
+function localStorageGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+
+$("start").addEventListener("click", startGame);
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); submit(); }
+});
+input.addEventListener("input", () => {
+  if (!state || !state.running) return;
+  // авто-засчитывание без Enter, если ответ точно совпал
+  const v = norm(input.value);
+  if (state.words.some(w => w.answers.has(v)) && !isPrefixOfLonger(v)) submit();
+  else highlight();
+});
+// Не засчитывать автоматически, если введённое может быть началом другого, более длинного ответа
+function isPrefixOfLonger(v) {
+  return state.words.some(w => [...w.answers].some(a => a.length > v.length && a.startsWith(v)));
+}
+</script>
+</body>
+</html>
