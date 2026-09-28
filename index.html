@@ -2,334 +2,1723 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Падающие слова — 日本語</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>おちることば · Падающие слова</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Shippori+Mincho:wght@700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f1020;
-    --bg2: #1b1d3a;
-    --fg: #f2f2f7;
-    --muted: #9a9cc0;
-    --accent: #ff5c7a;
-    --good: #4ade80;
-    --word: #ffe08a;
+    --ink: #f6f0ff;
+    --muted: #b9b0d8;
+    --glass: rgba(22, 17, 52, .55);
+    --glass-strong: rgba(18, 14, 44, .82);
+    --line: rgba(255, 255, 255, .12);
+    --sakura: #ff9fbd;
+    --sakura-deep: #ff5d8f;
+    --gold: #ffd98a;
+    --good: #5fe3a1;
+    --bad: #ff6b7d;
+    --paper: #fff8ec;
+    --paper-2: #f4e6cc;
+    --paper-ink: #2b1a22;
+    --shu: #c8323c;
+    --radius: 16px;
+    --font: "M PLUS Rounded 1c", system-ui, -apple-system, "Segoe UI", "Hiragino Maru Gothic ProN", "Noto Sans JP", sans-serif;
+    --font-title: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; }
   body {
-    background: radial-gradient(ellipse at top, var(--bg2), var(--bg));
-    color: var(--fg);
-    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
-    display: flex; flex-direction: column; overflow: hidden;
+    background: #0b0a22;
+    color: var(--ink);
+    font-family: var(--font);
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
   }
-  header {
-    display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; justify-content: space-between;
-    padding: 10px 16px; background: rgba(0,0,0,.25);
+  canvas.layer { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; pointer-events: none; }
+  #bg { z-index: 0; }
+  #fx { z-index: 3; }
+
+  #app {
+    position: fixed; inset: 0; z-index: 2;
+    display: flex; flex-direction: column;
+    height: 100dvh;
   }
-  header h1 { font-size: 18px; margin: 0; }
-  .stats { display: flex; gap: 16px; font-variant-numeric: tabular-nums; }
-  .stats b { color: var(--word); }
-  #field { position: relative; flex: 1; overflow: hidden; }
-  #ground {
-    position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
-    background: linear-gradient(90deg, var(--accent), #ffb86b);
-    box-shadow: 0 0 16px var(--accent);
+
+  /* ---------- HUD ---------- */
+  #hud {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center;
+    margin: max(10px, env(safe-area-inset-top)) 12px 0;
+    padding: 8px 12px;
+    background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   }
-  .word {
-    position: absolute; top: 0; transform: translateX(-50%);
-    text-align: center; white-space: nowrap; pointer-events: none;
-    text-shadow: 0 2px 8px rgba(0,0,0,.6);
+  .hud-left { display: flex; align-items: center; gap: 10px; }
+  .icon-btn {
+    width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px;
+    background: rgba(255,255,255,.07); border: 1px solid var(--line); color: var(--ink); cursor: pointer;
+    transition: background .2s;
   }
-  .word .jp { font-size: 30px; font-weight: 700; color: var(--word); }
-  .word .hint { font-size: 13px; color: var(--muted); }
-  .word.target .jp { color: #fff; }
-  .word .typed { color: var(--good); }
-  .pop {
-    position: absolute; transform: translate(-50%, 0); font-weight: 700; color: var(--good);
-    animation: pop .7s ease-out forwards; pointer-events: none;
+  .icon-btn:hover { background: rgba(255,255,255,.15); }
+  .lesson-tag { line-height: 1.1; }
+  .lesson-tag .jp { font-family: var(--font-title); font-size: 20px; }
+  .lesson-tag .ru { font-size: 12px; color: var(--muted); }
+  .progress-wrap { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .progress {
+    height: 10px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden;
   }
-  @keyframes pop { to { opacity: 0; transform: translate(-50%, -40px) scale(1.4); } }
-  .field-flash { animation: flash .3s; }
-  @keyframes flash { 50% { background: rgba(255,92,122,.25); } }
-  footer { padding: 12px 16px; background: rgba(0,0,0,.25); }
-  #input {
-    width: 100%; font-size: 22px; padding: 10px 14px; border-radius: 10px;
-    border: 2px solid #3a3d6e; background: #0b0c18; color: var(--fg); outline: none;
+  .progress > i {
+    display: block; height: 100%; width: 0;
+    background: linear-gradient(90deg, #ff9fbd, #ffd98a);
+    box-shadow: 0 0 12px rgba(255,159,189,.7);
+    border-radius: inherit; transition: width .4s cubic-bezier(.2,.8,.2,1);
   }
-  #input:focus { border-color: var(--word); }
-  #overlay {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    background: rgba(8,8,20,.8); z-index: 10; padding: 16px;
+  .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hud-right { display: flex; align-items: center; gap: 14px; }
+  .score { text-align: right; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .score b { font-size: 22px; color: var(--gold); }
+  .score small { display: block; font-size: 11px; color: var(--muted); }
+  .lives { display: flex; gap: 2px; }
+  .lives svg { width: 22px; height: 22px; transition: transform .3s, opacity .3s, filter .3s; }
+  .lives svg.lost { opacity: .22; filter: grayscale(1); transform: scale(.8); }
+  .combo {
+    position: absolute; left: 50%; top: 8px; transform: translateX(-50%);
+    font-weight: 800; font-size: 18px; color: var(--gold);
+    text-shadow: 0 0 14px rgba(255,217,138,.8); opacity: 0; transition: opacity .25s;
+    pointer-events: none; white-space: nowrap;
   }
-  .panel {
-    background: var(--bg2); border-radius: 16px; padding: 24px; max-width: 460px; width: 100%;
-    box-shadow: 0 10px 40px rgba(0,0,0,.5); text-align: center;
+  .combo.show { opacity: 1; }
+  .combo.bump { animation: bump .3s; }
+  @keyframes bump { 40% { transform: translateX(-50%) scale(1.35); } }
+
+  /* ---------- Stage ---------- */
+  #stage { position: relative; flex: 1; overflow: hidden; }
+  #stage.shake { animation: shake .4s; }
+  @keyframes shake {
+    20% { transform: translateX(-8px); } 40% { transform: translateX(7px); }
+    60% { transform: translateX(-5px); } 80% { transform: translateX(3px); }
   }
-  .panel h2 { margin-top: 0; font-size: 28px; }
-  .panel p { color: var(--muted); line-height: 1.5; }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 12px 0; }
-  .row label {
-    display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px;
-    background: #0b0c18; border-radius: 8px; cursor: pointer; font-size: 14px;
+  .word { position: absolute; left: 0; top: 0; will-change: transform; pointer-events: none; }
+  .card {
+    position: relative;
+    padding: 10px 20px 12px;
+    background: linear-gradient(180deg, var(--paper), var(--paper-2));
+    color: var(--paper-ink);
+    border-radius: 12px;
+    border-top: 6px solid var(--shu);
+    box-shadow: 0 10px 24px rgba(0,0,0,.45), inset 0 -3px 0 rgba(0,0,0,.06);
+    font-weight: 800; letter-spacing: .04em; white-space: nowrap;
+    transform-origin: 50% -16px;
+    animation: sway var(--sway, 3s) ease-in-out infinite alternate;
+    transition: box-shadow .3s, border-color .3s;
   }
-  button {
-    font-size: 18px; padding: 10px 28px; border: 0; border-radius: 10px; cursor: pointer;
-    background: var(--accent); color: #fff; font-weight: 700; margin-top: 8px;
+  .card::before {
+    content: ""; position: absolute; left: 50%; top: -22px; width: 2px; height: 16px;
+    background: linear-gradient(#ffffff00, #e9c9a0); transform: translateX(-50%);
   }
-  button:hover { filter: brightness(1.1); }
+  .card::after {
+    content: ""; position: absolute; left: 50%; top: -9px; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--shu); transform: translateX(-50%);
+  }
+  @keyframes sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
+  .word.target .card { box-shadow: 0 0 0 2px var(--gold), 0 0 26px rgba(255,217,138,.55), 0 10px 24px rgba(0,0,0,.45); }
+  .word.danger .card { border-color: #ff2d4a; box-shadow: 0 0 0 2px #ff5d6e, 0 0 30px rgba(255,60,90,.7), 0 10px 24px rgba(0,0,0,.45); animation: sway .5s ease-in-out infinite alternate; }
+
+  .float {
+    position: absolute; pointer-events: none; font-weight: 800; font-size: 22px; color: var(--gold);
+    text-shadow: 0 2px 10px rgba(0,0,0,.6); transform: translate(-50%, -50%);
+    animation: floatUp .9s ease-out forwards;
+  }
+  @keyframes floatUp { to { opacity: 0; transform: translate(-50%, -110%) scale(1.25); } }
+  .toast {
+    position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%);
+    background: rgba(40, 8, 20, .85); border: 1px solid rgba(255,107,125,.5);
+    padding: 8px 16px; border-radius: 99px; font-size: 16px; white-space: nowrap;
+    animation: toast 2.2s ease forwards; pointer-events: none;
+  }
+  .toast b { font-size: 20px; color: #ffd1d8; margin-right: 6px; }
+  @keyframes toast { 0% { opacity: 0; transform: translate(-50%, 10px); } 10%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+  .countdown {
+    position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+    font-family: var(--font-title); font-size: clamp(64px, 16vw, 140px); color: #fff;
+    text-shadow: 0 0 30px rgba(255,159,189,.9);
+  }
+  .countdown span { animation: cd .7s ease-out forwards; }
+  @keyframes cd { from { opacity: 0; transform: scale(1.8); } 30% { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.8); } }
+
+  /* ---------- Answers ---------- */
+  #answers {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin: 0 12px max(12px, env(safe-area-inset-bottom));
+    padding: 12px;
+    background: var(--glass); border: 1px solid var(--line); border-radius: 20px;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  }
+  .ans {
+    position: relative; min-height: 58px; padding: 8px 12px 8px 38px;
+    font: 600 16px/1.2 var(--font); color: var(--ink); text-align: left;
+    background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03));
+    border: 1px solid rgba(255,255,255,.14); border-radius: 14px; cursor: pointer;
+    transition: transform .12s, background .2s, border-color .2s, opacity .2s;
+  }
+  .ans:hover { background: linear-gradient(180deg, rgba(255,159,189,.25), rgba(255,159,189,.08)); border-color: rgba(255,159,189,.5); transform: translateY(-2px); }
+  .ans:active { transform: translateY(1px) scale(.98); }
+  .ans .key {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center;
+    font-size: 11px; font-weight: 800; color: var(--muted); background: rgba(255,255,255,.08);
+  }
+  .ans.swap { animation: swap .35s ease; }
+  @keyframes swap { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: none; } }
+  .ans.right { background: linear-gradient(180deg, rgba(95,227,161,.55), rgba(95,227,161,.2)); border-color: var(--good); }
+  .ans.wrong { background: linear-gradient(180deg, rgba(255,107,125,.55), rgba(255,107,125,.2)); border-color: var(--bad); animation: shake .35s; }
+  #answers.locked .ans { opacity: .45; pointer-events: none; }
+
+  /* ---------- Screens ---------- */
+  .screen {
+    position: fixed; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
+    padding: 16px; overflow-y: auto;
+  }
+  .screen.dim { background: rgba(8, 6, 26, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .hidden { display: none !important; }
+  .panel {
+    width: 100%; max-width: 560px; margin: auto;
+    background: var(--glass-strong); border: 1px solid var(--line); border-radius: 24px;
+    padding: 28px; box-shadow: 0 30px 80px rgba(0,0,0,.5);
+    animation: rise .35s cubic-bezier(.2,.8,.2,1);
+  }
+  .panel.wide { max-width: 900px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(16px) scale(.98); } }
+  h2 { margin: 0 0 4px; font-family: var(--font-title); font-size: 30px; }
+  .sub { color: var(--muted); margin: 0 0 18px; }
+
+  .title-wrap { text-align: center; max-width: 620px; margin: auto; }
+  .title-wrap .logo-sub, .title-wrap .logo-note, .seg-label { text-shadow: 0 1px 10px rgba(10,6,30,.9), 0 0 2px rgba(10,6,30,.8); }
+  .logo {
+    font-family: var(--font-title); font-weight: 800;
+    font-size: clamp(44px, 10vw, 96px); line-height: 1.1; margin: 0; white-space: nowrap;
+    letter-spacing: .06em;
+    background: linear-gradient(180deg, #fff 30%, #ffc3d6);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 24px rgba(255,120,170,.55));
+  }
+  .logo-sub { font-size: clamp(18px, 4.4vw, 26px); font-weight: 700; margin: 10px 0 4px; }
+  .logo-note { color: var(--muted); margin: 0 0 28px; }
+  .hanko {
+    display: inline-grid; place-items: center; width: 54px; height: 54px; border-radius: 12px;
+    border: 3px solid var(--shu); color: var(--shu); background: rgba(255,248,236,.92);
+    font-family: var(--font-title); font-size: 22px; line-height: 1; transform: rotate(-8deg);
+    margin-bottom: 18px; box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font: 800 18px var(--font); color: #2a0b17; padding: 14px 30px; border: 0; border-radius: 14px; cursor: pointer;
+    background: linear-gradient(180deg, #ffc2d5, #ff7fa7);
+    box-shadow: 0 8px 24px rgba(255, 93, 143, .45), inset 0 -3px 0 rgba(0,0,0,.12);
+    transition: transform .12s, filter .2s;
+  }
+  .btn:hover { filter: brightness(1.07); transform: translateY(-2px); }
+  .btn:active { transform: translateY(1px); }
+  .btn.ghost { background: rgba(255,255,255,.08); color: var(--ink); box-shadow: none; border: 1px solid var(--line); }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 22px; }
+  .btn-row .btn { flex: 1 1 auto; }
+
+  .settings { display: grid; gap: 14px; margin-top: 26px; justify-items: center; }
+  .seg { display: inline-flex; padding: 4px; border-radius: 14px; background: rgba(255,255,255,.07); border: 1px solid var(--line); }
+  .seg button {
+    font: 700 14px var(--font); color: var(--muted); background: none; border: 0; padding: 8px 14px; border-radius: 10px; cursor: pointer;
+  }
+  .seg button.on { background: rgba(255,159,189,.25); color: var(--ink); }
+  .seg-label { font-size: 12px; color: var(--muted); margin-bottom: -8px; }
+  .toggles { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .toggle {
+    font: 700 14px var(--font); color: var(--muted); padding: 8px 14px; border-radius: 12px; cursor: pointer;
+    background: rgba(255,255,255,.07); border: 1px solid var(--line);
+  }
+  .toggle.on { color: var(--ink); border-color: rgba(255,159,189,.6); background: rgba(255,159,189,.18); }
+
+  /* Lesson grid */
+  .lessons-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .lessons-head h2 { margin: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 12px; }
+  .tile {
+    position: relative; padding: 14px 12px 12px; border-radius: 16px; cursor: pointer; text-align: left;
+    font-family: var(--font); color: var(--ink);
+    background: linear-gradient(160deg, rgba(255,255,255,.1), rgba(255,255,255,.02));
+    border: 1px solid var(--line); transition: transform .15s, border-color .2s, background .2s;
+  }
+  .tile:hover { transform: translateY(-3px); border-color: rgba(255,159,189,.6); background: linear-gradient(160deg, rgba(255,159,189,.2), rgba(255,255,255,.03)); }
+  .tile .num { font-family: var(--font-title); font-size: 26px; line-height: 1; }
+  .tile .lbl { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .tile .stars { margin-top: 10px; font-size: 16px; letter-spacing: 2px; color: rgba(255,255,255,.2); }
+  .tile .stars .on { color: var(--gold); text-shadow: 0 0 8px rgba(255,217,138,.6); }
+  .tile .best { position: absolute; right: 10px; top: 12px; font-size: 11px; color: var(--muted); }
+  .tile.done { border-color: rgba(255,217,138,.45); }
+
+  /* Intro word list */
+  .wordlist {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px;
+    max-height: min(46vh, 420px); overflow-y: auto; padding-right: 4px; margin-top: 6px;
+  }
+  .wl { padding: 8px 12px; border-radius: 12px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.07); }
+  .wl .k { font-weight: 800; font-size: 18px; }
+  .wl .t { font-size: 13px; color: var(--muted); }
+  .wordlist::-webkit-scrollbar, .screen::-webkit-scrollbar { width: 8px; }
+  .wordlist::-webkit-scrollbar-thumb, .screen::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 8px; }
+
+  /* Results */
+  .result-title { text-align: center; }
+  .result-title .big { font-family: var(--font-title); font-size: 64px; line-height: 1; }
+  .result-title .big.win { color: #fff; text-shadow: 0 0 28px rgba(255,159,189,.9); }
+  .result-title .big.lose { color: #ffb3bf; }
+  .bigstars { display: flex; justify-content: center; gap: 10px; margin: 16px 0 8px; }
+  .bigstars svg { width: 54px; height: 54px; opacity: .18; transform: scale(.7); transition: all .4s cubic-bezier(.3,1.6,.5,1); }
+  .bigstars svg.on { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 12px rgba(255,217,138,.8)); }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
+  .stat { text-align: center; padding: 10px 6px; border-radius: 14px; background: rgba(255,255,255,.06); }
+  .stat b { display: block; font-size: 22px; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 12px; color: var(--muted); }
+  .review-h { font-weight: 700; margin: 16px 0 6px; }
+
+  @media (max-width: 640px) {
+    #hud { grid-template-columns: auto 1fr; gap: 8px 10px; }
+    .hud-right { grid-column: 1 / -1; justify-content: space-between; }
+    .progress-wrap { grid-column: 2; }
+    .lesson-tag .ru { display: none; }
+    #answers { grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 10px; }
+    .ans { min-height: 50px; font-size: 14px; padding-left: 12px; }
+    .ans .key { display: none; }
+    .panel { padding: 20px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .result-title .big { font-size: 48px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card { animation: none; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>落ちる言葉 · Падающие слова</h1>
-  <div class="stats">
-    <span>Очки: <b id="score">0</b></span>
-    <span>Уровень: <b id="level">1</b></span>
-    <span>Жизни: <b id="lives">❤❤❤❤❤</b></span>
-  </div>
-</header>
+<canvas id="bg" class="layer"></canvas>
 
-<div id="field">
-  <div id="ground"></div>
-  <div id="overlay">
-    <div class="panel">
-      <h2 id="title">日本語 ✦ Падающие слова</h2>
-      <p id="desc">Японские слова падают сверху. Напечатай ответ, пока слово не упало на землю!</p>
-      <div class="row" id="modes">
-        <label><input type="radio" name="mode" value="romaji" checked> Ромадзи (sakura)</label>
-        <label><input type="radio" name="mode" value="ru"> Перевод (сакура → вишня)</label>
-      </div>
-      <div class="row" id="sets">
-        <label><input type="checkbox" value="hira" checked> Хирагана</label>
-        <label><input type="checkbox" value="kata" checked> Катакана</label>
-        <label><input type="checkbox" value="kanji"> Кандзи</label>
-      </div>
-      <div class="row">
-        <label><input type="checkbox" id="hints" checked> Подсказки под словами</label>
-      </div>
-      <button id="start">Старт</button>
+<div id="app">
+  <header id="hud" class="hidden">
+    <div class="hud-left">
+      <button class="icon-btn" id="pauseBtn" aria-label="Пауза">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+      </button>
+      <div class="lesson-tag"><div class="jp" id="hudJp">第1課</div><div class="ru" id="hudRu">Урок 1</div></div>
     </div>
-  </div>
+    <div class="progress-wrap">
+      <div class="progress"><i id="bar"></i></div>
+      <div class="progress-meta"><span id="progTxt">0 / 0</span><span id="accTxt"></span></div>
+    </div>
+    <div class="hud-right">
+      <div class="lives" id="lives"></div>
+      <div class="score"><b id="score">0</b><small>очки</small></div>
+    </div>
+  </header>
+
+  <main id="stage">
+    <div class="combo" id="combo"></div>
+  </main>
+
+  <nav id="answers" class="hidden"></nav>
 </div>
 
-<footer>
-  <input id="input" autocomplete="off" autocapitalize="off" spellcheck="false"
-         placeholder="Печатай здесь и жми Enter…">
-</footer>
+<canvas id="fx" class="layer"></canvas>
+
+<!-- Главное меню -->
+<section class="screen" id="scrMenu">
+  <div class="title-wrap">
+    <div class="hanko">日本<br>語</div>
+    <h1 class="logo">おちることば</h1>
+    <div class="logo-sub">Падающие слова</div>
+    <p class="logo-note">Minna no Nihongo I · 25 уроков · выбери правильный перевод, пока слово не упало в воду</p>
+    <button class="btn" id="playBtn">
+      Играть
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11a.5.5 0 0 0 .77.42l8.5-5.5a.5.5 0 0 0 0-.84l-8.5-5.5A.5.5 0 0 0 4 2.5z"/></svg>
+    </button>
+    <div class="settings">
+      <div class="seg-label">Скорость</div>
+      <div class="seg" id="speedSeg">
+        <button data-v="slow">Медленно</button>
+        <button data-v="normal">Нормально</button>
+        <button data-v="fast">Быстро</button>
+      </div>
+      <div class="toggles">
+        <button class="toggle" id="sndToggle">♪ Звук</button>
+        <button class="toggle" id="voiceToggle">🗣 Озвучка слов</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Выбор урока -->
+<section class="screen dim hidden" id="scrLessons">
+  <div class="panel wide">
+    <div class="lessons-head">
+      <button class="icon-btn" data-go="menu" aria-label="Назад">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 3 5 8l5 5"/></svg>
+      </button>
+      <div>
+        <h2>Выбери урок</h2>
+        <div class="sub" style="margin:0">Каждый урок учебника — отдельный уровень</div>
+      </div>
+    </div>
+    <div class="grid" id="lessonGrid"></div>
+  </div>
+</section>
+
+<!-- Слова урока -->
+<section class="screen dim hidden" id="scrIntro">
+  <div class="panel wide">
+    <h2 id="introTitle">第1課 · Урок 1</h2>
+    <p class="sub" id="introSub"></p>
+    <div class="wordlist" id="introList"></div>
+    <div class="btn-row">
+      <button class="btn ghost" data-go="lessons">К урокам</button>
+      <button class="btn" id="startBtn">Начать ▶</button>
+    </div>
+  </div>
+</section>
+
+<!-- Пауза -->
+<section class="screen dim hidden" id="scrPause">
+  <div class="panel" style="text-align:center">
+    <h2>一時停止</h2>
+    <p class="sub">Пауза</p>
+    <div class="btn-row">
+      <button class="btn ghost" id="quitBtn">К урокам</button>
+      <button class="btn" id="resumeBtn">Продолжить</button>
+    </div>
+  </div>
+</section>
+
+<!-- Итоги -->
+<section class="screen dim hidden" id="scrResult">
+  <div class="panel">
+    <div class="result-title">
+      <div class="big" id="resBig">合格</div>
+      <div class="sub" id="resSub" style="margin-top:8px">Урок пройден!</div>
+    </div>
+    <div class="bigstars" id="resStars"></div>
+    <div class="stats">
+      <div class="stat"><b id="resScore">0</b><span>очки</span></div>
+      <div class="stat"><b id="resAcc">0%</b><span>точность</span></div>
+      <div class="stat"><b id="resCombo">0</b><span>макс. комбо</span></div>
+      <div class="stat"><b id="resWords">0</b><span>слов</span></div>
+    </div>
+    <div id="resReview"></div>
+    <div class="btn-row">
+      <button class="btn ghost" data-go="lessons">К урокам</button>
+      <button class="btn ghost" id="retryBtn">Ещё раз</button>
+      <button class="btn" id="nextBtn">Следующий урок ▶</button>
+    </div>
+  </div>
+</section>
 
 <script>
-// [слово, ромадзи, перевод, набор]
-const WORDS = [
-  // хирагана
-  ["ねこ","neko","кошка","hira"], ["いぬ","inu","собака","hira"], ["さくら","sakura","вишня","hira"],
-  ["みず","mizu","вода","hira"], ["やま","yama","гора","hira"], ["かわ","kawa","река","hira"],
-  ["そら","sora","небо","hira"], ["はな","hana","цветок","hira"], ["あめ","ame","дождь","hira"],
-  ["ゆき","yuki","снег","hira"], ["うみ","umi","море","hira"], ["ほし","hoshi","звезда","hira"],
-  ["つき","tsuki","луна","hira"], ["ひ","hi","огонь","hira"], ["き","ki","дерево","hira"],
-  ["さかな","sakana","рыба","hira"], ["とり","tori","птица","hira"], ["くるま","kuruma","машина","hira"],
-  ["ほん","hon","книга","hira"], ["いえ","ie","дом","hira"], ["ともだち","tomodachi","друг","hira"],
-  ["せんせい","sensei","учитель","hira"], ["がっこう","gakkou","школа","hira"], ["たまご","tamago","яйцо","hira"],
-  ["ごはん","gohan","рис","hira"], ["おちゃ","ocha","чай","hira"], ["ありがとう","arigatou","спасибо","hira"],
-  ["こんにちは","konnichiwa","привет","hira"], ["さようなら","sayounara","до свидания","hira"],
-  ["はい","hai","да","hira"], ["いいえ","iie","нет","hira"], ["あか","aka","красный","hira"],
-  ["あお","ao","синий","hira"], ["しろ","shiro","белый","hira"], ["くろ","kuro","чёрный","hira"],
-  ["て","te","рука","hira"], ["め","me","глаз","hira"], ["みみ","mimi","ухо","hira"],
-  ["くち","kuchi","рот","hira"], ["あし","ashi","нога","hira"], ["かさ","kasa","зонт","hira"],
-  // катакана
-  ["コーヒー","koohii","кофе","kata"], ["テレビ","terebi","телевизор","kata"], ["パン","pan","хлеб","kata"],
-  ["カメラ","kamera","камера","kata"], ["ホテル","hoteru","отель","kata"], ["バス","basu","автобус","kata"],
-  ["タクシー","takushii","такси","kata"], ["アニメ","anime","аниме","kata"], ["ゲーム","geemu","игра","kata"],
-  ["ピアノ","piano","пианино","kata"], ["ロシア","roshia","россия","kata"], ["ケーキ","keeki","торт","kata"],
-  ["ミルク","miruku","молоко","kata"], ["ペン","pen","ручка","kata"], ["ノート","nooto","тетрадь","kata"],
-  ["トマト","tomato","помидор","kata"], ["バナナ","banana","банан","kata"], ["ラーメン","raamen","рамен","kata"],
-  ["スープ","suupu","суп","kata"], ["メロン","meron","дыня","kata"],
-  // кандзи
-  ["日本","nihon","япония","kanji"], ["山","yama","гора","kanji"], ["川","kawa","река","kanji"],
-  ["水","mizu","вода","kanji"], ["火","hi","огонь","kanji"], ["木","ki","дерево","kanji"],
-  ["人","hito","человек","kanji"], ["月","tsuki","луна","kanji"], ["空","sora","небо","kanji"],
-  ["雨","ame","дождь","kanji"], ["花","hana","цветок","kanji"], ["犬","inu","собака","kanji"],
-  ["猫","neko","кошка","kanji"], ["本","hon","книга","kanji"], ["先生","sensei","учитель","kanji"],
-  ["学校","gakkou","школа","kanji"], ["友達","tomodachi","друг","kanji"], ["大きい","ookii","большой","kanji"],
-  ["小さい","chiisai","маленький","kanji"], ["食べる","taberu","есть","kanji"], ["飲む","nomu","пить","kanji"],
+/* =========================================================
+   Слова по урокам «Minna no Nihongo I» (записаны хираганой)
+   ========================================================= */
+const RAW = [
+`わたし|я
+わたしたち|мы
+あなた|вы, ты
+あのひと|тот человек, он/она
+あのかた|тот человек (вежл.)
+みなさん|все, дамы и господа
+せんせい|учитель
+きょうし|преподаватель
+がくせい|студент
+かいしゃいん|служащий компании
+しゃいん|сотрудник фирмы
+ぎんこういん|служащий банка
+いしゃ|врач
+けんきゅうしゃ|исследователь
+だいがく|университет
+びょういん|больница
+だれ|кто?
+どなた|кто? (вежл.)
+なんさい|сколько лет?
+おいくつ|сколько лет? (вежл.)
+はい|да
+いいえ|нет
+にほん|Япония
+ちゅうごく|Китай
+かんこく|Корея
+はじめまして|приятно познакомиться
+しつれいですが|простите, но…
+おなまえは|как вас зовут?
+どうぞよろしく|прошу любить и жаловать`,
+`これ|это (возле меня)
+それ|это (возле вас)
+あれ|вон то
+ほん|книга
+じしょ|словарь
+ざっし|журнал
+しんぶん|газета
+てちょう|записная книжка
+めいし|визитная карточка
+えんぴつ|карандаш
+かぎ|ключ
+とけい|часы
+かさ|зонт
+かばん|сумка, портфель
+くるま|автомобиль
+つくえ|письменный стол
+いす|стул
+おみやげ|сувенир, гостинец
+えいご|английский язык
+にほんご|японский язык
+なん|что?
+そう|так
+ちがいます|нет, неверно
+どうぞ|пожалуйста (возьмите)
+ありがとう|спасибо
+そうですか|вот как
+こちらこそ|взаимно`,
+`ここ|здесь
+そこ|там (возле вас)
+あそこ|вон там
+どこ|где?
+こちら|здесь (вежл.)
+どちら|где? (вежл.)
+きょうしつ|аудитория
+しょくどう|столовая
+じむしょ|офис
+かいぎしつ|зал заседаний
+うけつけ|приёмная, ресепшн
+へや|комната
+おてあらい|туалет
+かいだん|лестница
+くに|страна
+かいしゃ|компания
+うち|дом
+でんわ|телефон
+くつ|обувь
+たばこ|сигареты
+うりば|отдел магазина
+ちか|подвал
+なんがい|какой этаж?
+いくら|сколько стоит?
+ひゃく|сто
+せん|тысяча
+まん|десять тысяч
+すみません|извините
+みせてください|покажите, пожалуйста
+ください|дайте, пожалуйста`,
+`おきます|вставать
+ねます|ложиться спать
+はたらきます|работать
+やすみます|отдыхать
+べんきょうします|учиться, заниматься
+おわります|заканчиваться
+ぎんこう|банк
+ゆうびんきょく|почта
+としょかん|библиотека
+びじゅつかん|художественный музей
+いま|сейчас
+なんじ|который час?
+はん|половина
+ごぜん|до полудня
+ごご|после полудня
+あさ|утро
+ひる|день, полдень
+ばん|вечер
+よる|ночь
+おととい|позавчера
+きのう|вчера
+きょう|сегодня
+あした|завтра
+あさって|послезавтра
+けさ|сегодня утром
+こんばん|сегодня вечером
+やすみ|выходной
+ひるやすみ|обеденный перерыв
+まいにち|каждый день
+げつようび|понедельник
+かようび|вторник
+すいようび|среда
+もくようび|четверг
+きんようび|пятница
+どようび|суббота
+にちようび|воскресенье
+ばんごう|номер
+たいへんですね|вам нелегко`,
+`いきます|идти, ехать
+きます|приходить
+かえります|возвращаться
+がっこう|школа
+えき|станция
+ひこうき|самолёт
+ふね|корабль
+でんしゃ|электричка
+ちかてつ|метро
+しんかんせん|синкансэн
+じてんしゃ|велосипед
+あるいて|пешком
+ひと|человек
+ともだち|друг
+かれ|он, парень
+かのじょ|она, девушка
+かぞく|семья
+ひとりで|в одиночку
+せんしゅう|на прошлой неделе
+こんしゅう|на этой неделе
+らいしゅう|на следующей неделе
+せんげつ|в прошлом месяце
+こんげつ|в этом месяце
+らいげつ|в следующем месяце
+きょねん|в прошлом году
+ことし|в этом году
+らいねん|в следующем году
+いつ|когда?
+たんじょうび|день рождения
+ついたち|первое число
+つぎ|следующий
+どういたしまして|не за что`,
+`たべます|есть, кушать
+のみます|пить
+すいます|курить
+みます|смотреть
+ききます|слушать
+よみます|читать
+かきます|писать
+かいます|покупать
+とります|фотографировать
+します|делать
+あいます|встречаться
+ごはん|еда, варёный рис
+あさごはん|завтрак
+ひるごはん|обед
+ばんごはん|ужин
+たまご|яйцо
+にく|мясо
+さかな|рыба
+やさい|овощи
+くだもの|фрукты
+みず|вода
+おちゃ|зелёный чай
+こうちゃ|чёрный чай
+ぎゅうにゅう|молоко
+おさけ|сакэ, алкоголь
+てがみ|письмо
+しゃしん|фотография
+みせ|магазин
+にわ|сад
+しゅくだい|домашнее задание
+おはなみ|любование сакурой
+なに|что?
+いっしょに|вместе
+ちょっと|немного
+いつも|всегда
+ときどき|иногда
+それから|затем, потом
+ええ|да
+いいですね|отлично!
+わかりました|понятно`,
+`きります|резать
+おくります|отправлять
+あげます|дарить
+もらいます|получать
+かします|давать взаймы
+かります|брать взаймы
+おしえます|учить, обучать
+ならいます|учиться (у кого-то)
+かけます|звонить (по телефону)
+て|рука
+はし|палочки для еды
+はさみ|ножницы
+かみ|бумага
+はな|цветок
+にもつ|багаж
+おかね|деньги
+きっぷ|билет
+ねんがじょう|новогодняя открытка
+ちち|(мой) отец
+はは|(моя) мать
+おとうさん|отец (чужой)
+おかあさん|мать (чужая)
+もう|уже
+まだ|ещё (не)
+これから|с этого момента
+すてきですね|как прекрасно!
+いらっしゃい|добро пожаловать
+しつれいします|извините за беспокойство
+いただきます|приятного аппетита
+ごちそうさま|спасибо за угощение`,
+`きれい|красивый, чистый
+しずか|тихий
+にぎやか|оживлённый
+ゆうめい|знаменитый
+しんせつ|добрый, отзывчивый
+げんき|здоровый, бодрый
+ひま|свободный
+べんり|удобный
+すてき|прекрасный
+おおきい|большой
+ちいさい|маленький
+あたらしい|новый
+ふるい|старый
+いい|хороший
+わるい|плохой
+あつい|жаркий, горячий
+さむい|холодный (о погоде)
+つめたい|холодный (на ощупь)
+むずかしい|трудный
+やさしい|лёгкий, простой
+たかい|дорогой, высокий
+やすい|дешёвый
+ひくい|низкий
+おもしろい|интересный
+おいしい|вкусный
+いそがしい|занятой
+たのしい|весёлый
+しろい|белый
+くろい|чёрный
+あかい|красный
+あおい|синий
+さくら|сакура
+やま|гора
+まち|город
+たべもの|еда
+ところ|место
+りょう|общежитие
+せいかつ|жизнь, быт
+しごと|работа
+どう|как?
+どんな|какой?
+とても|очень
+あまり|не очень
+そして|и, а также`,
+`わかります|понимать
+あります|иметь, есть
+すき|нравится, любимый
+きらい|не нравится
+じょうず|умелый
+へた|неумелый
+のみもの|напитки
+りょうり|блюдо, кухня
+やきゅう|бейсбол
+りょこう|путешествие
+おんがく|музыка
+うた|песня
+かぶき|кабуки
+え|картина
+じ|буква, иероглиф
+かんじ|кандзи
+ひらがな|хирагана
+かたかな|катакана
+こまかいおかね|мелкие деньги
+じかん|время
+ようじ|дело, поручение
+やくそく|договорённость
+ごしゅじん|(ваш) муж
+しゅじん|(мой) муж
+おくさん|(ваша) жена
+つま|(моя) жена
+こども|ребёнок
+よく|хорошо
+だいたい|в основном
+たくさん|много
+すこし|немного
+ぜんぜん|совсем (не)
+はやく|рано, быстро
+どうして|почему?
+ざんねんです|жаль
+もしもし|алло`,
+`います|есть, находиться (одуш.)
+いろいろ|различный
+おとこのひと|мужчина
+おんなのひと|женщина
+おとこのこ|мальчик
+おんなのこ|девочка
+いぬ|собака
+ねこ|кошка
+ぞう|слон
+き|дерево
+もの|вещь
+でんち|батарейка
+はこ|коробка
+れいぞうこ|холодильник
+たな|полка
+まど|окно
+こうえん|парк
+きっさてん|кафе
+のりば|стоянка, платформа
+けん|префектура
+うえ|верх, на
+した|низ, под
+まえ|перед
+うしろ|позади
+みぎ|справа
+ひだり|слева
+なか|внутри
+そと|снаружи
+となり|рядом, по соседству
+ちかく|поблизости
+あいだ|между
+いちばん|самый`,
+`かかります|требоваться (о времени)
+ひとつ|один (предмет)
+ふたつ|два (предмета)
+みっつ|три (предмета)
+よっつ|четыре (предмета)
+いつつ|пять (предметов)
+むっつ|шесть (предметов)
+ななつ|семь (предметов)
+やっつ|восемь (предметов)
+ここのつ|девять (предметов)
+とお|десять (предметов)
+いくつ|сколько (штук)?
+ひとり|один человек
+ふたり|два человека
+りんご|яблоко
+みかん|мандарин
+きって|почтовая марка
+はがき|открытка
+ふうとう|конверт
+りょうしん|родители
+きょうだい|братья и сёстры
+あに|(мой) старший брат
+おにいさん|старший брат (чужой)
+あね|(моя) старшая сестра
+おねえさん|старшая сестра (чужая)
+おとうと|(мой) младший брат
+いもうと|(моя) младшая сестра
+がいこく|заграница
+りゅうがくせい|иностранный студент
+どのくらい|сколько (времени)?
+ぜんぶで|всего, итого
+みんな|все
+いってらっしゃい|счастливого пути
+いってきます|я пошёл
+ふなびん|морская почта
+こうくうびん|авиапочта`,
+`かんたん|простой
+ちかい|близкий
+とおい|далёкий
+はやい|быстрый, ранний
+おそい|медленный, поздний
+おおい|многочисленный
+すくない|немногочисленный
+あたたかい|тёплый
+すずしい|прохладный
+あまい|сладкий
+からい|острый
+おもい|тяжёлый
+かるい|лёгкий (по весу)
+きせつ|время года
+はる|весна
+なつ|лето
+あき|осень
+ふゆ|зима
+てんき|погода
+あめ|дождь
+ゆき|снег
+くもり|облачность
+くうこう|аэропорт
+うみ|море
+せかい|мир
+まつり|праздник, фестиваль
+すきやき|сукияки
+さしみ|сасими
+すし|суси
+てんぷら|тэмпура
+ぶたにく|свинина
+とりにく|курятина
+ぎゅうにく|говядина
+いけばな|икэбана
+もみじ|клён, осенние листья
+どちらも|оба
+ずっと|гораздо
+はじめて|впервые
+ただいま|я дома!
+おかえりなさい|с возвращением!
+つかれました|устал`,
+`あそびます|играть, развлекаться
+およぎます|плавать
+むかえます|встречать
+つかれます|уставать
+けっこんします|жениться, выйти замуж
+かいものします|делать покупки
+しょくじします|есть, трапезничать
+さんぽします|гулять
+たいへん|тяжёлый, трудный
+ほしい|хотеть (что-то)
+ひろい|просторный
+せまい|тесный
+かわ|река
+びじゅつ|изобразительное искусство
+つり|рыбалка
+しゅうまつ|выходные
+しょうがつ|Новый год
+なにか|что-нибудь
+どこか|куда-нибудь
+のどがかわきます|хотеть пить
+おなかがすきます|проголодаться
+そうしましょう|давайте так и сделаем
+ていしょく|комплексный обед
+ぎゅうどん|гюдон
+しょうしょうおまちください|подождите немного
+べつべつに|раздельно`,
+`つけます|включать
+けします|выключать
+あけます|открывать
+しめます|закрывать
+いそぎます|торопиться
+まちます|ждать
+もちます|держать, нести
+てつだいます|помогать
+よびます|звать
+はなします|говорить
+つかいます|использовать
+とめます|останавливать
+みせます|показывать
+すわります|садиться
+たちます|вставать (на ноги)
+はいります|входить
+でます|выходить
+ふります|идти (о дожде)
+でんき|свет, электричество
+なまえ|имя
+じゅうしょ|адрес
+ちず|карта
+しお|соль
+さとう|сахар
+もんだい|вопрос, задача
+こたえ|ответ
+よみかた|способ чтения
+まっすぐ|прямо
+ゆっくり|медленно
+すぐ|сразу
+また|снова
+あとで|потом, позже
+もうすこし|ещё немного
+さあ|ну, давай
+しんごう|светофор
+おつり|сдача`,
+`つくります|делать, создавать
+うります|продавать
+しります|узнавать
+すみます|жить, проживать
+けんきゅうします|исследовать
+しりょう|материалы
+じこくひょう|расписание
+ふく|одежда
+せいひん|продукция
+でんしじしょ|электронный словарь
+けいざい|экономика
+しやくしょ|мэрия
+こうこう|старшая школа
+はいしゃ|стоматолог
+どくしん|холостой
+おもいだします|вспоминать
+いらっしゃいます|быть, находиться (вежл.)`,
+`のります|садиться (в транспорт)
+おります|выходить (из транспорта)
+のりかえます|делать пересадку
+あびます|принимать (душ)
+いれます|класть внутрь
+だします|вынимать, отправлять
+おろします|снимать (деньги)
+おします|нажимать
+はじめます|начинать
+けんがくします|осматривать (для учёбы)
+わかい|молодой
+ながい|длинный
+みじかい|короткий
+あかるい|светлый
+くらい|тёмный
+からだ|тело
+あたま|голова
+かお|лицо
+め|глаз
+みみ|ухо
+くち|рот
+は|зуб
+おなか|живот
+あし|нога
+せ|рост
+みどり|зелень
+てら|буддийский храм
+じんじゃ|синтоистский храм
+どうやって|каким образом?
+どの|который? (перед сущ.)
+どれ|который?
+まず|сначала
+つぎに|затем
+あんしょうばんごう|пин-код
+きんがく|сумма
+かくにん|подтверждение`,
+`おぼえます|запоминать
+わすれます|забывать
+なくします|терять
+はらいます|платить
+かえします|возвращать (вещь)
+でかけます|уходить (из дома)
+ぬぎます|снимать (одежду, обувь)
+もっていきます|брать с собой
+もってきます|приносить
+しんぱいします|беспокоиться
+ざんぎょうします|работать сверхурочно
+しゅっちょうします|ехать в командировку
+たいせつ|важный, ценный
+だいじょうぶ|в порядке
+あぶない|опасный
+きんえん|курить запрещено
+ほけんしょう|страховой полис
+ねつ|жар, температура
+びょうき|болезнь
+くすり|лекарство
+おふろ|ванна
+うわぎ|верхняя одежда
+したぎ|нижнее бельё
+ですから|поэтому
+どうしましたか|что случилось?
+のど|горло
+いたい|болит
+かぜ|простуда
+おだいじに|выздоравливайте`,
+`できます|мочь, уметь
+あらいます|мыть
+ひきます|играть (на инструменте)
+うたいます|петь
+あつめます|собирать
+すてます|выбрасывать
+かえます|менять, обменивать
+うんてんします|водить (машину)
+よやくします|бронировать
+げんきん|наличные
+しゅみ|хобби
+にっき|дневник
+おいのり|молитва
+かちょう|начальник отдела
+ぶちょう|начальник департамента
+しゃちょう|президент компании
+どうぶつ|животное
+うま|лошадь
+とくに|особенно
+へえ|ого!
+なかなか|никак (не)
+ほんとうですか|правда?
+ぜひ|непременно
+ふるさと|родные места
+ぼくじょう|ферма, ранчо`,
+`のぼります|подниматься
+とまります|останавливаться (в отеле)
+そうじします|убирать
+せんたくします|стирать
+なります|становиться
+ねむい|сонный
+つよい|сильный
+よわい|слабый
+れんしゅう|тренировка
+すもう|сумо
+ひ|день
+ちょうし|состояние, самочувствие
+いちど|один раз
+いちども|ни разу
+だんだん|постепенно
+もうすぐ|скоро
+おかげさまで|благодаря вам
+でも|но
+かんぱい|за здоровье!
+むり|невозможный, чрезмерный`,
+`いります|быть нужным
+しらべます|выяснять, проверять
+しゅうりします|ремонтировать
+ぼく|я (муж.)
+きみ|ты
+うん|ага, да
+ううん|не-а
+ことば|слово, язык
+きもの|кимоно
+はじめ|начало
+おわり|конец
+こっち|сюда, здесь
+そっち|туда (к вам)
+あっち|вон туда
+どっち|куда? который?
+このあいだ|на днях
+みんなで|все вместе
+おなかがいっぱい|я сыт
+よかったら|если хотите`,
+`おもいます|думать, полагать
+いいます|говорить, сказать
+かちます|побеждать
+まけます|проигрывать
+やくにたちます|быть полезным
+うごきます|двигаться, работать
+やめます|бросать, прекращать
+きをつけます|быть осторожным
+りゅうがくします|учиться за границей
+むだ|бесполезный
+ふべん|неудобный
+すごい|потрясающий
+ほんとう|правда
+うそ|ложь
+じどうしゃ|машина, автотранспорт
+こうつう|транспорт, движение
+ぶっか|цены
+ほうそう|трансляция
+ゆめ|мечта, сон
+てんさい|гений
+しあい|матч, соревнование
+いけん|мнение
+はなし|рассказ, речь
+ちきゅう|Земля (планета)
+つき|луна
+さいきん|в последнее время
+たぶん|наверное
+きっと|непременно, наверняка
+ほんとうに|действительно
+そんなに|не так уж
+ひさしぶりですね|давно не виделись
+もちろん|конечно`,
+`はきます|надевать (обувь, брюки)
+かぶります|надевать (шляпу)
+めがねをかけます|надевать очки
+うまれます|рождаться
+ぼうし|шляпа, шапка
+めがね|очки
+べんとう|бэнто (обед в коробке)
+つごう|обстоятельства, удобство
+おめでとうございます|поздравляю!
+やちん|квартплата
+わしつ|японская комната
+おしいれ|встроенный шкаф
+ふとん|футон
+ようふく|одежда европейского стиля`,
+`せんせいにききます|спрашивать у учителя
+まわします|поворачивать (ручку)
+さわります|трогать
+あるきます|ходить пешком
+わたります|переходить (мост, дорогу)
+まがります|поворачивать (за угол)
+さびしい|одинокий, грустный
+おゆ|кипяток
+おと|звук
+こしょう|поломка
+みち|дорога
+こうさてん|перекрёсток
+かど|угол
+ちゅうしゃじょう|парковка
+たてもの|здание
+なんかいも|много раз`,
+`くれます|давать (мне)
+なおします|исправлять, чинить
+つれていきます|брать с собой (кого-то)
+つれてきます|приводить (кого-то)
+おくります|провожать
+しょうかいします|знакомить, представлять
+あんないします|показывать (дорогу)
+せつめいします|объяснять
+おじいさん|дедушка
+おばあさん|бабушка
+じゅんび|подготовка
+ひっこし|переезд
+おかし|сладости
+ぜんぶ|всё
+じぶんで|самостоятельно
+ほかに|кроме того
+ははのひ|День матери`,
+`かんがえます|думать, обдумывать
+つきます|прибывать
+たります|хватать, быть достаточным
+としをとります|стареть
+いなか|деревня, провинция
+おく|сто миллионов
+もし|если
+いみ|значение, смысл
+てんきん|перевод по работе
+こと|дело (абстр.)
+がんばります|стараться
+おせわになりました|спасибо за заботу
+どうぞおげんきで|всего доброго`
 ];
 
-// Допустимые варианты ромадзи (разные системы записи)
-function romajiVariants(r) {
-  const v = new Set([r]);
-  const alt = r
-    .replace(/shi/g, "si").replace(/chi/g, "ti").replace(/tsu/g, "tu")
-    .replace(/ou/g, "o").replace(/oo/g, "o").replace(/uu/g, "u").replace(/ii/g, "i").replace(/ee/g, "e").replace(/aa/g, "a");
-  v.add(alt);
-  v.add(r.replace(/ou/g, "o"));
-  v.add(r.replace(/(.)\1/g, "$1"));
-  v.add(r.replace(/ou/g, "oo"));
-  return v;
-}
+// Разбор; слово, уже встречавшееся в предыдущих уроках, повторно не добавляем
+const LESSONS = (() => {
+  const seen = new Set();
+  let id = 0;
+  return RAW.map((block, i) => {
+    const words = [];
+    for (const line of block.split("\n")) {
+      const [jp, ru] = line.split("|").map(s => s && s.trim());
+      if (!jp || !ru || seen.has(jp) || /[゠-ヿ]/.test(jp)) continue; // только хирагана
+      seen.add(jp);
+      words.push({ id: id++, jp, ru, lesson: i + 1 });
+    }
+    return { n: i + 1, words };
+  });
+})();
 
-const $ = id => document.getElementById(id);
-const field = $("field"), input = $("input"), overlay = $("overlay");
-const MAX_LIVES = 5;
+/* ================= Хранилище ================= */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const settings = Object.assign({ speed: "normal", sound: true, voice: true }, store.get("oc_settings", {}));
+const progress = store.get("oc_progress", {});
 
-let state = null;
-
-function norm(s) {
-  return s.trim().toLowerCase().replace(/ё/g, "е").replace(/\s+/g, " ");
-}
-
-function answersFor(w, mode) {
-  const [jp, romaji, ru] = w;
-  const set = new Set([jp]); // можно ввести и само слово через японскую раскладку
-  if (mode === "romaji") romajiVariants(romaji).forEach(x => set.add(x));
-  else set.add(norm(ru));
-  return set;
-}
-
-function startGame() {
-  const mode = document.querySelector('input[name="mode"]:checked').value;
-  const sets = [...document.querySelectorAll('#sets input:checked')].map(x => x.value);
-  if (!sets.length) { alert("Выбери хотя бы один набор слов"); return; }
-  const pool = WORDS.filter(w => sets.includes(w[3]));
-  document.querySelectorAll(".word, .pop").forEach(e => e.remove());
-  state = {
-    mode, pool, hints: $("hints").checked,
-    words: [], score: 0, level: 1, lives: MAX_LIVES, cleared: 0,
-    spawnTimer: 0, last: performance.now(), running: true,
+/* ================= Звук ================= */
+const Sound = (() => {
+  let ctx = null;
+  const ensure = () => {
+    if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } }
+    if (ctx.state === "suspended") ctx.resume();
+    return ctx;
   };
-  overlay.classList.add("hidden");
-  input.value = "";
-  input.focus();
-  updateHud();
-  requestAnimationFrame(loop);
+  // Японская пентатоника (мияко-буси) — звучит как кото
+  const SCALE = [0, 1, 5, 7, 8, 12, 13, 17, 19, 20, 24];
+  function pluck(semi, t = 0, dur = .7, vol = .22, type = "triangle") {
+    const c = ensure(); if (!c || !settings.sound) return;
+    const f = 293.66 * Math.pow(2, semi / 12);
+    const o = c.createOscillator(), g = c.createGain(), o2 = c.createOscillator(), g2 = c.createGain();
+    o.type = type; o.frequency.value = f;
+    o2.type = "sine"; o2.frequency.value = f * 2;
+    const s = c.currentTime + t;
+    g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(vol, s + .005); g.gain.exponentialRampToValueAtTime(.0001, s + dur);
+    g2.gain.setValueAtTime(0, s); g2.gain.linearRampToValueAtTime(vol * .35, s + .005); g2.gain.exponentialRampToValueAtTime(.0001, s + dur * .5);
+    o.connect(g).connect(c.destination); o2.connect(g2).connect(c.destination);
+    o.start(s); o2.start(s); o.stop(s + dur); o2.stop(s + dur);
+  }
+  return {
+    unlock: ensure,
+    right(combo) { const i = Math.min(combo, SCALE.length - 1); pluck(SCALE[i]); pluck(SCALE[i] + 12, .06, .5, .1); },
+    wrong() { pluck(-12, 0, .25, .18, "square"); pluck(-11, .02, .25, .12, "square"); },
+    miss() { const c = ensure(); if (!c || !settings.sound) return;
+      const o = c.createOscillator(), g = c.createGain(), s = c.currentTime;
+      o.frequency.setValueAtTime(420, s); o.frequency.exponentialRampToValueAtTime(90, s + .35);
+      g.gain.setValueAtTime(.25, s); g.gain.exponentialRampToValueAtTime(.0001, s + .4);
+      o.connect(g).connect(c.destination); o.start(s); o.stop(s + .4); },
+    tick() { pluck(12, 0, .25, .12); },
+    go() { pluck(24, 0, .6, .2); pluck(19, .08, .6, .14); },
+    win() { [0, 5, 7, 12, 17, 19, 24].forEach((n, i) => pluck(n, i * .11, 1, .18)); },
+    lose() { [12, 8, 5, 1, 0].forEach((n, i) => pluck(n - 12, i * .16, .9, .16)); },
+  };
+})();
+
+/* ================= Озвучка ================= */
+function speak(text) {
+  if (!settings.voice || !("speechSynthesis" in window)) return;
+  const voices = speechSynthesis.getVoices();
+  const v = voices.find(v => /^ja/i.test(v.lang));
+  if (!v) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.voice = v; u.lang = v.lang; u.rate = .95;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+}
+if ("speechSynthesis" in window) speechSynthesis.getVoices();
+
+/* ================= Фон: ночное небо, Фудзи, тории, вода ================= */
+const $ = id => document.getElementById(id);
+const bg = $("bg"), fx = $("fx"), stage = $("stage");
+const bctx = bg.getContext("2d"), fctx = fx.getContext("2d");
+let W = 0, H = 0, DPR = 1, horizon = 0;
+
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+
+function drawScene() {
+  const c = bctx;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // небо
+  const sky = c.createLinearGradient(0, 0, 0, horizon);
+  sky.addColorStop(0, "#090b26"); sky.addColorStop(.45, "#221a55");
+  sky.addColorStop(.78, "#6b3470"); sky.addColorStop(1, "#e2847e");
+  c.fillStyle = sky; c.fillRect(0, 0, W, horizon + 1);
+  // звёзды
+  const r = rng(7);
+  for (let i = 0; i < 180; i++) {
+    const x = r() * W, y = r() * horizon * .7, s = r() * 1.4 + .2;
+    c.globalAlpha = .25 + r() * .75 * (1 - y / (horizon * .7));
+    c.fillStyle = "#fff"; c.beginPath(); c.arc(x, y, s, 0, 7); c.fill();
+  }
+  c.globalAlpha = 1;
+  // луна
+  const mx = W * .78, my = Math.max(70, horizon * .2), mr = Math.max(26, Math.min(W, H) * .065);
+  const glow = c.createRadialGradient(mx, my, mr * .5, mx, my, mr * 5);
+  glow.addColorStop(0, "rgba(255,236,200,.45)"); glow.addColorStop(1, "rgba(255,236,200,0)");
+  c.fillStyle = glow; c.fillRect(mx - mr * 5, my - mr * 5, mr * 10, mr * 10);
+  const moon = c.createRadialGradient(mx - mr * .3, my - mr * .3, mr * .1, mx, my, mr);
+  moon.addColorStop(0, "#fffaf0"); moon.addColorStop(1, "#ffe3b3");
+  c.fillStyle = moon; c.beginPath(); c.arc(mx, my, mr, 0, 7); c.fill();
+
+  // Фудзи
+  const fh = Math.min(horizon * .5, W * .42), px = W * .3, py = horizon - fh, bw = fh * 1.9;
+  const topW = bw * .07;
+  const side = (t, dir) => { // точка на склоне: t 0..1 сверху вниз, вогнутый профиль
+    const e = Math.pow(t, 1.35);
+    return [px + dir * (topW + (bw - topW) * e), py + fh * t];
+  };
+  const mg = c.createLinearGradient(0, py, 0, horizon);
+  mg.addColorStop(0, "#4a3d86"); mg.addColorStop(1, "#1a1538");
+  c.fillStyle = mg; c.beginPath(); c.moveTo(px - topW, py);
+  for (let t = 0; t <= 1.001; t += .05) c.lineTo(...side(t, -1));
+  for (let t = 1; t >= -0.001; t -= .05) c.lineTo(...side(t, 1));
+  c.closePath(); c.fill();
+  // снежная шапка
+  const sg = c.createLinearGradient(px - bw * .3, py, px + bw * .3, py + fh * .35);
+  sg.addColorStop(0, "#ffe6ef"); sg.addColorStop(1, "#b9b0e6");
+  c.fillStyle = sg; c.beginPath(); c.moveTo(px - topW, py);
+  const snowT = .24, drip = .1, teeth = 9;
+  for (let t = 0; t <= snowT + .001; t += .02) c.lineTo(...side(t, -1));
+  const [lx] = side(snowT, -1), [rx] = side(snowT, 1);
+  for (let i = 1; i < teeth; i++) {
+    const x = lx + (rx - lx) * (i / teeth);
+    const k = i % 2 ? drip * (.6 + .4 * Math.abs(Math.sin(i * 1.7))) : 0;
+    c.lineTo(x, py + fh * (snowT + k));
+  }
+  for (let t = snowT; t >= 0; t -= .02) c.lineTo(...side(t, 1));
+  c.closePath(); c.fill();
+
+  // холмы
+  const hills = (base, amp, freq, phase, color) => {
+    c.fillStyle = color; c.beginPath(); c.moveTo(0, horizon);
+    for (let x = 0; x <= W + 10; x += 10) c.lineTo(x, base - amp * (Math.sin(x * freq + phase) * .6 + Math.sin(x * freq * 2.3 + phase * 2) * .4 + .6));
+    c.lineTo(W, horizon); c.closePath(); c.fill();
+  };
+  hills(horizon, Math.min(60, H * .06), .006, 1, "#241c4a");
+  hills(horizon, Math.min(34, H * .035), .011, 3, "#150f30");
+
+  // тории
+  const s = Math.max(50, Math.min(W, H) * .12), tx = W * .82, ty = horizon - 6;
+  c.fillStyle = "#3a0f24";
+  const pw = s * .07, gap = s * .62;
+  c.fillRect(tx - gap / 2 - pw / 2, ty - s, pw, s);
+  c.fillRect(tx + gap / 2 - pw / 2, ty - s, pw, s);
+  c.fillRect(tx - gap * .72, ty - s * .72, gap * 1.44, s * .07);          // нуки
+  c.fillRect(tx - pw * .4, ty - s * .96, pw * .8, s * .25);              // гакузука
+  c.beginPath();                                                          // касаги
+  c.moveTo(tx - gap * .95, ty - s * 1.02);
+  c.quadraticCurveTo(tx, ty - s * .9, tx + gap * .95, ty - s * 1.02);
+  c.lineTo(tx + gap * .88, ty - s * 1.12);
+  c.quadraticCurveTo(tx, ty - s * 1.0, tx - gap * .88, ty - s * 1.12);
+  c.closePath(); c.fill();
+
+  // вода
+  const wg = c.createLinearGradient(0, horizon, 0, H);
+  wg.addColorStop(0, "#3a2a6a"); wg.addColorStop(.25, "#1b1542"); wg.addColorStop(1, "#070618");
+  c.fillStyle = wg; c.fillRect(0, horizon, W, H - horizon);
+  // линия берега
+  c.fillStyle = "rgba(255,190,210,.55)"; c.fillRect(0, horizon, W, 1.5);
+  // лунная дорожка
+  const r2 = rng(3);
+  for (let y = horizon + 6; y < H; y += 6) {
+    const k = (y - horizon) / (H - horizon);
+    const w = mr * (.6 + k * 2.2) * (.5 + r2());
+    c.globalAlpha = .5 * (1 - k) + .05;
+    c.fillStyle = "#ffe6c0";
+    c.fillRect(mx - w / 2 + (r2() - .5) * 20, y, w, 1.6);
+  }
+  c.globalAlpha = 1;
 }
 
-function speed() { return 30 + state.level * 12; }          // px/сек
-function spawnEvery() { return Math.max(0.9, 3 - state.level * 0.22); } // сек
+function layout() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = innerWidth; H = innerHeight;
+  for (const cv of [bg, fx]) { cv.width = W * DPR; cv.height = H * DPR; }
+  const sr = stage.getBoundingClientRect();
+  const inGame = !$("answers").classList.contains("hidden");
+  horizon = inGame ? sr.bottom - 26 : H * .8;
+  drawScene();
+  if (G) G.floor = horizon - sr.top;
+}
+addEventListener("resize", layout);
+
+/* ================= Лепестки сакуры ================= */
+const petals = [];
+const PETAL_COLORS = ["#ffc4d6", "#ffb0c8", "#ffd9e4", "#ff9dbb", "#fff0f5"];
+function newPetal(x, y, burst) {
+  const a = Math.random() * Math.PI * 2, sp = burst ? 120 + Math.random() * 260 : 0;
+  return {
+    x, y, burst,
+    vx: burst ? Math.cos(a) * sp : 12 + Math.random() * 25,
+    vy: burst ? Math.sin(a) * sp - 120 : 20 + Math.random() * 30,
+    rot: Math.random() * 6, vr: (Math.random() - .5) * 4,
+    ph: Math.random() * 6, vph: 2 + Math.random() * 3,
+    size: burst ? 4 + Math.random() * 5 : 3 + Math.random() * 5,
+    color: PETAL_COLORS[(Math.random() * PETAL_COLORS.length) | 0],
+    life: burst ? 1.2 + Math.random() * .6 : Infinity, age: 0,
+  };
+}
+function ambientCount() { return Math.min(55, Math.round(W * H / 26000)); }
+function burst(x, y, n = 22) { for (let i = 0; i < n; i++) petals.push(newPetal(x, y, true)); }
+function drawPetal(p) {
+  const c = fctx, s = p.size;
+  c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.scale(1, .45 + Math.abs(Math.sin(p.ph)) * .55);
+  c.globalAlpha = p.burst ? Math.max(0, 1 - p.age / p.life) : .85;
+  c.fillStyle = p.color;
+  c.beginPath();
+  c.moveTo(0, s);
+  c.bezierCurveTo(-s * .9, s * .3, -s * .8, -s * .6, -s * .3, -s);
+  c.lineTo(0, -s * .7); c.lineTo(s * .3, -s);
+  c.bezierCurveTo(s * .8, -s * .6, s * .9, s * .3, 0, s);
+  c.fill(); c.restore();
+}
+let lastFx = performance.now();
+function fxLoop(now) {
+  const dt = Math.min(.05, (now - lastFx) / 1000); lastFx = now;
+  fctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  fctx.clearRect(0, 0, W, H);
+  let ambient = 0;
+  for (let i = petals.length - 1; i >= 0; i--) {
+    const p = petals[i];
+    p.age += dt; p.ph += p.vph * dt; p.rot += p.vr * dt;
+    if (p.burst) { p.vx *= .97; p.vy = p.vy * .97 + 260 * dt; }
+    else { ambient++; p.vx += Math.sin(now / 1500 + p.ph) * 4 * dt; }
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    if (p.age > p.life || p.y > H + 20 || p.x > W + 30) { petals.splice(i, 1); continue; }
+    drawPetal(p);
+  }
+  for (let k = ambient; k < ambientCount(); k++) petals.push(newPetal(Math.random() * W - 40, -10 - Math.random() * H * (ambient ? 0 : 1), false));
+  requestAnimationFrame(fxLoop);
+}
+
+/* ================= Экраны ================= */
+const SCREENS = ["menu", "lessons", "intro", "pause", "result"];
+function show(name) {
+  for (const s of SCREENS) $("scr" + s[0].toUpperCase() + s.slice(1)).classList.toggle("hidden", s !== name);
+}
+function setGameUI(on) {
+  $("hud").classList.toggle("hidden", !on);
+  $("answers").classList.toggle("hidden", !on);
+  layout();
+}
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => {
+  const to = b.dataset.go;
+  if (to === "lessons") { endGame(); setGameUI(false); buildGrid(); }
+  show(to);
+}));
+
+const STAR = on => `<svg viewBox="0 0 24 24" class="${on ? "on" : ""}"><path fill="#ffd98a" d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z"/></svg>`;
+const SAKURA = `<svg viewBox="0 0 24 24"><g fill="#ff9fbd">${[0,72,144,216,288].map(a => `<path transform="rotate(${a} 12 12)" d="M12 12C8 10 7.5 5.5 9.2 2.6L12 4.4l2.8-1.8C16.5 5.5 16 10 12 12z"/>`).join("")}</g><circle cx="12" cy="12" r="2.2" fill="#ffd98a"/></svg>`;
+
+function buildGrid() {
+  const g = $("lessonGrid"); g.innerHTML = "";
+  for (const L of LESSONS) {
+    const p = progress[L.n] || {};
+    const b = document.createElement("button");
+    b.className = "tile" + (p.stars ? " done" : "");
+    b.innerHTML = `<div class="num">第${L.n}課</div><div class="lbl">Урок ${L.n}</div><div class="lbl">${L.words.length} слов</div>
+      <div class="stars">${[1,2,3].map(i => `<span class="${(p.stars || 0) >= i ? "on" : ""}">★</span>`).join("")}</div>
+      ${p.best ? `<div class="best">${p.best}</div>` : ""}`;
+    b.onclick = () => openIntro(L.n);
+    g.appendChild(b);
+  }
+}
+
+let currentLesson = 1;
+function openIntro(n) {
+  currentLesson = n;
+  const L = LESSONS[n - 1];
+  $("introTitle").textContent = `第${n}課 · Урок ${n}`;
+  $("introSub").textContent = `${L.words.length} слов. Повтори их — и вперёд! Нажимай на перевод или клавиши 1–6.`;
+  $("introList").innerHTML = L.words.map(w => `<div class="wl"><div class="k">${w.jp}</div><div class="t">${w.ru}</div></div>`).join("");
+  show("intro");
+}
+
+/* ================= Игра ================= */
+const SPEEDS = { slow: 13, normal: 9.5, fast: 7 };
+const MAX_LIVES = 5, SLOTS = 6;
+let G = null;
+
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+function startLesson(n) {
+  endGame();
+  currentLesson = n;
+  const L = LESSONS[n - 1];
+  const others = LESSONS.slice(0, n - 1).flatMap(l => l.words).concat(LESSONS.slice(n).flatMap(l => l.words).slice(0, 60));
+  G = {
+    n, L, total: L.words.length,
+    queue: shuffle([...L.words]),
+    distractPool: { own: L.words, other: others },
+    active: [], slots: Array(SLOTS).fill(""),
+    cleared: 0, score: 0, combo: 0, maxCombo: 0, lives: MAX_LIVES,
+    right: 0, wrong: 0, misses: 0, review: new Map(),
+    spawnCd: 0, running: false, paused: false, last: 0, floor: 0, locked: 0, raf: 0,
+  };
+  show(null); setGameUI(true);
+  $("hudJp").textContent = `第${n}課`; $("hudRu").textContent = `Урок ${n}`;
+  G.slots = G.slots.map(() => pickDistractor());
+  renderSlots(true);
+  updateHud();
+  countdown(() => { G.running = true; G.last = performance.now(); G.raf = requestAnimationFrame(tick); });
+}
+
+function countdown(done) {
+  const el = document.createElement("div"); el.className = "countdown"; stage.appendChild(el);
+  const steps = ["3", "2", "1", "はじめ！"];
+  let i = 0;
+  const next = () => {
+    if (!G) { el.remove(); return; }
+    if (i === steps.length) { el.remove(); done(); return; }
+    el.innerHTML = `<span>${steps[i]}</span>`;
+    i === steps.length - 1 ? Sound.go() : Sound.tick();
+    i++; setTimeout(next, 650);
+  };
+  next();
+}
+
+function endGame() {
+  if (!G) return;
+  cancelAnimationFrame(G.raf);
+  G.running = false;
+  G.active.forEach(w => w.el.remove());
+  stage.querySelectorAll(".float, .toast, .countdown").forEach(e => e.remove());
+  G = null;
+}
+
+const prog = () => G.cleared / G.total;
+const fallTime = () => SPEEDS[settings.speed] * (1 - .28 * prog()) * (1 - Math.min(.15, (G.n - 1) * .006));
+const maxActive = () => {
+  const p = prog();
+  const m = p < .15 ? 1 : p < .5 ? 2 : 3;
+  return settings.speed === "slow" ? Math.min(2, m) : m;
+};
 
 function spawn() {
-  const onScreen = new Set(state.words.map(w => w.data[0]));
-  const choices = state.pool.filter(w => !onScreen.has(w[0]));
-  if (!choices.length) return;
-  const data = choices[Math.floor(Math.random() * choices.length)];
+  const data = G.queue.shift();
   const el = document.createElement("div");
   el.className = "word";
-  const hint = state.mode === "romaji" ? data[2] : data[1];
-  el.innerHTML = `<div class="jp">${data[0]}</div>` +
-    (state.hints ? `<div class="hint">${hint}</div>` : "");
-  const w = field.clientWidth;
-  const x = 60 + Math.random() * Math.max(0, w - 120);
-  el.style.left = x + "px";
-  field.appendChild(el);
-  state.words.push({ data, el, x, y: -50, answers: answersFor(data, state.mode) });
+  const len = data.jp.length;
+  const sw = stage.clientWidth;
+  const fs = Math.max(18, Math.min(36, (sw - 60) / (len * 1.15)));
+  el.innerHTML = `<div class="card" style="font-size:${fs}px;--sway:${(2.4 + Math.random() * 1.6).toFixed(2)}s;animation-delay:-${(Math.random() * 2).toFixed(2)}s">${data.jp}</div>`;
+  stage.appendChild(el);
+  const w = el.offsetWidth, h = el.offsetHeight;
+  // выбираем позицию подальше от уже падающих слов
+  let best = 12, bestD = -1;
+  for (let k = 0; k < 14; k++) {
+    const x = 12 + Math.random() * Math.max(0, sw - w - 24);
+    let d = Infinity;
+    for (const o of G.active) if (o.y < h * 3) d = Math.min(d, Math.abs((o.x + o.w / 2) - (x + w / 2)) - (o.w + w) / 2);
+    if (d > bestD) { bestD = d; best = x; }
+  }
+  const word = { data, el, x: best, y: -h - 24, w, h };
+  el.style.transform = `translate3d(${word.x}px, ${word.y}px, 0)`;
+  G.active.push(word);
+  // перевод появляется среди вариантов
+  if (!G.slots.includes(data.ru)) {
+    const live = new Set(G.active.map(a => a.data.ru));
+    const free = G.slots.map((t, i) => live.has(t) ? -1 : i).filter(i => i >= 0);
+    const i = free[(Math.random() * free.length) | 0];
+    G.slots[i] = data.ru; renderSlot(i);
+  }
 }
 
-function loop(now) {
-  if (!state || !state.running) return;
-  const dt = Math.min(0.05, (now - state.last) / 1000);
-  state.last = now;
+function pickDistractor() {
+  const used = new Set(G.slots);
+  G.active.forEach(a => used.add(a.data.ru));
+  const fromOwn = Math.random() < .65 || !G.distractPool.other.length;
+  const pool = (fromOwn ? G.distractPool.own : G.distractPool.other).filter(w => !used.has(w.ru));
+  const fallback = G.distractPool.own.concat(G.distractPool.other).filter(w => !used.has(w.ru));
+  const src = pool.length ? pool : fallback;
+  return src[(Math.random() * src.length) | 0].ru;
+}
 
-  state.spawnTimer -= dt;
-  if (state.spawnTimer <= 0) { spawn(); state.spawnTimer = spawnEvery(); }
-
-  const floor = field.clientHeight - 60;
-  for (const w of [...state.words]) {
-    w.y += speed() * dt;
-    w.el.style.top = w.y + "px";
-    if (w.y > floor) miss(w);
+function renderSlots() { for (let i = 0; i < SLOTS; i++) renderSlot(i); }
+function renderSlot(i) {
+  const box = $("answers");
+  let b = box.children[i];
+  if (!b) {
+    b = document.createElement("button"); b.className = "ans";
+    b.addEventListener("click", () => answer(i));
+    box.appendChild(b);
   }
-  highlight();
-  if (state.running) requestAnimationFrame(loop);
+  b.classList.remove("swap", "right", "wrong"); void b.offsetWidth; b.classList.add("swap");
+  b.innerHTML = `<span class="key">${i + 1}</span>${G.slots[i]}`;
+}
+
+function tick(now) {
+  if (!G || !G.running) return;
+  const dt = Math.min(.05, (now - G.last) / 1000); G.last = now;
+  if (!G.paused) {
+    const dist = G.floor + 60;
+    const speed = dist / fallTime();
+    G.spawnCd -= dt;
+    if (G.queue.length && (G.active.length === 0 || (G.active.length < maxActive() && G.spawnCd <= 0))) {
+      spawn(); G.spawnCd = fallTime() * (.3 + Math.random() * .15);
+    }
+    let lowest = null;
+    for (const w of [...G.active]) {
+      w.y += speed * dt;
+      w.el.style.transform = `translate3d(${w.x}px, ${w.y}px, 0)`;
+      w.el.classList.toggle("danger", w.y + w.h > G.floor * .78);
+      if (w.y + w.h >= G.floor) { miss(w); continue; }
+      if (!lowest || w.y > lowest.y) lowest = w;
+    }
+    G.active.forEach(w => w.el.classList.toggle("target", w === lowest));
+    if (!G.queue.length && !G.active.length) { finish(true); return; }
+  }
+  G.raf = requestAnimationFrame(tick);
 }
 
 function removeWord(w) {
   w.el.remove();
-  state.words = state.words.filter(x => x !== w);
-}
-
-function miss(w) {
-  removeWord(w);
-  state.lives--;
-  field.classList.remove("field-flash"); void field.offsetWidth; field.classList.add("field-flash");
-  popText(w.x, field.clientHeight - 90, `${w.data[0]} = ${w.data[1]} (${w.data[2]})`, "var(--accent)");
-  updateHud();
-  if (state.lives <= 0) gameOver();
-}
-
-function hit(w) {
-  removeWord(w);
-  const pts = 10 * state.level + w.data[1].length;
-  state.score += pts;
-  state.cleared++;
-  if (state.cleared % 10 === 0) state.level++;
-  popText(w.x, w.y, `+${pts}`);
-  updateHud();
-}
-
-function popText(x, y, text, color) {
-  const p = document.createElement("div");
-  p.className = "pop";
-  p.textContent = text;
-  p.style.left = x + "px"; p.style.top = y + "px";
-  if (color) p.style.color = color;
-  field.appendChild(p);
-  setTimeout(() => p.remove(), 700);
-}
-
-// Подсвечиваем слово, чей ответ начинается с введённого текста
-function highlight() {
-  const v = norm(input.value);
-  for (const w of state.words) {
-    const match = v && [...w.answers].some(a => a.startsWith(v));
-    w.el.classList.toggle("target", !!match);
+  G.active = G.active.filter(a => a !== w);
+  // освободившийся перевод меняем на новый ложный вариант
+  const ru = w.data.ru;
+  if (!G.active.some(a => a.data.ru === ru)) {
+    const i = G.slots.indexOf(ru);
+    if (i >= 0) setTimeout(() => { if (G && G.slots[i] === ru && !G.active.some(a => a.data.ru === ru)) { G.slots[i] = pickDistractor(); renderSlot(i); } }, 380);
   }
 }
 
-function submit() {
-  if (!state || !state.running) return;
-  const v = norm(input.value);
-  if (!v) return;
-  // самое нижнее подходящее слово
-  const matches = state.words.filter(w => w.answers.has(v)).sort((a, b) => b.y - a.y);
-  if (matches.length) hit(matches[0]);
-  else { input.classList.remove("field-flash"); void input.offsetWidth; input.classList.add("field-flash"); }
-  input.value = "";
-  highlight();
+function answer(i) {
+  if (!G || !G.running || G.paused || performance.now() < G.locked) return;
+  Sound.unlock();
+  const text = G.slots[i];
+  const btn = $("answers").children[i];
+  const hits = G.active.filter(w => w.data.ru === text).sort((a, b) => b.y - a.y);
+  btn.classList.remove("right", "wrong"); void btn.offsetWidth;
+  if (hits.length) {
+    const w = hits[0];
+    const sr = stage.getBoundingClientRect();
+    const cx = w.x + w.w / 2, cy = w.y + w.h / 2;
+    G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo); G.right++; G.cleared++;
+    const heightBonus = Math.round(60 * Math.max(0, 1 - (w.y + w.h) / G.floor));
+    const pts = 100 + heightBonus + (G.combo - 1) * 15;
+    G.score += pts;
+    burst(sr.left + cx, sr.top + cy, 20 + Math.min(20, G.combo * 2));
+    floatText(cx, cy, `+${pts}`);
+    Sound.right(G.combo); speak(w.data.jp);
+    btn.classList.add("right");
+    removeWord(w);
+  } else {
+    G.combo = 0; G.wrong++;
+    btn.classList.add("wrong");
+    Sound.wrong();
+    G.locked = performance.now() + 650;
+    $("answers").classList.add("locked");
+    setTimeout(() => $("answers").classList.remove("locked"), 650);
+  }
+  updateHud();
+}
+
+function miss(w) {
+  G.combo = 0; G.lives--; G.misses++;
+  G.review.set(w.data.jp, w.data);
+  removeWord(w);
+  G.queue.splice(Math.max(0, G.queue.length - 2 + ((Math.random() * 3) | 0)), 0, w.data); // слово вернётся позже
+  const sr = stage.getBoundingClientRect();
+  splash(sr.left + w.x + w.w / 2, sr.top + G.floor);
+  stage.classList.remove("shake"); void stage.offsetWidth; stage.classList.add("shake");
+  const t = document.createElement("div"); t.className = "toast";
+  t.innerHTML = `<b>${w.data.jp}</b>${w.data.ru}`;
+  stage.querySelectorAll(".toast").forEach(e => e.remove());
+  stage.appendChild(t); setTimeout(() => t.remove(), 2200);
+  Sound.miss(); speak(w.data.jp);
+  updateHud();
+  if (G.lives <= 0) finish(false);
+}
+
+function splash(x, y) {
+  for (let i = 0; i < 14; i++) {
+    const p = newPetal(x, y, true);
+    p.color = ["#9fb8ff", "#c8d6ff", "#ffffff"][i % 3];
+    p.vy = -80 - Math.random() * 220; p.vx = (Math.random() - .5) * 220; p.size = 2 + Math.random() * 3;
+    petals.push(p);
+  }
+}
+
+function floatText(x, y, text) {
+  const f = document.createElement("div"); f.className = "float"; f.textContent = text;
+  f.style.left = x + "px"; f.style.top = y + "px";
+  stage.appendChild(f); setTimeout(() => f.remove(), 900);
 }
 
 function updateHud() {
-  $("score").textContent = state.score;
-  $("level").textContent = state.level;
-  $("lives").textContent = "❤".repeat(Math.max(0, state.lives)) + "♡".repeat(MAX_LIVES - Math.max(0, state.lives));
+  $("score").textContent = G.score;
+  $("bar").style.width = (prog() * 100).toFixed(1) + "%";
+  $("progTxt").textContent = `${G.cleared} / ${G.total}`;
+  const tries = G.right + G.wrong + G.misses;
+  $("accTxt").textContent = tries ? `точность ${Math.round(G.right / tries * 100)}%` : "";
+  $("lives").innerHTML = Array.from({ length: MAX_LIVES }, (_, i) => SAKURA.replace("<svg", `<svg class="${i < G.lives ? "" : "lost"}"`)).join("");
+  const c = $("combo");
+  if (G.combo >= 2) {
+    c.textContent = `コンボ ×${G.combo}`; c.classList.add("show");
+    c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
+  } else c.classList.remove("show");
 }
 
-function gameOver() {
-  state.running = false;
-  const best = Math.max(state.score, +(localStorageGet("jpFallBest") || 0));
-  localStorageSet("jpFallBest", best);
-  $("title").textContent = "ゲームオーバー · Игра окончена";
-  $("desc").innerHTML = `Очки: <b>${state.score}</b> · Уровень: <b>${state.level}</b> · Слов: <b>${state.cleared}</b><br>Рекорд: <b>${best}</b>`;
-  $("start").textContent = "Ещё раз";
-  overlay.classList.remove("hidden");
+function finish(win) {
+  const g = G;
+  g.running = false;
+  cancelAnimationFrame(g.raf);
+  const tries = g.right + g.wrong + g.misses;
+  const acc = tries ? Math.round(g.right / tries * 100) : 0;
+  const stars = !win ? 0 : (g.lives === MAX_LIVES && g.wrong <= 2) ? 3 : g.lives >= 3 ? 2 : 1;
+  const p = progress[g.n] || {};
+  progress[g.n] = { stars: Math.max(p.stars || 0, stars), best: Math.max(p.best || 0, win ? g.score : 0) };
+  store.set("oc_progress", progress);
+
+  win ? Sound.win() : Sound.lose();
+  if (win) { const sr = stage.getBoundingClientRect(); for (let i = 0; i < 5; i++) setTimeout(() => burst(sr.left + Math.random() * sr.width, sr.top + sr.height * (.2 + Math.random() * .4), 30), i * 180); }
+
+  setTimeout(() => {
+    const big = $("resBig");
+    big.textContent = win ? "合格" : "残念";
+    big.className = "big " + (win ? "win" : "lose");
+    $("resSub").textContent = win ? `Урок ${g.n} пройден!` : `Урок ${g.n}: сакура облетела… Попробуй ещё раз!`;
+    $("resStars").innerHTML = [0, 1, 2].map(() => STAR(false)).join("");
+    [...$("resStars").children].forEach((s, i) => { if (i < stars) setTimeout(() => s.classList.add("on"), 250 + i * 250); });
+    $("resScore").textContent = g.score;
+    $("resAcc").textContent = acc + "%";
+    $("resCombo").textContent = g.maxCombo;
+    $("resWords").textContent = `${g.cleared}/${g.total}`;
+    const rev = [...g.review.values()];
+    $("resReview").innerHTML = rev.length ? `<div class="review-h">Повтори эти слова:</div><div class="wordlist">${rev.map(w => `<div class="wl"><div class="k">${w.jp}</div><div class="t">${w.ru}</div></div>`).join("")}</div>` : "";
+    $("nextBtn").classList.toggle("hidden", !win || g.n >= LESSONS.length);
+    endGame();
+    show("result");
+  }, win ? 900 : 700);
 }
 
-function localStorageGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
-function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+function pause() {
+  if (!G || !G.running || G.paused) return;
+  G.paused = true; show("pause");
+}
+function resume() {
+  if (!G) return;
+  G.paused = false; G.last = performance.now(); show(null);
+}
 
-$("start").addEventListener("click", startGame);
-input.addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); submit(); }
+/* ================= Управление ================= */
+$("playBtn").onclick = () => { Sound.unlock(); buildGrid(); show("lessons"); };
+$("startBtn").onclick = () => { Sound.unlock(); startLesson(currentLesson); };
+$("retryBtn").onclick = () => startLesson(currentLesson);
+$("nextBtn").onclick = () => openIntro(currentLesson + 1);
+$("pauseBtn").onclick = pause;
+$("resumeBtn").onclick = resume;
+$("quitBtn").onclick = () => { endGame(); setGameUI(false); buildGrid(); show("lessons"); };
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { G && G.paused ? resume() : pause(); return; }
+  const n = parseInt(e.key, 10);
+  if (n >= 1 && n <= SLOTS) answer(n - 1);
 });
-input.addEventListener("input", () => {
-  if (!state || !state.running) return;
-  // авто-засчитывание без Enter, если ответ точно совпал
-  const v = norm(input.value);
-  if (state.words.some(w => w.answers.has(v)) && !isPrefixOfLonger(v)) submit();
-  else highlight();
-});
-// Не засчитывать автоматически, если введённое может быть началом другого, более длинного ответа
-function isPrefixOfLonger(v) {
-  return state.words.some(w => [...w.answers].some(a => a.length > v.length && a.startsWith(v)));
+document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); });
+
+function renderSettings() {
+  document.querySelectorAll("#speedSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === settings.speed));
+  $("sndToggle").classList.toggle("on", settings.sound);
+  $("voiceToggle").classList.toggle("on", settings.voice);
+  store.set("oc_settings", settings);
 }
+document.querySelectorAll("#speedSeg button").forEach(b => b.onclick = () => { settings.speed = b.dataset.v; renderSettings(); });
+$("sndToggle").onclick = () => { settings.sound = !settings.sound; renderSettings(); Sound.unlock(); Sound.tick(); };
+$("voiceToggle").onclick = () => { settings.voice = !settings.voice; renderSettings(); if (settings.voice) speak("こんにちは"); };
+
+renderSettings();
+layout();
+requestAnimationFrame(fxLoop);
 </script>
 </body>
 </html>
