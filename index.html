@@ -10,164 +10,236 @@
 <style>
   :root {
     --ink: #f6f0ff;
-    --muted: #b9b0d8;
-    --glass: rgba(22, 17, 52, .55);
-    --glass-strong: rgba(18, 14, 44, .82);
-    --line: rgba(255, 255, 255, .12);
-    --sakura: #ff9fbd;
-    --sakura-deep: #ff5d8f;
-    --gold: #ffd98a;
+    --glass-strong: rgba(18, 14, 44, .86);
     --good: #5fe3a1;
     --bad: #ff6b7d;
-    --paper: #fff8ec;
-    --paper-2: #f4e6cc;
-    --paper-ink: #2b1a22;
-    --shu: #c8323c;
     --radius: 16px;
     --font: "M PLUS Rounded 1c", system-ui, -apple-system, "Segoe UI", "Hiragino Maru Gothic ProN", "Noto Sans JP", sans-serif;
     --font-title: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
   }
+  /* Палитры сцен */
+  body, body[data-scene="spring"] {
+    --accent: #ff9fbd; --accent2: #ffd98a; --glass: rgba(22,17,52,.55); --line: rgba(255,255,255,.12);
+    --muted: #b9b0d8; --hover: rgba(255,159,189,.25); --target: #ffd98a; --cord: #e9c9a0; --bgc: #0b0a22;
+  }
+  body[data-scene="summer"] {
+    --accent: #ff9a4a; --accent2: #ffe08a; --glass: rgba(14,12,40,.62); --line: rgba(255,190,120,.22);
+    --muted: #e8c9a8; --hover: rgba(255,170,90,.28); --target: #ffe08a; --cord: #1c1014; --bgc: #070b24;
+  }
+  body[data-scene="autumn"] {
+    --accent: #e8602f; --accent2: #ffd08a; --glass: rgba(40,12,24,.6); --line: rgba(255,200,150,.22);
+    --muted: #f0cda8; --hover: rgba(255,160,100,.28); --target: #ffe08a; --cord: #c8323c; --bgc: #1e0f2e;
+  }
+  body[data-scene="winter"] {
+    --accent: #7fb2ff; --accent2: #ffffff; --glass: rgba(12,26,56,.6); --line: rgba(200,225,255,.26);
+    --muted: #bcd0ea; --hover: rgba(160,200,255,.28); --target: #ffe08a; --cord: #d9e6f5; --bgc: #0b1633;
+  }
+  body[data-scene="tokyo"] {
+    --accent: #ff4fd8; --accent2: #5ae6ff; --glass: rgba(10,6,26,.68); --line: rgba(255,90,220,.32);
+    --muted: #9fe9ff; --hover: rgba(90,230,255,.22); --target: #5ae6ff; --cord: transparent; --bgc: #05030f;
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; }
   body {
-    background: #0b0a22;
-    color: var(--ink);
-    font-family: var(--font);
-    overflow: hidden;
-    user-select: none;
-    -webkit-user-select: none;
+    background: var(--bgc); color: var(--ink); font-family: var(--font);
+    overflow: hidden; user-select: none; -webkit-user-select: none;
   }
   canvas.layer { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; pointer-events: none; }
-  #bg { z-index: 0; }
+  #bg { z-index: 0; transition: opacity .45s ease; }
+  #decor { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
   #fx { z-index: 3; }
-
-  #app {
-    position: fixed; inset: 0; z-index: 2;
-    display: flex; flex-direction: column;
-    height: 100dvh;
-  }
+  #app { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; height: 100dvh; }
 
   /* ---------- HUD ---------- */
   #hud {
     display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center;
-    margin: max(10px, env(safe-area-inset-top)) 12px 0;
-    padding: 8px 12px;
+    margin: max(10px, env(safe-area-inset-top)) 12px 0; padding: 8px 12px;
     background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius);
     backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   }
   .hud-left { display: flex; align-items: center; gap: 10px; }
   .icon-btn {
-    width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px;
+    width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; flex: none;
     background: rgba(255,255,255,.07); border: 1px solid var(--line); color: var(--ink); cursor: pointer;
-    transition: background .2s;
   }
   .icon-btn:hover { background: rgba(255,255,255,.15); }
   .lesson-tag { line-height: 1.1; }
   .lesson-tag .jp { font-family: var(--font-title); font-size: 20px; }
   .lesson-tag .ru { font-size: 12px; color: var(--muted); }
   .progress-wrap { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-  .progress {
-    height: 10px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden;
-  }
+  .progress { height: 10px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; }
   .progress > i {
-    display: block; height: 100%; width: 0;
-    background: linear-gradient(90deg, #ff9fbd, #ffd98a);
-    box-shadow: 0 0 12px rgba(255,159,189,.7);
-    border-radius: inherit; transition: width .4s cubic-bezier(.2,.8,.2,1);
+    display: block; height: 100%; width: 0; border-radius: inherit;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    box-shadow: 0 0 12px var(--accent); transition: width .4s cubic-bezier(.2,.8,.2,1);
   }
   .progress-meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .hud-right { display: flex; align-items: center; gap: 14px; }
   .score { text-align: right; line-height: 1.1; font-variant-numeric: tabular-nums; }
-  .score b { font-size: 22px; color: var(--gold); }
+  .score b { font-size: 22px; color: var(--accent2); }
   .score small { display: block; font-size: 11px; color: var(--muted); }
-  .lives { display: flex; gap: 2px; }
-  .lives svg { width: 22px; height: 22px; transition: transform .3s, opacity .3s, filter .3s; }
-  .lives svg.lost { opacity: .22; filter: grayscale(1); transform: scale(.8); }
+  .lives { display: flex; gap: 4px; align-items: center; }
+  .life { width: 22px; height: 22px; display: grid; place-items: center; transition: opacity .3s, transform .3s, filter .3s; }
+  .life svg { width: 22px; height: 22px; }
+  .life.lost { opacity: .2; filter: grayscale(1); transform: scale(.8); }
+  .life.gain { animation: gain .6s; }
+  @keyframes gain { 40% { transform: scale(1.6); } }
   .combo {
     position: absolute; left: 50%; top: 8px; transform: translateX(-50%);
-    font-weight: 800; font-size: 18px; color: var(--gold);
-    text-shadow: 0 0 14px rgba(255,217,138,.8); opacity: 0; transition: opacity .25s;
-    pointer-events: none; white-space: nowrap;
+    font-weight: 800; font-size: 18px; color: var(--accent2);
+    text-shadow: 0 0 14px var(--accent); opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap;
   }
   .combo.show { opacity: 1; }
   .combo.bump { animation: bump .3s; }
   @keyframes bump { 40% { transform: translateX(-50%) scale(1.35); } }
+  .effect {
+    position: absolute; left: 50%; top: 38px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
+    padding: 5px 12px 5px 6px; border-radius: 99px; background: rgba(40,28,0,.7); border: 1px solid #ffd35a;
+    color: #ffe9a8; font-size: 13px; font-weight: 700; pointer-events: none; white-space: nowrap;
+  }
+  .effect .ek { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: #ffcf3f; color: #4a2a00; font-family: var(--font-title); font-weight: 800; }
+  .effect .eb { width: 60px; height: 5px; border-radius: 9px; background: rgba(255,255,255,.2); overflow: hidden; }
+  .effect .eb i { display: block; height: 100%; background: #ffd35a; }
 
-  /* ---------- Stage ---------- */
+  /* ---------- Stage & words ---------- */
   #stage { position: relative; flex: 1; overflow: hidden; }
   #stage.shake { animation: shake .4s; }
-  @keyframes shake {
-    20% { transform: translateX(-8px); } 40% { transform: translateX(7px); }
-    60% { transform: translateX(-5px); } 80% { transform: translateX(3px); }
+  @keyframes shake { 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
+  .word {
+    position: absolute; left: 0; top: 0; will-change: transform; pointer-events: none;
+    filter: drop-shadow(0 10px 12px rgba(0,0,0,.45));
   }
-  .word { position: absolute; left: 0; top: 0; will-change: transform; pointer-events: none; }
+  .word::before {
+    content: ""; position: absolute; left: 50%; top: -20px; width: 2px; height: 20px;
+    background: var(--cord); transform: translateX(-50%);
+  }
+  .word.target { filter: drop-shadow(0 0 2px var(--target)) drop-shadow(0 0 14px var(--target)) drop-shadow(0 10px 12px rgba(0,0,0,.45)); }
+  .word.danger { filter: drop-shadow(0 0 2px #ff3b55) drop-shadow(0 0 16px #ff3b55) drop-shadow(0 10px 12px rgba(0,0,0,.45)); }
+  .word.danger .card { animation-duration: .5s; }
   .card {
-    position: relative;
-    padding: 10px 20px 12px;
-    background: linear-gradient(180deg, var(--paper), var(--paper-2));
-    color: var(--paper-ink);
-    border-radius: 12px;
-    border-top: 6px solid var(--shu);
-    box-shadow: 0 10px 24px rgba(0,0,0,.45), inset 0 -3px 0 rgba(0,0,0,.06);
-    font-weight: 800; letter-spacing: .04em; white-space: nowrap;
-    transform-origin: 50% -16px;
-    animation: sway var(--sway, 3s) ease-in-out infinite alternate;
-    transition: box-shadow .3s, border-color .3s;
-  }
-  .card::before {
-    content: ""; position: absolute; left: 50%; top: -22px; width: 2px; height: 16px;
-    background: linear-gradient(#ffffff00, #e9c9a0); transform: translateX(-50%);
-  }
-  .card::after {
-    content: ""; position: absolute; left: 50%; top: -9px; width: 8px; height: 8px; border-radius: 50%;
-    background: var(--shu); transform: translateX(-50%);
+    position: relative; white-space: nowrap; font-weight: 800; letter-spacing: .04em;
+    transform-origin: 50% -16px; animation: sway var(--sway, 3s) ease-in-out infinite alternate;
   }
   @keyframes sway { from { transform: rotate(-2.5deg); } to { transform: rotate(2.5deg); } }
-  .word.target .card { box-shadow: 0 0 0 2px var(--gold), 0 0 26px rgba(255,217,138,.55), 0 10px 24px rgba(0,0,0,.45); }
-  .word.danger .card { border-color: #ff2d4a; box-shadow: 0 0 0 2px #ff5d6e, 0 0 30px rgba(255,60,90,.7), 0 10px 24px rgba(0,0,0,.45); animation: sway .5s ease-in-out infinite alternate; }
+  /* весна: бумажная табличка */
+  body[data-scene="spring"] .card {
+    padding: 10px 20px 12px; border-radius: 12px; color: #2b1a22;
+    background: linear-gradient(180deg, #fff8ec, #f4e6cc); border-top: 6px solid #c8323c;
+  }
+  /* лето: фонарь */
+  body[data-scene="summer"] .card {
+    padding: 14px 28px; border-radius: 44% / 50%; color: #fff6e6;
+    border-top: 9px solid #1c1014; border-bottom: 9px solid #1c1014;
+    background: repeating-linear-gradient(180deg, rgba(0,0,0,0) 0 9px, rgba(120,20,10,.35) 9px 11px),
+                radial-gradient(ellipse at 50% 45%, #ffb070 0%, #e8452f 55%, #a8241c 100%);
+    text-shadow: 0 2px 0 rgba(90,10,5,.6);
+    box-shadow: 0 0 36px rgba(255,120,60,.6);
+  }
+  /* осень: эма */
+  body[data-scene="autumn"] .card {
+    padding: 30px 26px 14px; color: #3a1d0c; text-align: center; min-width: 110px;
+    clip-path: polygon(50% 0, 100% 26%, 100% 100%, 0 100%, 0 26%);
+    background: repeating-linear-gradient(94deg, rgba(90,40,10,0) 0 7px, rgba(90,40,10,.12) 7px 9px), linear-gradient(180deg, #e7b57a, #c0823f);
+  }
+  body[data-scene="autumn"] .word::before { top: -12px; height: 16px; width: 3px; }
+  /* зима: лёд */
+  body[data-scene="winter"] .card {
+    padding: 16px 26px 12px; border-radius: 14px; color: #fff;
+    background: linear-gradient(160deg, rgba(235,245,255,.45), rgba(160,200,245,.2));
+    border: 1px solid rgba(255,255,255,.7); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    text-shadow: 0 0 12px rgba(120,180,255,.9), 0 2px 0 rgba(20,50,100,.5);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+  }
+  body[data-scene="winter"] .card::before {
+    content: ""; position: absolute; left: -4px; right: -4px; top: -10px; height: 16px;
+    border-radius: 12px 12px 8px 8px; background: #fff; box-shadow: 0 2px 6px rgba(80,120,180,.35);
+  }
+  /* токио: неон */
+  body[data-scene="tokyo"] .card {
+    padding: 12px 26px; border-radius: 12px; color: #fff;
+    background: rgba(12,6,28,.8); border: 2px solid #ff4fd8;
+    text-shadow: 0 0 8px #ff4fd8, 0 0 22px #ff4fd8;
+    box-shadow: 0 0 16px rgba(255,79,216,.8), inset 0 0 16px rgba(255,79,216,.35);
+    animation: flicker var(--flick, 5s) linear infinite;
+  }
+  body[data-scene="tokyo"] .word.target .card { border-color: #5ae6ff; text-shadow: 0 0 8px #5ae6ff, 0 0 22px #5ae6ff; box-shadow: 0 0 22px rgba(90,230,255,.9), inset 0 0 16px rgba(90,230,255,.35); }
+  body[data-scene="tokyo"] .word.target { filter: none; }
+  @keyframes flicker { 0%, 91%, 94%, 97%, 100% { opacity: 1; } 92%, 96% { opacity: .45; } }
+
+  /* бонус */
+  .bonus {
+    position: absolute; left: 0; top: 0; width: 76px; pointer-events: auto; cursor: pointer; border: 0; padding: 0; background: none;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: var(--font); color: #fff3c4;
+  }
+  .bonus .coin {
+    width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center;
+    font-family: var(--font-title); font-size: 28px; font-weight: 800; color: #5a3200;
+    background: radial-gradient(circle at 35% 30%, #fff6c8, #ffd35a 45%, #e09a1a 100%);
+    box-shadow: 0 0 0 3px rgba(255,240,180,.6), 0 0 30px 6px rgba(255,200,60,.7);
+    animation: spin 2.4s ease-in-out infinite;
+  }
+  .bonus .bl { font-size: 12px; font-weight: 800; text-shadow: 0 1px 6px #000; white-space: nowrap; }
+  @keyframes spin { 50% { transform: scale(1.08) rotate(8deg); } }
 
   .float {
-    position: absolute; pointer-events: none; font-weight: 800; font-size: 22px; color: var(--gold);
-    text-shadow: 0 2px 10px rgba(0,0,0,.6); transform: translate(-50%, -50%);
-    animation: floatUp .9s ease-out forwards;
+    position: absolute; pointer-events: none; font-weight: 800; font-size: 22px; color: var(--accent2);
+    text-shadow: 0 2px 10px rgba(0,0,0,.6); transform: translate(-50%, -50%); animation: floatUp .9s ease-out forwards;
   }
   @keyframes floatUp { to { opacity: 0; transform: translate(-50%, -110%) scale(1.25); } }
+  .reveal {
+    position: absolute; pointer-events: none; transform: translate(-50%, -50%); text-align: center;
+    padding: 8px 18px 10px; border-radius: 16px; background: rgba(8,6,24,.72); border: 1px solid var(--accent);
+    box-shadow: 0 0 24px rgba(0,0,0,.5); animation: reveal 1.7s ease forwards; white-space: nowrap;
+  }
+  .reveal .rk { font-family: var(--font-title); font-size: 44px; line-height: 1.1; color: #fff; text-shadow: 0 0 16px var(--accent); }
+  .reveal .rr { font-size: 13px; color: var(--muted); }
+  @keyframes reveal {
+    0% { opacity: 0; transform: translate(-50%, -40%) scale(.7); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+    20% { transform: translate(-50%, -50%) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -90%); }
+  }
   .toast {
     position: absolute; left: 50%; bottom: 44px; transform: translateX(-50%);
-    background: rgba(40, 8, 20, .85); border: 1px solid rgba(255,107,125,.5);
+    background: rgba(40, 8, 20, .88); border: 1px solid rgba(255,107,125,.5);
     padding: 8px 16px; border-radius: 99px; font-size: 16px; white-space: nowrap;
     animation: toast 2.2s ease forwards; pointer-events: none;
   }
   .toast b { font-size: 20px; color: #ffd1d8; margin-right: 6px; }
+  .toast.ok { background: rgba(8,40,24,.88); border-color: rgba(95,227,161,.6); }
   @keyframes toast { 0% { opacity: 0; transform: translate(-50%, 10px); } 10%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
   .countdown {
     position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
-    font-family: var(--font-title); font-size: clamp(64px, 16vw, 140px); color: #fff;
-    text-shadow: 0 0 30px rgba(255,159,189,.9);
+    font-family: var(--font-title); font-size: clamp(64px, 16vw, 140px); color: #fff; text-shadow: 0 0 30px var(--accent);
   }
   .countdown span { animation: cd .7s ease-out forwards; }
   @keyframes cd { from { opacity: 0; transform: scale(1.8); } 30% { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.8); } }
+  .scene-title {
+    position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;
+    animation: sceneIn 2.4s ease forwards;
+  }
+  .scene-title .k { font-family: var(--font-title); font-size: 96px; line-height: 1; color: #fff; text-shadow: 0 0 30px var(--accent); }
+  .scene-title .n { font-size: 20px; font-weight: 800; color: var(--accent2); }
+  @keyframes sceneIn { 0% { opacity: 0; transform: translate(-50%, -40%) scale(.9); } 20%, 70% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; } }
 
   /* ---------- Answers ---------- */
   #answers {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-    margin: 0 12px max(12px, env(safe-area-inset-bottom));
-    padding: 12px;
+    margin: 0 12px max(12px, env(safe-area-inset-bottom)); padding: 12px;
     background: var(--glass); border: 1px solid var(--line); border-radius: 20px;
     backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   }
   .ans {
-    position: relative; min-height: 58px; padding: 8px 12px 8px 38px;
+    position: relative; min-height: 58px; padding: 8px 12px 8px 42px;
     font: 600 16px/1.2 var(--font); color: var(--ink); text-align: left;
     background: linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,.03));
-    border: 1px solid rgba(255,255,255,.14); border-radius: 14px; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 14px; cursor: pointer;
     transition: transform .12s, background .2s, border-color .2s, opacity .2s;
   }
-  .ans:hover { background: linear-gradient(180deg, rgba(255,159,189,.25), rgba(255,159,189,.08)); border-color: rgba(255,159,189,.5); transform: translateY(-2px); }
+  .ans.jp { font-size: 21px; font-weight: 800; letter-spacing: .03em; }
+  .ans:hover { background: linear-gradient(180deg, var(--hover), rgba(255,255,255,.03)); border-color: var(--accent); transform: translateY(-2px); }
   .ans:active { transform: translateY(1px) scale(.98); }
   .ans .key {
     position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-    width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center;
+    width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center;
     font-size: 11px; font-weight: 800; color: var(--muted); background: rgba(255,255,255,.08);
   }
   .ans.swap { animation: swap .35s ease; }
@@ -176,133 +248,155 @@
   .ans.wrong { background: linear-gradient(180deg, rgba(255,107,125,.55), rgba(255,107,125,.2)); border-color: var(--bad); animation: shake .35s; }
   #answers.locked .ans { opacity: .45; pointer-events: none; }
 
-  /* ---------- Screens ---------- */
-  .screen {
-    position: fixed; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
-    padding: 16px; overflow-y: auto;
+  /* ---------- Decor ---------- */
+  .dl {
+    position: absolute; width: 28px; height: 36px; border-radius: 44% / 50%; transform-origin: 50% -10px;
+    border-top: 4px solid #1c1014; border-bottom: 4px solid #1c1014;
+    background: radial-gradient(ellipse at 50% 45%, #ffd08a, var(--lc) 70%);
+    box-shadow: 0 0 24px var(--lc); animation: dlsway var(--d) ease-in-out infinite alternate, glow 3s ease-in-out infinite alternate;
   }
+  @keyframes dlsway { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+  @keyframes glow { from { filter: brightness(.9); } to { filter: brightness(1.15); } }
+  .sign {
+    position: absolute; writing-mode: vertical-rl; font-weight: 800; letter-spacing: .1em; padding: 10px 6px; border-radius: 6px;
+    background: rgba(8,4,20,.85); border: 2px solid var(--c); color: var(--c);
+    text-shadow: 0 0 10px var(--c); box-shadow: 0 0 18px var(--c); animation: flicker var(--f) linear infinite;
+  }
+
+  /* ---------- Screens ---------- */
+  .screen { position: fixed; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; }
   .screen.dim { background: rgba(8, 6, 26, .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .hidden { display: none !important; }
   .panel {
-    width: 100%; max-width: 560px; margin: auto;
-    background: var(--glass-strong); border: 1px solid var(--line); border-radius: 24px;
-    padding: 28px; box-shadow: 0 30px 80px rgba(0,0,0,.5);
-    animation: rise .35s cubic-bezier(.2,.8,.2,1);
+    width: 100%; max-width: 560px; margin: auto; background: var(--glass-strong); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 24px; padding: 28px; box-shadow: 0 30px 80px rgba(0,0,0,.5); animation: rise .35s cubic-bezier(.2,.8,.2,1);
   }
-  .panel.wide { max-width: 900px; }
+  .panel.wide { max-width: 1240px; }
+  .panel.mid { max-width: 900px; }
   @keyframes rise { from { opacity: 0; transform: translateY(16px) scale(.98); } }
   h2 { margin: 0 0 4px; font-family: var(--font-title); font-size: 30px; }
-  .sub { color: var(--muted); margin: 0 0 18px; }
-
-  .title-wrap { text-align: center; max-width: 620px; margin: auto; }
+  .sub { color: #b9b0d8; margin: 0 0 18px; }
+  .title-wrap { text-align: center; max-width: 640px; margin: auto; }
   .title-wrap .logo-sub, .title-wrap .logo-note, .seg-label { text-shadow: 0 1px 10px rgba(10,6,30,.9), 0 0 2px rgba(10,6,30,.8); }
   .logo {
-    font-family: var(--font-title); font-weight: 800;
-    font-size: clamp(44px, 10vw, 96px); line-height: 1.1; margin: 0; white-space: nowrap;
-    letter-spacing: .06em;
-    background: linear-gradient(180deg, #fff 30%, #ffc3d6);
-    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-family: var(--font-title); font-weight: 800; font-size: clamp(44px, 10vw, 96px); line-height: 1.1; margin: 0;
+    letter-spacing: .06em; white-space: nowrap;
+    background: linear-gradient(180deg, #fff 30%, #ffc3d6); -webkit-background-clip: text; background-clip: text; color: transparent;
     filter: drop-shadow(0 0 24px rgba(255,120,170,.55));
   }
   .logo-sub { font-size: clamp(18px, 4.4vw, 26px); font-weight: 700; margin: 10px 0 4px; }
-  .logo-note { color: var(--muted); margin: 0 0 28px; }
+  .logo-note { color: #cfc6ec; margin: 0 0 28px; }
   .hanko {
     display: inline-grid; place-items: center; width: 54px; height: 54px; border-radius: 12px;
-    border: 3px solid var(--shu); color: var(--shu); background: rgba(255,248,236,.92);
-    font-family: var(--font-title); font-size: 22px; line-height: 1; transform: rotate(-8deg);
-    margin-bottom: 18px; box-shadow: 0 6px 20px rgba(0,0,0,.35);
+    border: 3px solid #c8323c; color: #c8323c; background: rgba(255,248,236,.92);
+    font-family: var(--font-title); font-size: 22px; line-height: 1; transform: rotate(-8deg); margin-bottom: 18px; box-shadow: 0 6px 20px rgba(0,0,0,.35);
   }
-
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     font: 800 18px var(--font); color: #2a0b17; padding: 14px 30px; border: 0; border-radius: 14px; cursor: pointer;
-    background: linear-gradient(180deg, #ffc2d5, #ff7fa7);
-    box-shadow: 0 8px 24px rgba(255, 93, 143, .45), inset 0 -3px 0 rgba(0,0,0,.12);
+    background: linear-gradient(180deg, #ffc2d5, #ff7fa7); box-shadow: 0 8px 24px rgba(255, 93, 143, .45), inset 0 -3px 0 rgba(0,0,0,.12);
     transition: transform .12s, filter .2s;
   }
   .btn:hover { filter: brightness(1.07); transform: translateY(-2px); }
   .btn:active { transform: translateY(1px); }
-  .btn.ghost { background: rgba(255,255,255,.08); color: var(--ink); box-shadow: none; border: 1px solid var(--line); }
+  .btn:disabled { opacity: .45; pointer-events: none; }
+  .btn.ghost { background: rgba(255,255,255,.08); color: var(--ink); box-shadow: none; border: 1px solid rgba(255,255,255,.14); }
   .btn-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 22px; }
   .btn-row .btn { flex: 1 1 auto; }
-
   .settings { display: grid; gap: 14px; margin-top: 26px; justify-items: center; }
-  .seg { display: inline-flex; padding: 4px; border-radius: 14px; background: rgba(255,255,255,.07); border: 1px solid var(--line); }
-  .seg button {
-    font: 700 14px var(--font); color: var(--muted); background: none; border: 0; padding: 8px 14px; border-radius: 10px; cursor: pointer;
-  }
+  .seg { display: inline-flex; flex-wrap: wrap; justify-content: center; padding: 4px; border-radius: 14px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); }
+  .seg button { font: 700 14px var(--font); color: #b9b0d8; background: none; border: 0; padding: 8px 14px; border-radius: 10px; cursor: pointer; }
   .seg button.on { background: rgba(255,159,189,.25); color: var(--ink); }
-  .seg-label { font-size: 12px; color: var(--muted); margin-bottom: -8px; }
+  .seg-label { font-size: 12px; color: #cfc6ec; margin-bottom: -8px; }
   .toggles { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
-  .toggle {
-    font: 700 14px var(--font); color: var(--muted); padding: 8px 14px; border-radius: 12px; cursor: pointer;
-    background: rgba(255,255,255,.07); border: 1px solid var(--line);
-  }
+  .toggle { font: 700 14px var(--font); color: #b9b0d8; padding: 8px 14px; border-radius: 12px; cursor: pointer; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); }
   .toggle.on { color: var(--ink); border-color: rgba(255,159,189,.6); background: rgba(255,159,189,.18); }
 
-  /* Lesson grid */
-  .lessons-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
-  .lessons-head h2 { margin: 0; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-  .tile {
-    position: relative; padding: 14px 12px 12px; border-radius: 16px; cursor: pointer; text-align: left;
-    font-family: var(--font); color: var(--ink);
-    background: linear-gradient(160deg, rgba(255,255,255,.1), rgba(255,255,255,.02));
-    border: 1px solid var(--line); transition: transform .15s, border-color .2s, background .2s;
+  /* Карта глав */
+  .map-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 20px; }
+  .map-head h2 { margin: 0; }
+  .map-head .grow { flex: 1; min-width: 200px; }
+  .modes { display: flex; flex-wrap: wrap; gap: 8px; }
+  .mode-btn {
+    font: 700 14px var(--font); color: var(--ink); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16);
+    border-radius: 12px; padding: 9px 14px; cursor: pointer; text-align: left; line-height: 1.2;
   }
-  .tile:hover { transform: translateY(-3px); border-color: rgba(255,159,189,.6); background: linear-gradient(160deg, rgba(255,159,189,.2), rgba(255,255,255,.03)); }
-  .tile .num { font-family: var(--font-title); font-size: 26px; line-height: 1; }
-  .tile .lbl { font-size: 13px; color: var(--muted); margin-top: 4px; }
-  .tile .theme { font-size: 12px; line-height: 1.3; color: var(--ink); opacity: .75; margin-top: 6px; min-height: 2.6em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .tile .stars { margin-top: 8px; font-size: 16px; letter-spacing: 2px; color: rgba(255,255,255,.2); }
-  .tile .stars .on { color: var(--gold); text-shadow: 0 0 8px rgba(255,217,138,.6); }
-  .tile .best { position: absolute; right: 10px; top: 12px; font-size: 11px; color: var(--muted); }
-  .tile.done { border-color: rgba(255,217,138,.45); }
+  .mode-btn small { display: block; font-size: 11px; font-weight: 500; color: #b9b0d8; }
+  .mode-btn:hover { background: rgba(255,255,255,.14); }
+  .mode-btn.hot { background: #ff9fbd; color: #2a0b17; border-color: transparent; }
+  .mode-btn.hot small { color: #5a2238; }
+  .mode-btn:disabled { opacity: .45; cursor: default; }
+  .chapters { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+  .chap {
+    position: relative; border-radius: 20px; overflow: hidden; padding: 18px 14px 14px; display: flex; flex-direction: column; gap: 6px;
+    border: 1px solid rgba(255,255,255,.14);
+  }
+  .chap .cn { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: .8; }
+  .chap .ck { font-family: var(--font-title); font-size: 64px; line-height: 1; font-weight: 800; }
+  .chap .ct { font-size: 20px; font-weight: 800; }
+  .chap .cs { font-size: 12px; opacity: .8; margin-bottom: 8px; }
+  .lbtn {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%;
+    padding: 8px 10px; border-radius: 10px; background: rgba(10,6,30,.45); border: 1px solid transparent; color: var(--ink);
+    font: 600 13px var(--font); cursor: pointer; text-align: left;
+  }
+  .lbtn:hover { border-color: rgba(255,255,255,.5); background: rgba(10,6,30,.6); }
+  .lbtn .st { letter-spacing: 1px; color: rgba(255,255,255,.28); white-space: nowrap; }
+  .lbtn .st .on { color: #ffd98a; }
 
-  /* Intro word list */
-  .wordlist {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px;
-    max-height: min(46vh, 420px); overflow-y: auto; padding-right: 4px; margin-top: 6px;
-  }
+  /* Слова */
+  .wordlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; max-height: min(46vh, 420px); overflow-y: auto; padding-right: 4px; margin-top: 6px; }
   .wl { padding: 8px 12px; border-radius: 12px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.07); }
   .wl .k { font-weight: 800; font-size: 18px; }
-  .wl .t { font-size: 13px; color: var(--muted); }
+  .wl .k small { font-family: var(--font-title); font-weight: 700; font-size: 15px; color: #ffd98a; margin-left: 8px; }
+  .wl .t { font-size: 13px; color: #b9b0d8; }
   .wordlist::-webkit-scrollbar, .screen::-webkit-scrollbar { width: 8px; }
   .wordlist::-webkit-scrollbar-thumb, .screen::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 8px; }
+  .intro-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 16px; }
+  .intro-controls .lab { font-size: 13px; color: #b9b0d8; }
+  .exam-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 8px 0 4px; }
+  select {
+    font: 700 16px var(--font); color: var(--ink); background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+    border-radius: 12px; padding: 10px 12px;
+  }
+  select option { color: #111; }
 
-  /* Results */
+  /* Итоги */
   .result-title { text-align: center; }
   .result-title .big { font-family: var(--font-title); font-size: 64px; line-height: 1; }
-  .result-title .big.win { color: #fff; text-shadow: 0 0 28px rgba(255,159,189,.9); }
+  .result-title .big.win { color: #fff; text-shadow: 0 0 28px var(--accent); }
   .result-title .big.lose { color: #ffb3bf; }
   .bigstars { display: flex; justify-content: center; gap: 10px; margin: 16px 0 8px; }
   .bigstars svg { width: 54px; height: 54px; opacity: .18; transform: scale(.7); transition: all .4s cubic-bezier(.3,1.6,.5,1); }
   .bigstars svg.on { opacity: 1; transform: scale(1); filter: drop-shadow(0 0 12px rgba(255,217,138,.8)); }
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
   .stat { text-align: center; padding: 10px 6px; border-radius: 14px; background: rgba(255,255,255,.06); }
-  .stat b { display: block; font-size: 22px; color: var(--gold); font-variant-numeric: tabular-nums; }
-  .stat span { font-size: 12px; color: var(--muted); }
+  .stat b { display: block; font-size: 22px; color: #ffd98a; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 12px; color: #b9b0d8; }
   .review-h { font-weight: 700; margin: 16px 0 6px; }
 
+  @media (max-width: 1000px) {
+    .chapters { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
+  }
   @media (max-width: 640px) {
     #hud { grid-template-columns: auto 1fr; gap: 8px 10px; }
     .hud-right { grid-column: 1 / -1; justify-content: space-between; }
-    .progress-wrap { grid-column: 2; }
     .lesson-tag .ru { display: none; }
     #answers { grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 10px; }
     .ans { min-height: 50px; font-size: 14px; padding-left: 12px; }
+    .ans.jp { font-size: 18px; }
     .ans .key { display: none; }
     .panel { padding: 20px; }
     .stats { grid-template-columns: repeat(2, 1fr); }
     .result-title .big { font-size: 48px; }
+    .scene-title .k { font-size: 72px; }
   }
-  @media (prefers-reduced-motion: reduce) {
-    .card { animation: none; }
-  }
+  @media (prefers-reduced-motion: reduce) { .card, .dl, .sign { animation: none !important; } }
 </style>
 </head>
-<body>
+<body data-scene="spring">
 <canvas id="bg" class="layer"></canvas>
+<div id="decor"></div>
 
 <div id="app">
   <header id="hud" class="hidden">
@@ -321,11 +415,10 @@
       <div class="score"><b id="score">0</b><small>очки</small></div>
     </div>
   </header>
-
   <main id="stage">
     <div class="combo" id="combo"></div>
+    <div class="effect hidden" id="effect"><span class="ek" id="effK">遅</span><span id="effT">Замедление</span><span class="eb"><i id="effBar"></i></span></div>
   </main>
-
   <nav id="answers" class="hidden"></nav>
 </div>
 
@@ -337,12 +430,16 @@
     <div class="hanko">日本<br>語</div>
     <h1 class="logo">おちることば</h1>
     <div class="logo-sub">Падающие слова</div>
-    <p class="logo-note">Minna no Nihongo I · 25 уроков · хирагана и катакана · выбери правильный перевод, пока слово не упало в воду</p>
-    <button class="btn" id="playBtn">
-      Играть
+    <p class="logo-note">Minna no Nihongo I · 5 глав, 25 уроков · выбери правильный перевод, пока слово не упало</p>
+    <button class="btn" id="playBtn">Играть
       <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11a.5.5 0 0 0 .77.42l8.5-5.5a.5.5 0 0 0 0-.84l-8.5-5.5A.5.5 0 0 0 4 2.5z"/></svg>
     </button>
     <div class="settings">
+      <div class="seg-label">Направление</div>
+      <div class="seg dirSeg">
+        <button data-v="jr">日本語 → русский</button>
+        <button data-v="rj">русский → 日本語</button>
+      </div>
       <div class="seg-label">Скорость</div>
       <div class="seg" id="speedSeg">
         <button data-v="slow">Медленно</button>
@@ -351,37 +448,73 @@
       </div>
       <div class="toggles">
         <button class="toggle" id="sndToggle">♪ Звук</button>
-        <button class="toggle" id="voiceToggle">🗣 Озвучка слов</button>
+        <button class="toggle" id="voiceToggle">Озвучка слов</button>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Выбор урока -->
+<!-- Карта глав -->
 <section class="screen dim hidden" id="scrLessons">
   <div class="panel wide">
-    <div class="lessons-head">
+    <div class="map-head">
       <button class="icon-btn" data-go="menu" aria-label="Назад">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 3 5 8l5 5"/></svg>
       </button>
-      <div>
-        <h2>Выбери урок</h2>
-        <div class="sub" style="margin:0">Каждый урок учебника — отдельный уровень</div>
+      <div class="grow">
+        <h2>Карта глав</h2>
+        <div class="sub" style="margin:0">Пять глав — пять сцен. Каждый урок учебника — отдельный уровень</div>
+      </div>
+      <div class="modes">
+        <button class="mode-btn" id="mistakesBtn">Мои ошибки<small id="mistakesSub">нет слов</small></button>
+        <button class="mode-btn" id="examBtn">Экзамен<small>несколько уроков</small></button>
+        <button class="mode-btn hot" id="endlessBtn">Бесконечный режим<small id="endlessSub">рекорд —</small></button>
       </div>
     </div>
-    <div class="grid" id="lessonGrid"></div>
+    <div class="chapters" id="chapters"></div>
   </div>
 </section>
 
 <!-- Слова урока -->
 <section class="screen dim hidden" id="scrIntro">
-  <div class="panel wide">
+  <div class="panel mid">
     <h2 id="introTitle">第1課 · Урок 1</h2>
     <p class="sub" id="introSub"></p>
     <div class="wordlist" id="introList"></div>
+    <div class="intro-controls">
+      <span class="lab">Направление:</span>
+      <div class="seg dirSeg">
+        <button data-v="jr">日本語 → русский</button>
+        <button data-v="rj">русский → 日本語</button>
+      </div>
+    </div>
     <div class="btn-row">
       <button class="btn ghost" data-go="lessons">К урокам</button>
       <button class="btn" id="startBtn">Начать ▶</button>
+    </div>
+  </div>
+</section>
+
+<!-- Экзамен -->
+<section class="screen dim hidden" id="scrExam">
+  <div class="panel">
+    <h2>試験 · Экзамен</h2>
+    <p class="sub">Слова из нескольких уроков вперемешку: до 40 слов, только 3 жизни.</p>
+    <div class="exam-row">
+      <span>С урока</span><select id="examFrom" aria-label="С урока"></select>
+      <span>по</span><select id="examTo" aria-label="По урок"></select>
+    </div>
+    <p class="sub" id="examInfo" style="margin:8px 0 0"></p>
+    <div class="intro-controls">
+      <span class="lab">Направление:</span>
+      <div class="seg dirSeg">
+        <button data-v="jr">日本語 → русский</button>
+        <button data-v="rj">русский → 日本語</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn ghost" data-go="lessons">Назад</button>
+      <button class="btn" id="examStart">Начать экзамен ▶</button>
     </div>
   </div>
 </section>
@@ -403,7 +536,7 @@
   <div class="panel">
     <div class="result-title">
       <div class="big" id="resBig">合格</div>
-      <div class="sub" id="resSub" style="margin-top:8px">Урок пройден!</div>
+      <div class="sub" id="resSub" style="margin-top:8px"></div>
     </div>
     <div class="bigstars" id="resStars"></div>
     <div class="stats">
@@ -423,32 +556,32 @@
 
 <script>
 /* =========================================================
-   Слова по урокам «Minna no Nihongo I» (хирагана и катакана)
+   Слова по урокам «Minna no Nihongo I»: кана|перевод|кандзи
    ========================================================= */
 const RAW = [
-`わたし|я
+`わたし|я|私
 あなた|вы, ты
-あのひと|тот человек, он/она
-みなさん|все, господа
-せんせい|учитель, преподаватель
-きょうし|преподаватель (профессия)
-がくせい|студент, учащийся
-かいしゃいん|сотрудник фирмы
-しゃいん|служащий компании
-ぎんこういん|банковский служащий
-いしゃ|врач
-けんしゅうせい|стажёр
-がっこう|школа
-だいがく|университет
-かいしゃ|фирма, компания
-ぎんこう|банк
-ちゅうごく|Китай
+あのひと|тот человек, он/она|あの人
+みなさん|все, господа|皆さん
+せんせい|учитель, преподаватель|先生
+きょうし|преподаватель (профессия)|教師
+がくせい|студент, учащийся|学生
+かいしゃいん|сотрудник фирмы|会社員
+しゃいん|служащий компании|社員
+ぎんこういん|банковский служащий|銀行員
+いしゃ|врач|医者
+けんしゅうせい|стажёр|研修生
+がっこう|школа|学校
+だいがく|университет|大学
+かいしゃ|фирма, компания|会社
+ぎんこう|банк|銀行
+ちゅうごく|Китай|中国
 アメリカ|США, Америка
 はじめまして|здравствуйте (при знакомстве)
-どうぞよろしく|очень приятно
-よろしくおねがいします|прошу относиться хорошо (вежливо)
+どうぞよろしく|очень приятно|どうぞ宜しく
+よろしくおねがいします|прошу относиться хорошо (вежливо)|宜しくお願いします
 おはようございます|доброе утро (вежливо)
-なんさい|сколько лет?
+なんさい|сколько лет?|何歳
 イギリス|Великобритания
 インド|Индия
 ドイツ|Германия
@@ -459,16 +592,16 @@ const RAW = [
 `これ|это (близко к говорящему)
 それ|то (близко к собеседнику)
 あれ|то (далеко от обоих)
-なん|что?
-ほん|книга
-じしょ|словарь
-ざっし|журнал
-しんぶん|газета
-えんぴつ|карандаш
-とけい|часы
-かばん|портфель, сумка
-えいご|английский язык
-にほんご|японский язык
+なん|что?|何
+ほん|книга|本
+じしょ|словарь|辞書
+ざっし|журнал|雑誌
+しんぶん|газета|新聞
+えんぴつ|карандаш|鉛筆
+とけい|часы|時計
+かばん|портфель, сумка|鞄
+えいご|английский язык|英語
+にほんご|японский язык|日本語
 どうぞ|пожалуйста (при предложении)
 どうも|спасибо (кратко)
 ノート|тетрадь
@@ -488,87 +621,87 @@ const RAW = [
 そちら|там, у вас (вежл.)
 あちら|вон там (вежл.)
 どちら|где? (вежл.)
-きょうしつ|класс, аудитория
-しょくどう|столовая
-じむしょ|офис, контора
-かいぎしつ|зал заседаний
-うけつけ|регистратура
+きょうしつ|класс, аудитория|教室
+しょくどう|столовая|食堂
+じむしょ|офис, контора|事務所
+かいぎしつ|зал заседаний|会議室
+うけつけ|регистратура|受付
 ロビー|вестибюль, холл
-へや|комната
+へや|комната|部屋
 トイレ|туалет
-かい|этаж
-なんがい|который этаж?
+かい|этаж|階
+なんがい|который этаж?|何階
 いくら|сколько (стоит)?
-ひゃく|сто
-せん|тысяча
-まん|десять тысяч
+ひゃく|сто|百
+せん|тысяча|千
+まん|десять тысяч|万
 すみません|извините (при обращении)
 では|ну тогда; итак
 エレベーター|лифт
 エスカレーター|эскалатор
 ネクタイ|галстук
 ワイン|вино`,
-`いま|сейчас
-なんじ|который час
-ごぜん|до полудня
-ごご|после полудня
-あさ|утро
-ひる|день, полдень
-ばん|вечер
-けさ|сегодня утром
-おきます|вставать
-ねます|ложиться спать
-はたらきます|работать
-やすみます|отдыхать, брать выходной
-べんきょうします|учиться
-まいにち|каждый день
-がっこう|школа
-かいしゃ|компания
-うち|дом
-あさごはん|завтрак
-ひるごはん|обед
-ばんごはん|ужин
-なんようび|какой день недели
-にちようび|воскресенье
-げつようび|понедельник
-かようび|вторник
-すいようび|среда
-もくようび|четверг
-きんようび|пятница
-どようび|суббота
-いっしょに|вместе
+`いま|сейчас|今
+なんじ|который час|何時
+ごぜん|до полудня|午前
+ごご|после полудня|午後
+あさ|утро|朝
+ひる|день, полдень|昼
+ばん|вечер|晩
+けさ|сегодня утром|今朝
+おきます|вставать|起きます
+ねます|ложиться спать|寝ます
+はたらきます|работать|働きます
+やすみます|отдыхать, брать выходной|休みます
+べんきょうします|учиться|勉強します
+まいにち|каждый день|毎日
+がっこう|школа|学校
+かいしゃ|компания|会社
+うち|дом|家
+あさごはん|завтрак|朝ご飯
+ひるごはん|обед|昼ご飯
+ばんごはん|ужин|晩ご飯
+なんようび|какой день недели|何曜日
+にちようび|воскресенье|日曜日
+げつようび|понедельник|月曜日
+かようび|вторник|火曜日
+すいようび|среда|水曜日
+もくようび|четверг|木曜日
+きんようび|пятница|金曜日
+どようび|суббота|土曜日
+いっしょに|вместе|一緒に
 いつも|всегда
 デパート|универмаг`,
-`いきます|идти, ехать
-きます|приходить, приезжать
-かえります|возвращаться домой
-でんしゃ|поезд
+`いきます|идти, ехать|行きます
+きます|приходить, приезжать|来ます
+かえります|возвращаться домой|帰ります
+でんしゃ|поезд|電車
 バス|автобус
-ひこうき|самолёт
-しんかんせん|синкансэн
-あるいて|пешком
-なんがつ|какой месяц?
-なんにち|какое число?
-たんじょうび|день рождения
-ひとりで|один, самостоятельно
+ひこうき|самолёт|飛行機
+しんかんせん|синкансэн|新幹線
+あるいて|пешком|歩いて
+なんがつ|какой месяц?|何月
+なんにち|какое число?|何日
+たんじょうび|день рождения|誕生日
+ひとりで|один, самостоятельно|一人で
 スーパー|супермаркет
 タクシー|такси`,
-`たべます|есть
-のみます|пить
-たまご|яйцо
-にく|мясо
-やさい|овощи
-みず|вода
-おちゃ|чай
+`たべます|есть|食べます
+のみます|пить|飲みます
+たまご|яйцо|卵
+にく|мясо|肉
+やさい|овощи|野菜
+みず|вода|水
+おちゃ|чай|お茶
 コーヒー|кофе
-みます|смотреть
-ききます|слушать
-よみます|читать
-かきます|писать
-しゃしん|фотография
-おんがく|музыка
-えいが|кино, фильм
-いっしょに|вместе
+みます|смотреть|見ます
+ききます|слушать|聞きます
+よみます|читать|読みます
+かきます|писать|書きます
+しゃしん|фотография|写真
+おんがく|музыка|音楽
+えいが|кино, фильм|映画
+いっしょに|вместе|一緒に
 ちょっと|немного; (вежл. отказ)
 いいですね|хорошая идея
 パン|хлеб
@@ -578,30 +711,30 @@ const RAW = [
 ビデオ|видео
 テニス|теннис
 サッカー|футбол`,
-`きります|резать, стричь
-おくります|отправлять, посылать
-つくります|делать, изготовлять
-うります|продавать
-かします|давать в долг, одалживать
-かります|брать взаймы, арендовать
-おしえます|обучать, рассказывать
-ならいます|учиться (у кого-либо)
-かけます|звонить (по телефону)
+`きります|резать, стричь|切ります
+おくります|отправлять, посылать|送ります
+つくります|делать, изготовлять|作ります
+うります|продавать|売ります
+かします|давать в долг, одалживать|貸します
+かります|брать взаймы, арендовать|借ります
+おしえます|обучать, рассказывать|教えます
+ならいます|учиться (у кого-либо)|習います
+かけます|звонить (по телефону)|掛けます
 あげます|дарить, давать (от себя)
 もらいます|получать
-えんぴつ|карандаш
+えんぴつ|карандаш|鉛筆
 ボールペン|шариковая ручка
-けしゴム|ластик
+けしゴム|ластик|消しゴム
 ノート|тетрадь, блокнот
-じてん|словарь
-ざっし|журнал
-しんぶん|газета
-てがみ|письмо
-きって|почтовая марка
-おとうさん|отец (чужой)
-おかあさん|мать (чужая)
-にいさん|старший брат (чужой)
-ねえさん|старшая сестра (чужая)
+じてん|словарь|辞典
+ざっし|журнал|雑誌
+しんぶん|газета|新聞
+てがみ|письмо|手紙
+きって|почтовая марка|切手
+おとうさん|отец (чужой)|お父さん
+おかあさん|мать (чужая)|お母さん
+にいさん|старший брат (чужой)|お兄さん
+ねえさん|старшая сестра (чужая)|お姉さん
 もうします|говорить (скромно)
 よく|часто, хорошо
 スプーン|ложка
@@ -613,379 +746,378 @@ const RAW = [
 プレゼント|подарок
 クリスマス|Рождество
 ホッチキス|степлер`,
-`おおきい|большой
-ちいさい|маленький
-あたらしい|новый
-ふるい|старый (о вещах)
+`おおきい|большой|大きい
+ちいさい|маленький|小さい
+あたらしい|новый|新しい
+ふるい|старый (о вещах)|古い
 いい|хороший
-あつい|жаркий (о погоде)
-さむい|холодный (о погоде)
-つめたい|холодный (на ощупь)
-むずかしい|трудный
-やさしい|лёгкий, простой
-たかい|дорогой; высокий
-やすい|дешёвый
-ひくい|низкий
-おもしろい|интересный
-おいしい|вкусный
-いそがしい|занятой
-たのしい|приятный, весёлый
-しろい|белый
-くろい|чёрный
-あかい|красный
-あおい|синий
-きれい|красивый; чистый
-しずか|тихий
-にぎやか|оживлённый
-ゆうめい|известный
-べんり|удобный
-ふべん|неудобный
-げんき|бодрый, здоровый
+あつい|жаркий (о погоде)|暑い
+さむい|холодный (о погоде)|寒い
+つめたい|холодный (на ощупь)|冷たい
+むずかしい|трудный|難しい
+やさしい|лёгкий, простой|易しい
+たかい|дорогой; высокий|高い
+やすい|дешёвый|安い
+ひくい|низкий|低い
+おもしろい|интересный|面白い
+おいしい|вкусный|美味しい
+いそがしい|занятой|忙しい
+たのしい|приятный, весёлый|楽しい
+しろい|белый|白い
+くろい|чёрный|黒い
+あかい|красный|赤い
+あおい|синий|青い
+きれい|красивый; чистый|綺麗
+しずか|тихий|静か
+にぎやか|оживлённый|賑やか
+ゆうめい|известный|有名
+べんり|удобный|便利
+ふべん|неудобный|不便
+げんき|бодрый, здоровый|元気
 すてき|прекрасный, милый
 ハンサム|красивый (о мужчине)
-いろ|цвет
-みどり|зелёный
-まち|город
-ところ|место
-せいかつ|жизнь
-しごと|работа
+いろ|цвет|色
+みどり|зелёный|緑
+まち|город|町
+ところ|место|所
+せいかつ|жизнь|生活
+しごと|работа|仕事
 どう|как?
 どんな|какой?
 とても|очень
 あまり|не очень (с отриц.)
-ぜんぜん|совсем не
-ちょうど|точно, как раз
+ぜんぜん|совсем не|全然
+ちょうど|точно, как раз|丁度
 さあ、わかりません|Ну, не знаю…
-わかりました|Понятно, ясно
+わかりました|Понятно, ясно|分かりました
 レストラン|ресторан`,
-`すき|любимый; нравиться
-きらい|нелюбимый; не нравиться
-じょうず|умелый, ловкий
-へた|неумелый
-おんがく|музыка
-うた|песня
+`すき|любимый; нравиться|好き
+きらい|нелюбимый; не нравиться|嫌い
+じょうず|умелый, ловкий|上手
+へた|неумелый|下手
+おんがく|музыка|音楽
+うた|песня|歌
 クラシック|классическая музыка
 ジャズ|джаз
 カラオケ|караоке
-うたいます|петь
-かぞく|семья
-あに|старший брат (мой)
-あね|старшая сестра (моя)
-おとうと|младший брат (мой)
-いもうと|младшая сестра (моя)
-ひとり|один человек
-ふたり|два человека
-ざんねんですね|как жаль
+うたいます|петь|歌います
+かぞく|семья|家族
+あに|старший брат (мой)|兄
+あね|старшая сестра (моя)|姉
+おとうと|младший брат (мой)|弟
+いもうと|младшая сестра (моя)|妹
+ひとり|один человек|一人
+ふたり|два человека|二人
+ざんねんですね|как жаль|残念ですね
 また|опять, снова
 スポーツ|спорт
 ダンス|танцы
 コンサート|концерт
 チケット|билет
 アルバイト|подработка`,
-`います|быть (о живом)
-あります|быть (о предметах)
-おとこのひと|мужчина
-おんなのひと|женщина
-いぬ|собака
-でんち|батарейка
-はこ|коробка
-れいぞうこ|холодильник
-へや|комната
-かいだん|лестница
-となり|рядом, соседний
-うえ|верх, над
-した|низ, под
-まえ|перед, впереди
-うしろ|позади, за
-なか|внутри
-あいだ|между
+`います|быть (о живом)|居ます
+あります|быть (о предметах)|有ります
+おとこのひと|мужчина|男の人
+おんなのひと|женщина|女の人
+いぬ|собака|犬
+でんち|батарейка|電池
+はこ|коробка|箱
+れいぞうこ|холодильник|冷蔵庫
+へや|комната|部屋
+かいだん|лестница|階段
+となり|рядом, соседний|隣
+うえ|верх, над|上
+した|низ, под|下
+まえ|перед, впереди|前
+うしろ|позади, за|後ろ
+なか|внутри|中
+あいだ|между|間
 テーブル|стол (обеденный)
 ベッド|кровать
 ドア|дверь
 ポスト|почтовый ящик
 ビル|здание
 コンビニ|круглосуточный магазин`,
-`たくさん|много
-すこし|мало, немного
-ぜんぜん|совсем (не)
-てがみ|письмо
-きって|почтовая марка
-はがき|открытка
-ふうとう|конверт
-ゆうびんきょく|почта
+`たくさん|много|沢山
+すこし|мало, немного|少し
+ぜんぜん|совсем (не)|全然
+てがみ|письмо|手紙
+きって|почтовая марка|切手
+はがき|открытка|葉書
+ふうとう|конверт|封筒
+ゆうびんきょく|почта|郵便局
 りんご|яблоко
 みかん|мандарин
-りょうしん|родители
-きょうだい|братья и сёстры
-こども|ребёнок
+りょうしん|родители|両親
+きょうだい|братья и сёстры|兄弟
+こども|ребёнок|子供
 サンドイッチ|сэндвич
 カレー|карри
 アイスクリーム|мороженое
 クラス|класс, группа`,
-`あたたかい|тёплый
-すずしい|прохладный
-あつい|жаркий (о погоде)
-さむい|холодный (о погоде)
-むずかしい|трудный, сложный
-やさしい|добрый, ласковый
-はる|весна
-なつ|лето
-あき|осень
-ふゆ|зима
-てんき|погода
-あめ|дождь
-ゆき|снег
-くもり|облачность
-たいふう|тайфун
-あめがふります|идёт дождь
-ゆきがふります|идёт снег
-りょこう|путешествие
-りょこうします|путешествовать
-かえります|возвращаться (домой)
-りょうり|блюдо, кулинария
-りょうりします|готовить (еду)
-しょくじ|приём пищи
-おちゃ|чай
-のみもの|напиток
+`あたたかい|тёплый|暖かい
+すずしい|прохладный|涼しい
+あつい|жаркий (о погоде)|暑い
+さむい|холодный (о погоде)|寒い
+むずかしい|трудный, сложный|難しい
+やさしい|добрый, ласковый|易しい
+はる|весна|春
+なつ|лето|夏
+あき|осень|秋
+ふゆ|зима|冬
+てんき|погода|天気
+あめ|дождь|雨
+ゆき|снег|雪
+くもり|облачность|曇り
+たいふう|тайфун|台風
+あめがふります|идёт дождь|雨が降ります
+ゆきがふります|идёт снег|雪が降ります
+りょこう|путешествие|旅行
+りょこうします|путешествовать|旅行します
+かえります|возвращаться (домой)|帰ります
+りょうり|блюдо, кулинария|料理
+りょうりします|готовить (еду)|料理します
+しょくじ|приём пищи|食事
+おちゃ|чай|お茶
+のみもの|напиток|飲み物
 ホテル|гостиница
 パーティー|вечеринка`,
-`ほしい|хочу (предмет)
-ひま|свободное время
-あそびます|играть, развлекаться
-およぎます|плавать
-むかえます|встречать (человека)
-つかいます|использовать
-ならいます|учиться (у кого-либо)
-おもい|тяжёлый
-かるい|лёгкий
-いたい|больно
-ねつ|температура, жар
-かぜ|простуда
-くすり|лекарство
+`ほしい|хочу (предмет)|欲しい
+ひま|свободное время|暇
+あそびます|играть, развлекаться|遊びます
+およぎます|плавать|泳ぎます
+むかえます|встречать (человека)|迎えます
+つかいます|использовать|使います
+ならいます|учиться (у кого-либо)|習います
+おもい|тяжёлый|重い
+かるい|лёгкий|軽い
+いたい|больно|痛い
+ねつ|температура, жар|熱
+かぜ|простуда|風邪
+くすり|лекарство|薬
 プール|бассейн
 スキー|лыжи`,
-`あびます|принимать (душ)
-あらいます|мыть, стирать
-かします|давать взаймы
-かります|брать взаймы
-しめます|закрывать
-あけます|открывать
-いそぎます|спешить
-まちます|ждать
-もっていきます|уносить
-もってきます|приносить
-ひっくりかえします|переворачивать
-まがります|поворачивать
-みぎ|направо, справа
-ひだり|налево, слева
+`あびます|принимать (душ)|浴びます
+あらいます|мыть, стирать|洗います
+かします|давать взаймы|貸します
+かります|брать взаймы|借ります
+しめます|закрывать|閉めます
+あけます|открывать|開けます
+いそぎます|спешить|急ぎます
+まちます|ждать|待ちます
+もっていきます|уносить|持って行きます
+もってきます|приносить|持って来ます
+ひっくりかえします|переворачивать|引っくり返します
+まがります|поворачивать|曲がります
+みぎ|направо, справа|右
+ひだり|налево, слева|左
 まっすぐ|прямо
-とめます|останавливать
-かさ|зонт
-くつ|обувь
-かばん|портфель, сумка
-ことば|слово, язык
+とめます|останавливать|止めます
+かさ|зонт|傘
+くつ|обувь|靴
+かばん|портфель, сумка|鞄
+ことば|слово, язык|言葉
 ゆっくり|медленно, не спеша
 すぐ|сразу, тотчас
 また|опять, снова
-あとで|потом, позже
-もうすこし|ещё немного
+あとで|потом, позже|後で
+もうすこし|ещё немного|もう少し
 いいですよ|хорошо, конечно (разрешение)
 すみません|извините
 エアコン|кондиционер
 パスポート|паспорт`,
-`つかいます|использовать
-つけています|держать включённым
-あいています|быть открытым
-こわれています|быть сломанным
-はたらいています|работать
-かいしゃ|фирма, компания
-びょういん|больница
-ぎんこう|банк
-すんでいます|проживать (где-либо)
-しっています|знать
-けっこんしています|быть женатым / замужем
-こども|ребёнок, дети
-しゅふ|домохозяйка
-なにさい|сколько лет
+`つかいます|использовать|使います
+つけています|держать включённым|付けています
+あいています|быть открытым|開いています
+こわれています|быть сломанным|壊れています
+はたらいています|работать|働いています
+かいしゃ|фирма, компания|会社
+びょういん|больница|病院
+ぎんこう|банк|銀行
+すんでいます|проживать (где-либо)|住んでいます
+しっています|знать|知っています
+けっこんしています|быть женатым / замужем|結婚しています
+こども|ребёнок, дети|子供
+しゅふ|домохозяйка|主婦
+なにさい|сколько лет|何歳
 カタログ|каталог
 ソフト|программа, софт`,
-`のりかえます|делать пересадку
-およぎます|плавать
-つかれます|уставать
-こうさてん|перекрёсток
-しんごう|светофор
-バスてい|автобусная остановка
-かお|лицо
-あたまがいい|умный
-せいがたかい|высокий (о росте)
-じんじゃ|синтоистский храм
-おてら|буддийский храм
-じぶんで|самостоятельно
+`のりかえます|делать пересадку|乗り換えます
+およぎます|плавать|泳ぎます
+つかれます|уставать|疲れます
+こうさてん|перекрёсток|交差点
+しんごう|светофор|信号
+バスてい|автобусная остановка|バス停
+かお|лицо|顔
+あたまがいい|умный|頭がいい
+せいがたかい|высокий (о росте)|背が高い
+じんじゃ|синтоистский храм|神社
+おてら|буддийский храм|お寺
+じぶんで|самостоятельно|自分で
 シャワー|душ
 ジョギング|пробежка
 ボタン|кнопка
 サービス|обслуживание, сервис`,
-`だいじょうぶです|всё в порядке
-びょうき|болезнь
-かぜ|простуда
-ねつ|температура, жар
-ずつう|головная боль
-きぶんがわるいです|плохо себя чувствую
-くすり|лекарство
-のみます|принимать (лекарство)
-びょういん|больница
-いしゃ|врач
-やすみます|брать выходной
-きます|надевать (верхнее)
-はきます|надевать (обувь, брюки)
+`だいじょうぶです|всё в порядке|大丈夫です
+びょうき|болезнь|病気
+かぜ|простуда|風邪
+ねつ|температура, жар|熱
+ずつう|головная боль|頭痛
+きぶんがわるいです|плохо себя чувствую|気分が悪いです
+くすり|лекарство|薬
+のみます|принимать (лекарство)|飲みます
+びょういん|больница|病院
+いしゃ|врач|医者
+やすみます|брать выходной|休みます
+きます|надевать (верхнее)|来ます
+はきます|надевать (обувь, брюки)|履きます
 セーター|свитер
 コート|пальто, куртка
-おだいじに|выздоравливайте
+おだいじに|выздоравливайте|お大事に
 どうしましたか|что случилось?
-おくすりをだします|выписать лекарство`,
-`できます|мочь, уметь
-みえます|быть видимым
-きこえます|быть слышимым
-しゅみ|хобби, увлечение
-りょこう|путешествие
-にっき|дневник
-かいわ|разговор
-そうじします|убирать помещение
-せんたくします|стирать
-かいしゃをやすみます|отсутствовать на работе
-おんがく|музыка
+おくすりをだします|выписать лекарство|お薬を出します`,
+`できます|мочь, уметь|出来ます
+みえます|быть видимым|見えます
+きこえます|быть слышимым|聞こえます
+しゅみ|хобби, увлечение|趣味
+りょこう|путешествие|旅行
+にっき|дневник|日記
+かいわ|разговор|会話
+そうじします|убирать помещение|掃除します
+せんたくします|стирать|洗濯します
+かいしゃをやすみます|отсутствовать на работе|会社を休みます
+おんがく|музыка|音楽
 ピアノ|пианино
-のうじょう|ферма
-いなか|провинция, родные места
-こめ|рис (зерно)
-うれます|раскупаться, хорошо продаваться
+のうじょう|ферма|農場
+いなか|провинция, родные места|田舎
+こめ|рис (зерно)|米
+うれます|раскупаться, хорошо продаваться|売れます
 メートル|метр`,
-`りゅうがくします|учиться за границей
-きめます|решать
-よやくします|бронировать
-おくれます|опаздывать
+`りゅうがくします|учиться за границей|留学します
+きめます|решать|決めます
+よやくします|бронировать|予約します
+おくれます|опаздывать|遅れます
 なります|становиться
-きえます|исчезать, гаснуть
-われます|разбиваться
-しまります|закрываться
-すいえい|плавание
-びょうき|болезнь
-くすり|лекарство
-かぜ|простуда
-やさい|овощи
-くだもの|фрукты
-けんこう|здоровье
-はじめて|впервые
+きえます|исчезать, гаснуть|消えます
+われます|разбиваться|割れます
+しまります|закрываться|閉まります
+すいえい|плавание|水泳
+びょうき|болезнь|病気
+くすり|лекарство|薬
+かぜ|простуда|風邪
+やさい|овощи|野菜
+くだもの|фрукты|果物
+けんこう|здоровье|健康
+はじめて|впервые|初めて
 ゴルフ|гольф
 ダイエット|диета`,
-`ぼく|я (муж., разг.)
-きみ|ты (разг.)
+`ぼく|я (муж., разг.)|僕
+きみ|ты (разг.)|君
 いくら|сколько (стоит)
-たかい|дорогой
-くつ|обувь
-はきます|надевать (обувь)
-なおします|чинить
-こわれます|ломаться
+たかい|дорогой|高い
+くつ|обувь|靴
+はきます|надевать (обувь)|履きます
+なおします|чинить|直します
+こわれます|ломаться|壊れます
 どうしたんですか|Что случилось?
 ごちそうさま|Спасибо за угощение
-けっこうです|Не нужно, спасибо
+けっこうです|Не нужно, спасибо|結構です
 ビザ|виза`,
-`おもいます|думать, считать (мнение)
-いいます|говорить, называть
-せいじ|политика
-せいふ|правительство
-けいざい|экономика
+`おもいます|думать, считать (мнение)|思います
+いいます|говорить, называть|言います
+せいじ|политика|政治
+せいふ|правительство|政府
+けいざい|экономика|経済
 ニュース|новости, выпуск новостей
-しんぶん|газета
-しあい|матч, игра, состязание
-せんしゅ|спортсмен, игрок
-うんてんします|водить (машину)
-のります|садиться (в транспорт)
+しんぶん|газета|新聞
+しあい|матч, игра, состязание|試合
+せんしゅ|спортсмен, игрок|選手
+うんてんします|водить (машину)|運転します
+のります|садиться (в транспорт)|乗ります
 でも|но, однако
 それから|затем, кроме того
 やっぱり|всё-таки, как и ожидалось
 アニメ|аниме
 マンガ|манга
 デザイン|дизайн`,
-`きます|надевать (пальто, рубашку)
-はきます|надевать (обувь, брюки)
-かぶります|надевать (на голову)
-かけます|надевать (очки)
-うまれます|родиться
+`きます|надевать (пальто, рубашку)|来ます
+はきます|надевать (обувь, брюки)|履きます
+かぶります|надевать (на голову)|被ります
+かけます|надевать (очки)|掛けます
+うまれます|родиться|生まれます
 コート|пальто, шинель
 セーター|свитер
-ぼうし|шляпа, кепка
-くつ|обувь
-たんじょうび|день рождения
-すんでいます|проживать
-へや|комната
-たたみ|татами (циновка)
-ふとん|футон (постель)
-しょうじ|сёдзи (перегородка)
-かびん|ваза для цветов
+ぼうし|шляпа, кепка|帽子
+くつ|обувь|靴
+たんじょうび|день рождения|誕生日
+すんでいます|проживать|住んでいます
+へや|комната|部屋
+たたみ|татами (циновка)|畳
+ふとん|футон (постель)|布団
+しょうじ|сёдзи (перегородка)|障子
+かびん|ваза для цветов|花瓶
 スーツ|костюм
 ケーキ|торт
 ロボット|робот
 アパート|квартира, многоквартирный дом`,
-`つきます|прибывать
-うります|продавать
-しります|знать
+`つきます|прибывать|着きます
+うります|продавать|売ります
+しります|знать|知ります
 まっすぐ|прямо
 こわい|страшный
-あかい|красный
-あおい|синий, зелёный (светофор)
-おなかがすきます|проголодаться
+あかい|красный|赤い
+あおい|синий, зелёный (светофор)|青い
+おなかがすきます|проголодаться|お腹が空きます
 エアコン|кондиционер
-せんたくき|стиральная машина
-れいぞうこ|холодильник
-でんしレンジ|микроволновая печь
-そうじき|пылесос
-くうこう|аэропорт
-こうさてん|перекрёсток
-しんごう|светофор
-はし|мост
-かど|угол
-みぎがわ|правая сторона
-ひだりがわ|левая сторона
-はこね|Хаконэ (курортный район)
-せとおおはし|Большой мост Сэто
-しこく|Сикоку (остров)
+せんたくき|стиральная машина|洗濯機
+れいぞうこ|холодильник|冷蔵庫
+でんしレンジ|микроволновая печь|電子レンジ
+そうじき|пылесос|掃除機
+くうこう|аэропорт|空港
+こうさてん|перекрёсток|交差点
+しんごう|светофор|信号
+はし|мост|橋
+かど|угол|角
+みぎがわ|правая сторона|右側
+ひだりがわ|левая сторона|左側
+はこね|Хаконэ (курортный район)|箱根
+せとおおはし|Большой мост Сэто|瀬戸大橋
+しこく|Сикоку (остров)|四国
 サイズ|размер`,
 `くれます|давать (мне)
-なおします|исправлять, чинить
-つれていきます|брать с собой (кого-то)
-つれてきます|приводить (кого-то)
-おくります|провожать
-しょうかいします|знакомить, представлять
-あんないします|показывать (дорогу)
-せつめいします|объяснять
+なおします|исправлять, чинить|直します
+つれていきます|брать с собой (кого-то)|連れて行きます
+つれてきます|приводить (кого-то)|連れて来ます
+おくります|провожать|送ります
+しょうかいします|знакомить, представлять|紹介します
+あんないします|показывать (дорогу)|案内します
+せつめいします|объяснять|説明します
 おじいさん|дедушка
 おばあさん|бабушка
-じゅんび|подготовка
-ひっこし|переезд
-おかし|сладости
-ぜんぶ|всё
-じぶんで|самостоятельно
-ほかに|кроме того
-ははのひ|День матери
+じゅんび|подготовка|準備
+ひっこし|переезд|引っ越し
+おかし|сладости|お菓子
+ぜんぶ|всё|全部
+じぶんで|самостоятельно|自分で
+ほかに|кроме того|他に
+ははのひ|День матери|母の日
 ホームステイ|проживание в семье`,
-`かんがえます|думать, обдумывать
-つきます|прибывать
-たります|хватать, быть достаточным
-としをとります|стареть
-いなか|деревня, провинция
-おく|сто миллионов
+`かんがえます|думать, обдумывать|考えます
+つきます|прибывать|着きます
+たります|хватать, быть достаточным|足ります
+としをとります|стареть|年を取ります
+いなか|деревня, провинция|田舎
+おく|сто миллионов|億
 もし|если
-いみ|значение, смысл
-てんきん|перевод по работе
-こと|дело (абстр.)
-がんばります|стараться
-おせわになりました|спасибо за заботу
-どうぞおげんきで|всего доброго
+いみ|значение, смысл|意味
+てんきん|перевод по работе|転勤
+こと|дело (абстр.)|事
+がんばります|стараться|頑張ります
+おせわになりました|спасибо за заботу|お世話になりました
+どうぞおげんきで|всего доброго|どうぞお元気で
 チャンス|шанс`
 ];
 
-// Темы уроков (из оглавления словаря)
 const THEMES = [
   "はじめまして — знакомство", "これ・それ・あれ — указательные слова", "ここ・そこ・あそこ — места и цены",
   "毎日の生活 — распорядок дня", "行きます・来ます・帰ります", "食べます・飲みます — еда и напитки",
@@ -998,16 +1130,29 @@ const THEMES = [
   "〜たら・〜ても",
 ];
 
-// Разбор: «кана|перевод», по строке на слово
+const CHAPTERS = [
+  { scene: "spring", kanji: "春", name: "Весна", sub: "Сакура у Фудзи", from: 1, to: 5,
+    grad: "linear-gradient(180deg, #221a55 0%, #6b3470 60%, #e2847e 100%)", color: "#ffe3ec" },
+  { scene: "summer", kanji: "夏", name: "Мацури", sub: "Летний фестиваль", from: 6, to: 10,
+    grad: "linear-gradient(180deg, #070b24 0%, #13204d 60%, #5a3570 100%)", color: "#ffc27a" },
+  { scene: "autumn", kanji: "秋", name: "Момидзи", sub: "Клёны и пагода", from: 11, to: 15,
+    grad: "linear-gradient(180deg, #1e0f2e 0%, #8a2d3b 60%, #f2a04e 100%)", color: "#ffd2a8" },
+  { scene: "winter", kanji: "冬", name: "Снег", sub: "Горная деревня", from: 16, to: 20,
+    grad: "linear-gradient(180deg, #0b1633 0%, #1f3a6b 60%, #a9c1dd 100%)", color: "#e6f1ff" },
+  { scene: "tokyo", kanji: "夜", name: "Токио", sub: "Неоновый город", from: 21, to: 25,
+    grad: "linear-gradient(180deg, #05030f 0%, #140a2e 60%, #4a1560 100%)", color: "#ff8fe0" },
+];
+const chapterOf = n => CHAPTERS[Math.min(4, Math.floor((n - 1) / 5))];
+
 const LESSONS = (() => {
   let id = 0;
   return RAW.map((block, i) => {
     const seen = new Set(), words = [];
     for (const line of block.split("\n")) {
-      const [jp, ru] = line.split("|").map(s => s && s.trim());
+      const [jp, ru, kanji] = line.split("|").map(s => s && s.trim());
       if (!jp || !ru || seen.has(jp)) continue;
       seen.add(jp);
-      words.push({ id: id++, jp, ru, lesson: i + 1 });
+      words.push({ id: id++, jp, ru, kanji: kanji || "", lesson: i + 1 });
     }
     return { n: i + 1, theme: THEMES[i] || "", words };
   });
@@ -1018,8 +1163,26 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
-const settings = Object.assign({ speed: "normal", sound: true, voice: true }, store.get("oc_settings", {}));
+const settings = Object.assign({ speed: "normal", sound: true, voice: true, dir: "jr" }, store.get("oc_settings", {}));
 const progress = store.get("oc_progress", {});
+const mistakes = store.get("oc_mistakes", {});   // ключ «кана|перевод» → { jp, ru, kanji, lesson, streak }
+const records = Object.assign({ endless: 0, endlessWords: 0 }, store.get("oc_records", {}));
+const MASTER = 3; // столько правильных ответов подряд — и слово уходит из «Моих ошибок»
+
+const mKey = w => w.jp + "|" + w.ru;
+function addMistake(w) {
+  mistakes[mKey(w)] = { jp: w.jp, ru: w.ru, kanji: w.kanji, lesson: w.lesson, streak: 0 };
+  store.set("oc_mistakes", mistakes);
+}
+function markCorrect(w) {
+  const m = mistakes[mKey(w)];
+  if (!m) return false;
+  m.streak++;
+  const learned = m.streak >= MASTER;
+  if (learned) delete mistakes[mKey(w)];
+  store.set("oc_mistakes", mistakes);
+  return learned;
+}
 
 /* ================= Звук ================= */
 const Sound = (() => {
@@ -1029,19 +1192,25 @@ const Sound = (() => {
     if (ctx.state === "suspended") ctx.resume();
     return ctx;
   };
-  // Японская пентатоника (мияко-буси) — звучит как кото
   const SCALE = [0, 1, 5, 7, 8, 12, 13, 17, 19, 20, 24];
   function pluck(semi, t = 0, dur = .7, vol = .22, type = "triangle") {
     const c = ensure(); if (!c || !settings.sound) return;
     const f = 293.66 * Math.pow(2, semi / 12);
     const o = c.createOscillator(), g = c.createGain(), o2 = c.createOscillator(), g2 = c.createGain();
-    o.type = type; o.frequency.value = f;
-    o2.type = "sine"; o2.frequency.value = f * 2;
+    o.type = type; o.frequency.value = f; o2.type = "sine"; o2.frequency.value = f * 2;
     const s = c.currentTime + t;
     g.gain.setValueAtTime(0, s); g.gain.linearRampToValueAtTime(vol, s + .005); g.gain.exponentialRampToValueAtTime(.0001, s + dur);
     g2.gain.setValueAtTime(0, s); g2.gain.linearRampToValueAtTime(vol * .35, s + .005); g2.gain.exponentialRampToValueAtTime(.0001, s + dur * .5);
     o.connect(g).connect(c.destination); o2.connect(g2).connect(c.destination);
     o.start(s); o2.start(s); o.stop(s + dur); o2.stop(s + dur);
+  }
+  function noise(dur, vol, freq) {
+    const c = ensure(); if (!c || !settings.sound) return;
+    const b = c.createBuffer(1, c.sampleRate * dur, c.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+    const src = c.createBufferSource(), g = c.createGain(), f = c.createBiquadFilter();
+    f.type = "lowpass"; f.frequency.value = freq; src.buffer = b; g.gain.value = vol;
+    src.connect(f).connect(g).connect(c.destination); src.start();
   }
   return {
     unlock: ensure,
@@ -1054,16 +1223,17 @@ const Sound = (() => {
       o.connect(g).connect(c.destination); o.start(s); o.stop(s + .4); },
     tick() { pluck(12, 0, .25, .12); },
     go() { pluck(24, 0, .6, .2); pluck(19, .08, .6, .14); },
+    bonus() { [12, 17, 19, 24].forEach((n, i) => pluck(n, i * .05, .5, .14)); },
+    boom() { noise(.6, .5, 900); pluck(-12, 0, .5, .2, "sine"); },
+    pop() { noise(.3, .06, 2500); },
     win() { [0, 5, 7, 12, 17, 19, 24].forEach((n, i) => pluck(n, i * .11, 1, .18)); },
     lose() { [12, 8, 5, 1, 0].forEach((n, i) => pluck(n - 12, i * .16, .9, .16)); },
   };
 })();
 
-/* ================= Озвучка ================= */
 function speak(text) {
   if (!settings.voice || !("speechSynthesis" in window)) return;
-  const voices = speechSynthesis.getVoices();
-  const v = voices.find(v => /^ja/i.test(v.lang));
+  const v = speechSynthesis.getVoices().find(v => /^ja/i.test(v.lang));
   if (!v) return;
   const u = new SpeechSynthesisUtterance(text);
   u.voice = v; u.lang = v.lang; u.rate = .95;
@@ -1071,172 +1241,447 @@ function speak(text) {
 }
 if ("speechSynthesis" in window) speechSynthesis.getVoices();
 
-/* ================= Фон: ночное небо, Фудзи, тории, вода ================= */
+/* ================= Сцены ================= */
 const $ = id => document.getElementById(id);
-const bg = $("bg"), fx = $("fx"), stage = $("stage");
+const bg = $("bg"), fx = $("fx"), stage = $("stage"), decor = $("decor");
 const bctx = bg.getContext("2d"), fctx = fx.getContext("2d");
-let W = 0, H = 0, DPR = 1, horizon = 0;
+let W = 0, H = 0, DPR = 1, horizon = 0, topInset = 0, K = 1;
+let scene = "spring";
 
 function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
 
-function drawScene() {
-  const c = bctx;
-  c.setTransform(DPR, 0, 0, DPR, 0, 0);
-  // небо
-  const sky = c.createLinearGradient(0, 0, 0, horizon);
-  sky.addColorStop(0, "#090b26"); sky.addColorStop(.45, "#221a55");
-  sky.addColorStop(.78, "#6b3470"); sky.addColorStop(1, "#e2847e");
-  c.fillStyle = sky; c.fillRect(0, 0, W, horizon + 1);
-  // звёзды
-  const r = rng(7);
-  for (let i = 0; i < 180; i++) {
-    const x = r() * W, y = r() * horizon * .7, s = r() * 1.4 + .2;
-    c.globalAlpha = .25 + r() * .75 * (1 - y / (horizon * .7));
+function skyGrad(c, stops) {
+  const g = c.createLinearGradient(0, 0, 0, horizon);
+  stops.forEach(([o, col]) => g.addColorStop(o, col));
+  c.fillStyle = g; c.fillRect(0, 0, W, horizon + 1);
+}
+function groundGrad(c, stops) {
+  const g = c.createLinearGradient(0, horizon, 0, H);
+  stops.forEach(([o, col]) => g.addColorStop(o, col));
+  c.fillStyle = g; c.fillRect(0, horizon, W, H - horizon);
+}
+function stars(c, n, maxY, seed, alpha = 1) {
+  const r = rng(seed);
+  for (let i = 0; i < n; i++) {
+    const x = r() * W, y = r() * maxY, s = r() * 1.4 + .2;
+    c.globalAlpha = alpha * (.25 + r() * .75 * (1 - y / maxY));
     c.fillStyle = "#fff"; c.beginPath(); c.arc(x, y, s, 0, 7); c.fill();
   }
   c.globalAlpha = 1;
-  // луна
-  const mx = W * .78, my = Math.max(70, horizon * .2), mr = Math.max(26, Math.min(W, H) * .065);
-  const glow = c.createRadialGradient(mx, my, mr * .5, mx, my, mr * 5);
-  glow.addColorStop(0, "rgba(255,236,200,.45)"); glow.addColorStop(1, "rgba(255,236,200,0)");
-  c.fillStyle = glow; c.fillRect(mx - mr * 5, my - mr * 5, mr * 10, mr * 10);
-  const moon = c.createRadialGradient(mx - mr * .3, my - mr * .3, mr * .1, mx, my, mr);
-  moon.addColorStop(0, "#fffaf0"); moon.addColorStop(1, "#ffe3b3");
-  c.fillStyle = moon; c.beginPath(); c.arc(mx, my, mr, 0, 7); c.fill();
-
-  // Фудзи
-  const fh = Math.min(horizon * .5, W * .42), px = W * .3, py = horizon - fh, bw = fh * 1.9;
-  const topW = bw * .07;
-  const side = (t, dir) => { // точка на склоне: t 0..1 сверху вниз, вогнутый профиль
-    const e = Math.pow(t, 1.35);
-    return [px + dir * (topW + (bw - topW) * e), py + fh * t];
-  };
-  const mg = c.createLinearGradient(0, py, 0, horizon);
-  mg.addColorStop(0, "#4a3d86"); mg.addColorStop(1, "#1a1538");
-  c.fillStyle = mg; c.beginPath(); c.moveTo(px - topW, py);
-  for (let t = 0; t <= 1.001; t += .05) c.lineTo(...side(t, -1));
-  for (let t = 1; t >= -0.001; t -= .05) c.lineTo(...side(t, 1));
-  c.closePath(); c.fill();
-  // снежная шапка
-  const sg = c.createLinearGradient(px - bw * .3, py, px + bw * .3, py + fh * .35);
-  sg.addColorStop(0, "#ffe6ef"); sg.addColorStop(1, "#b9b0e6");
-  c.fillStyle = sg; c.beginPath(); c.moveTo(px - topW, py);
-  const snowT = .24, drip = .1, teeth = 9;
-  for (let t = 0; t <= snowT + .001; t += .02) c.lineTo(...side(t, -1));
-  const [lx] = side(snowT, -1), [rx] = side(snowT, 1);
-  for (let i = 1; i < teeth; i++) {
-    const x = lx + (rx - lx) * (i / teeth);
-    const k = i % 2 ? drip * (.6 + .4 * Math.abs(Math.sin(i * 1.7))) : 0;
-    c.lineTo(x, py + fh * (snowT + k));
-  }
-  for (let t = snowT; t >= 0; t -= .02) c.lineTo(...side(t, 1));
-  c.closePath(); c.fill();
-
-  // холмы
-  const hills = (base, amp, freq, phase, color) => {
-    c.fillStyle = color; c.beginPath(); c.moveTo(0, horizon);
-    for (let x = 0; x <= W + 10; x += 10) c.lineTo(x, base - amp * (Math.sin(x * freq + phase) * .6 + Math.sin(x * freq * 2.3 + phase * 2) * .4 + .6));
-    c.lineTo(W, horizon); c.closePath(); c.fill();
-  };
-  hills(horizon, Math.min(60, H * .06), .006, 1, "#241c4a");
-  hills(horizon, Math.min(34, H * .035), .011, 3, "#150f30");
-
-  // тории
-  const s = Math.max(50, Math.min(W, H) * .12), tx = W * .82, ty = horizon - 6;
-  c.fillStyle = "#3a0f24";
-  const pw = s * .07, gap = s * .62;
-  c.fillRect(tx - gap / 2 - pw / 2, ty - s, pw, s);
-  c.fillRect(tx + gap / 2 - pw / 2, ty - s, pw, s);
-  c.fillRect(tx - gap * .72, ty - s * .72, gap * 1.44, s * .07);          // нуки
-  c.fillRect(tx - pw * .4, ty - s * .96, pw * .8, s * .25);              // гакузука
-  c.beginPath();                                                          // касаги
-  c.moveTo(tx - gap * .95, ty - s * 1.02);
-  c.quadraticCurveTo(tx, ty - s * .9, tx + gap * .95, ty - s * 1.02);
-  c.lineTo(tx + gap * .88, ty - s * 1.12);
-  c.quadraticCurveTo(tx, ty - s * 1.0, tx - gap * .88, ty - s * 1.12);
-  c.closePath(); c.fill();
-
-  // вода
-  const wg = c.createLinearGradient(0, horizon, 0, H);
-  wg.addColorStop(0, "#3a2a6a"); wg.addColorStop(.25, "#1b1542"); wg.addColorStop(1, "#070618");
-  c.fillStyle = wg; c.fillRect(0, horizon, W, H - horizon);
-  // линия берега
-  c.fillStyle = "rgba(255,190,210,.55)"; c.fillRect(0, horizon, W, 1.5);
-  // лунная дорожка
-  const r2 = rng(3);
+}
+function glowDisc(c, x, y, r, inner, outer, core) {
+  const g = c.createRadialGradient(x, y, r * .3, x, y, r * 4.5);
+  g.addColorStop(0, inner); g.addColorStop(1, outer);
+  c.fillStyle = g; c.fillRect(x - r * 5, y - r * 5, r * 10, r * 10);
+  if (core) { c.fillStyle = core; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); }
+}
+function hills(c, base, amp, freq, phase, color, alpha = 1) {
+  c.globalAlpha = alpha; c.fillStyle = color; c.beginPath(); c.moveTo(0, horizon + 1);
+  for (let x = 0; x <= W + 10; x += 10) c.lineTo(x, base - amp * (Math.sin(x * freq + phase) * .6 + Math.sin(x * freq * 2.3 + phase * 2) * .4 + .6));
+  c.lineTo(W, horizon + 1); c.closePath(); c.fill(); c.globalAlpha = 1;
+}
+function streaks(c, x, w0, color, seed) {
+  const r = rng(seed);
   for (let y = horizon + 6; y < H; y += 6) {
-    const k = (y - horizon) / (H - horizon);
-    const w = mr * (.6 + k * 2.2) * (.5 + r2());
-    c.globalAlpha = .5 * (1 - k) + .05;
-    c.fillStyle = "#ffe6c0";
-    c.fillRect(mx - w / 2 + (r2() - .5) * 20, y, w, 1.6);
+    const k = (y - horizon) / (H - horizon), w = w0 * (.6 + k * 2.2) * (.5 + r());
+    c.globalAlpha = .5 * (1 - k) + .05; c.fillStyle = color;
+    c.fillRect(x - w / 2 + (r() - .5) * 20, y, w, 1.6);
   }
   c.globalAlpha = 1;
+}
+function blob(c, x, y, rx, ry, color, alpha) { // мягкое пятно-отражение
+  c.save(); c.translate(x, y); c.scale(1, ry / rx);
+  const g = c.createRadialGradient(0, 0, 0, 0, 0, rx);
+  g.addColorStop(0, color); g.addColorStop(1, "rgba(0,0,0,0)");
+  c.globalAlpha = alpha; c.fillStyle = g; c.beginPath(); c.arc(0, 0, rx, 0, 7); c.fill(); c.restore();
+}
+
+const DRAW = {
+  spring(c) {
+    skyGrad(c, [[0, "#090b26"], [.45, "#221a55"], [.78, "#6b3470"], [1, "#e2847e"]]);
+    stars(c, 180, horizon * .7, 7);
+    const mx = W * .78, my = Math.max(topInset + 60, horizon * .22), mr = Math.max(26, Math.min(W, H) * .065);
+    glowDisc(c, mx, my, mr, "rgba(255,236,200,.45)", "rgba(255,236,200,0)", "#fff4dc");
+    // Фудзи
+    const fh = Math.min(horizon * .5, W * .42), px = W * .3, py = horizon - fh, bw = fh * 1.9, topW = bw * .07;
+    const side = (t, dir) => [px + dir * (topW + (bw - topW) * Math.pow(t, 1.35)), py + fh * t];
+    const mg = c.createLinearGradient(0, py, 0, horizon);
+    mg.addColorStop(0, "#4a3d86"); mg.addColorStop(1, "#1a1538");
+    c.fillStyle = mg; c.beginPath(); c.moveTo(px - topW, py);
+    for (let t = 0; t <= 1.001; t += .05) c.lineTo(...side(t, -1));
+    for (let t = 1; t >= -0.001; t -= .05) c.lineTo(...side(t, 1));
+    c.closePath(); c.fill();
+    const sg = c.createLinearGradient(px - bw * .3, py, px + bw * .3, py + fh * .35);
+    sg.addColorStop(0, "#ffe6ef"); sg.addColorStop(1, "#b9b0e6");
+    c.fillStyle = sg; c.beginPath(); c.moveTo(px - topW, py);
+    const snowT = .24, drip = .1, teeth = 9;
+    for (let t = 0; t <= snowT + .001; t += .02) c.lineTo(...side(t, -1));
+    const [lx] = side(snowT, -1), [rx] = side(snowT, 1);
+    for (let i = 1; i < teeth; i++) c.lineTo(lx + (rx - lx) * (i / teeth), py + fh * (snowT + (i % 2 ? drip * (.6 + .4 * Math.abs(Math.sin(i * 1.7))) : 0)));
+    for (let t = snowT; t >= 0; t -= .02) c.lineTo(...side(t, 1));
+    c.closePath(); c.fill();
+    hills(c, horizon, Math.min(60, H * .06), .006, 1, "#241c4a");
+    hills(c, horizon, Math.min(34, H * .035), .011, 3, "#150f30");
+    // тории
+    const s = Math.max(50, Math.min(W, H) * .12), tx = W * .82, ty = horizon - 6, pw = s * .07, gap = s * .62;
+    c.fillStyle = "#3a0f24";
+    c.fillRect(tx - gap / 2 - pw / 2, ty - s, pw, s); c.fillRect(tx + gap / 2 - pw / 2, ty - s, pw, s);
+    c.fillRect(tx - gap * .72, ty - s * .72, gap * 1.44, s * .07); c.fillRect(tx - pw * .4, ty - s * .96, pw * .8, s * .25);
+    c.beginPath(); c.moveTo(tx - gap * .95, ty - s * 1.02); c.quadraticCurveTo(tx, ty - s * .9, tx + gap * .95, ty - s * 1.02);
+    c.lineTo(tx + gap * .88, ty - s * 1.12); c.quadraticCurveTo(tx, ty - s * 1.0, tx - gap * .88, ty - s * 1.12); c.closePath(); c.fill();
+    groundGrad(c, [[0, "#3a2a6a"], [.25, "#1b1542"], [1, "#070618"]]);
+    c.fillStyle = "rgba(255,190,210,.55)"; c.fillRect(0, horizon, W, 1.5);
+    streaks(c, mx, mr, "#ffe6c0", 3);
+    // ветка сакуры
+    c.save(); c.translate(0, topInset + 10 * K); c.scale(K, K);
+    c.strokeStyle = "#2a1422"; c.lineCap = "round";
+    const br = (w, d) => { c.lineWidth = w; c.stroke(new Path2D(d)); };
+    br(11, "M-20 70 C80 60 160 110 250 84 C300 70 340 40 380 44"); br(6, "M150 92 C180 130 200 150 250 160"); br(5, "M60 70 C70 40 90 20 120 10");
+    const cols = ["#ffc4d6", "#ffb0c8", "#ff9dbb", "#ffd9e4"], r = rng(5);
+    c.shadowColor = "rgba(255,160,190,.7)"; c.shadowBlur = 14;
+    [[40,62],[70,48],[110,20],[130,80],[170,96],[210,84],[250,88],[200,140],[240,158],[300,60],[340,46],[372,42],[95,36],[185,120],[20,74],[280,72]]
+      .forEach(([x, y], i) => { c.fillStyle = cols[i % 4]; c.beginPath(); c.arc(x, y, 9 + r() * 8, 0, 7); c.fill(); });
+    c.restore();
+  },
+
+  summer(c) {
+    skyGrad(c, [[0, "#060920"], [.55, "#13204d"], [.85, "#2f2a63"], [1, "#6a3a70"]]);
+    stars(c, 90, horizon * .6, 29, .8);
+    hills(c, horizon, Math.min(50, H * .05), .005, 2, "#1a1740");
+    // храм
+    c.save(); c.translate(W * .2, horizon); c.scale(K, K); c.fillStyle = "#0c0a22";
+    c.fill(new Path2D("M-130 1 L-130 -64 L-168 -64 Q-80 -102 0 -124 Q80 -102 168 -64 L130 -64 L130 1 Z"));
+    c.fill(new Path2D("M-90 -104 Q0 -148 90 -104 L72 -104 Q0 -134 -72 -104 Z"));
+    c.fillRect(-4, -154, 8, 30);
+    c.restore();
+    // палатки ятай
+    [[.42, 110], [.52, 96], [.83, 104], [.93, 90]].forEach(([fx0, w0]) => {
+      const w = w0 * K, x = W * fx0 - w / 2, h = 48 * K, y = horizon - h;
+      blob(c, x + w / 2, y + h / 2, w, w * .6, "rgba(255,170,80,.55)", 1);
+      c.fillStyle = "#1a1030"; c.fillRect(x, y, w, h);
+      const lg = c.createLinearGradient(0, y + 18 * K, 0, horizon);
+      lg.addColorStop(0, "#ffcf85"); lg.addColorStop(1, "#b0602a");
+      c.globalAlpha = .85; c.fillStyle = lg; c.fillRect(x + 4, y + 18 * K, w - 8, h - 18 * K); c.globalAlpha = 1;
+      for (let i = 0; i * 14 * K < w; i++) { c.fillStyle = i % 2 ? "#fff1e0" : "#d8352a"; c.fillRect(x + i * 14 * K, y, Math.min(14 * K, w - i * 14 * K), 18 * K); }
+    });
+    groundGrad(c, [[0, "#1a1a4a"], [1, "#04061a"]]);
+    c.fillStyle = "rgba(255,180,94,.5)"; c.fillRect(0, horizon, W, 1.5);
+    const r = rng(9);
+    [[.42, "#ff9a4a"], [.52, "#ffc36b"], [.83, "#ff9a4a"], [.93, "#ff7a3d"], [.2, "#ffb45e"], [.12, "#ff7ab6"], [.68, "#7ee3ff"]]
+      .forEach(([fx0, col]) => blob(c, W * fx0, horizon + 50 + r() * 40, 18 + r() * 14, 70 + r() * 50, col, .45));
+  },
+
+  autumn(c) {
+    skyGrad(c, [[0, "#1e0f2e"], [.42, "#5a1f3f"], [.74, "#b8453a"], [1, "#f2a04e"]]);
+    stars(c, 40, horizon * .35, 47, .6);
+    const sx = W * .47, sy = horizon - 84 * K;
+    glowDisc(c, sx, sy, 70 * K, "rgba(255,210,140,.55)", "rgba(255,150,70,0)", "#ffe0a0");
+    hills(c, horizon - 120 * K, 70 * K, .004, 1, "#8a3444", .85);
+    hills(c, horizon - 50 * K, 50 * K, .006, 4, "#4a1a30");
+    // пагода
+    c.save(); c.translate(W * .78, horizon); c.scale(K, K);
+    c.fillStyle = "#2a0f20";
+    [[-26, -249, 52], [-32, -199, 64], [-38, -149, 76], [-44, -99, 88], [-50, -49, 100]].forEach(([x, y, w]) => c.fillRect(x, y, w, 50));
+    c.fillStyle = "#1c0814"; c.fillRect(-3, -328, 6, 72);
+    c.beginPath(); c.arc(0, -314, 4, 0, 7); c.arc(0, -298, 4, 0, 7); c.fill();
+    [[-245, 46], [-195, 57], [-145, 68], [-95, 79], [-45, 90]].forEach(([ry, hw]) => {
+      c.beginPath(); c.moveTo(-hw, ry + 4); c.quadraticCurveTo(0, ry - 6, hw, ry + 4); c.lineTo(hw - 14, ry - 10); c.lineTo(-hw + 14, ry - 10); c.closePath(); c.fill();
+    });
+    c.fillStyle = "rgba(255,180,94,.7)"; c.fillRect(-10, -188, 20, 14); c.fillRect(-12, -34, 24, 18);
+    c.restore();
+    hills(c, horizon, 24 * K, .008, 2, "#2a0f20");
+    // клёны
+    const r = rng(47), cols = ["#d8352a", "#e8602f", "#b3202c", "#f28a2e", "#ffb13b", "#8e1f2a"];
+    [[.03, 84, 90], [.09, 104, 110], [.16, 76, 80], [.23, 94, 70], [.66, 68, 60], [.9, 84, 90], [.96, 104, 110]].forEach(([fx0, top, sz], ti) => {
+      const x = W * fx0, y = horizon - top * K, s = sz * K;
+      c.fillStyle = "#1c0814"; c.fillRect(x - 4 * K, y, 8 * K, horizon - y);
+      for (let k = 0; k < 6; k++) {
+        const d = s * (.5 + r() * .5);
+        c.globalAlpha = .92; c.fillStyle = cols[(k + ti) % 6];
+        c.beginPath(); c.arc(x + (r() - .5) * s * .7, y - r() * s * .5, d / 2, 0, 7); c.fill();
+      }
+      c.globalAlpha = 1;
+    });
+    groundGrad(c, [[0, "#5a2436"], [.35, "#2a1020"], [1, "#0f0610"]]);
+    c.fillStyle = "rgba(255,201,138,.6)"; c.fillRect(0, horizon, W, 1.5);
+    streaks(c, sx, 60 * K, "#ffd89a", 11);
+  },
+
+  winter(c) {
+    skyGrad(c, [[0, "#0b1633"], [.5, "#1f3a6b"], [.85, "#5a7fb0"], [1, "#a9c1dd"]]);
+    stars(c, 70, horizon * .5, 83, .7);
+    glowDisc(c, W * .2, Math.max(topInset + 60, horizon * .22), 40 * K, "rgba(234,242,255,.45)", "rgba(234,242,255,0)", "#f2f7ff");
+    const ky = Math.min(1.3, Math.max(.5, horizon / 624));
+    const pts = [[0,-154],[150,-294],[260,-204],[400,-344],[560,-184],[680,-264],[820,-154],[960,-324],[1110,-194],[1200,-254],[1280,-204]]
+      .map(([x, y]) => [x / 1280 * W, horizon + y * ky]);
+    c.fillStyle = "#6f8bb5"; c.beginPath(); c.moveTo(0, horizon);
+    pts.forEach(p => c.lineTo(...p)); c.lineTo(W, horizon); c.closePath(); c.fill();
+    c.fillStyle = "#f2f7ff";
+    for (let i = 1; i < pts.length - 1; i++) {
+      const [x, y] = pts[i];
+      if (y > pts[i - 1][1] || y > pts[i + 1][1]) continue;
+      const L = pts[i - 1], R = pts[i + 1], t = .3;
+      const lx = x + (L[0] - x) * t, ly = y + (L[1] - y) * t, rx = x + (R[0] - x) * t, ry = y + (R[1] - y) * t;
+      c.beginPath(); c.moveTo(x, y); c.lineTo(rx, ry);
+      c.lineTo(x + (rx - x) * .55, (ry + ly) / 2 - 4); c.lineTo(x, (ly + ry) / 2 + 6); c.lineTo(x + (lx - x) * .55, (ry + ly) / 2 - 4);
+      c.lineTo(lx, ly); c.closePath(); c.fill();
+    }
+    hills(c, horizon, 60 * K, .005, 2, "#b8c9e2");
+    groundGrad(c, [[0, "#e8f0fa"], [1, "#8ea6c8"]]);
+    const house = (fx0) => {
+      c.save(); c.translate(W * fx0, horizon); c.scale(K, K);
+      blob(c, 0, -34, 90, 60, "rgba(255,190,100,.5)", 1);
+      c.fillStyle = "#3b2a2a"; c.fill(new Path2D("M-60 2 L-60 -60 L0 -130 L60 -60 L60 2 Z"));
+      c.fillStyle = "#ffffff"; c.fill(new Path2D("M-76 -54 L0 -142 L76 -54 L60 -54 L0 -122 L-60 -54 Z"));
+      c.fillStyle = "#f4f8ff"; c.fill(new Path2D("M-60 -52 L0 -120 L60 -52 Z"));
+      c.fillStyle = "#ffc36b"; c.fillRect(-30, -40, 14, 14); c.fillRect(16, -40, 14, 14);
+      c.restore();
+    };
+    const pine = (fx0, s) => {
+      c.save(); c.translate(W * fx0, horizon + 2); c.scale(K * s, K * s);
+      c.fillStyle = "#1a2c3a"; c.fill(new Path2D("M-30 0 L0 -84 L30 0 Z"));
+      c.fillStyle = "#f4f8ff"; c.fill(new Path2D("M-12 -48 L0 -84 L12 -48 L0 -56 Z"));
+      c.restore();
+    };
+    [.14, .28, .84].forEach(house);
+    [[.38, 1], [.43, .75], [.7, 1.05], [.96, .9], [.05, .8]].forEach(([f, s]) => pine(f, s));
+    c.fillStyle = "rgba(255,255,255,.85)"; c.fillRect(0, horizon, W, 1.5);
+  },
+
+  tokyo(c) {
+    skyGrad(c, [[0, "#05030f"], [.6, "#140a2e"], [1, "#4a1560"]]);
+    stars(c, 40, horizon * .4, 101, .4);
+    blob(c, W / 2, horizon, W * .7, horizon * .6, "rgba(255,79,216,.35)", 1);
+    const r = rng(101), lit = ["255,210,120", "140,220,255", "255,150,220", "255,240,200"];
+    const building = (x, w, h, dark, alpha) => {
+      c.fillStyle = dark; c.fillRect(x, horizon - h, w, h);
+      const col = lit[Math.floor(r() * 4)];
+      for (let yy = horizon - h + 6; yy < horizon - 6; yy += 14 * K) for (let xx = x + 5; xx < x + w - 8; xx += 12 * K) {
+        if (r() < .55) { c.fillStyle = `rgba(${col},${(alpha * (.5 + r() * .8)).toFixed(2)})`; c.fillRect(xx, yy, 6 * K, 7 * K); }
+      }
+    };
+    const tx = W * .7;
+    let x = -10;
+    while (x < W + 10) { const w = (40 + r() * 70) * K; if (Math.abs(x + w / 2 - tx) > 60 * K) building(x, w, (160 + r() * 200) * K * .9, "#120a26", .35); x += w + 6; }
+    // Токийская башня
+    c.save(); c.translate(tx, horizon); c.scale(K, K);
+    c.lineCap = "round";
+    c.strokeStyle = "rgba(255,106,43,.25)"; c.lineWidth = 16; c.stroke(new Path2D("M-34 0 L0 -306 L34 0"));
+    c.strokeStyle = "#ff7a3d"; c.lineWidth = 5; c.stroke(new Path2D("M-34 0 L0 -306 L34 0"));
+    c.strokeStyle = "#ff7a3d"; c.lineWidth = 2; c.stroke(new Path2D("M-22 -84 L12 -154 M22 -84 L-12 -154 M-28 -34 L20 -84 M28 -34 L-20 -84"));
+    c.strokeStyle = "#fff"; c.lineWidth = 4; c.stroke(new Path2D("M-24 -84 L24 -84 M-16 -154 L16 -154 M-10 -214 L10 -214 M-28 -34 L28 -34 M0 -306 L0 -384"));
+    c.fillStyle = "#fff"; c.fillRect(-16, -184, 32, 12); c.fillRect(-8, -252, 16, 8);
+    c.fillStyle = "#ff3b3b"; c.beginPath(); c.arc(0, -386, 4, 0, 7); c.fill();
+    c.restore();
+    [[0, 120, 190], [.1, 90, 240], [.18, 140, 150], [.3, 100, 210], [.77, 110, 230], [.86, 80, 170], [.93, 100, 250]]
+      .forEach(([f, w, h]) => building(W * f, w * K, h * K, "#08041a", .6));
+    groundGrad(c, [[0, "#1a0c2e"], [1, "#04020a"]]);
+    c.fillStyle = "rgba(255,79,216,.7)"; c.fillRect(0, horizon, W, 1.5);
+    [[.06, "#ff4fd8"], [.92, "#5ae6ff"], [.45, "#ffe066"], [.7, "#ff7a3d"], [.2, "#ffd27a"], [.33, "#8cdcff"], [.8, "#ff96dc"]]
+      .forEach(([f, col]) => blob(c, W * f, horizon + 60 + r() * 40, 12 + r() * 12, 70 + r() * 50, col, .5));
+  },
+};
+
+function buildDecor() {
+  decor.innerHTML = "";
+  if (scene === "summer") {
+    const y0 = topInset + 14, sag = 70 * K;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("width", W); svg.setAttribute("height", y0 + sag * 2 + 60);
+    svg.style.position = "absolute"; svg.style.left = 0; svg.style.top = 0;
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", `M-10 ${y0} Q${W / 4} ${y0 + sag * 2} ${W / 2} ${y0 + 10} Q${W * .75} ${y0 + sag * 2} ${W + 10} ${y0}`);
+    p.setAttribute("fill", "none"); p.setAttribute("stroke", "#1c1014"); p.setAttribute("stroke-width", "2.5");
+    svg.appendChild(p); decor.appendChild(svg);
+    const quad = (t, a, b, c) => (1 - t) * (1 - t) * a + 2 * (1 - t) * t * b + t * t * c;
+    const per = Math.max(3, Math.round(W / 220)), cols = ["#e8452f", "#f07a2a", "#e8452f", "#ffb13b"];
+    for (let s = 0; s < 2; s++) for (let i = 1; i < per; i++) {
+      const t = i / per, x = s * W / 2 + quad(t, s ? W / 2 : -10, s ? W * .75 : W / 4, s ? W + 10 : W / 2) - s * W / 2;
+      const y = quad(t, s ? y0 + 10 : y0, y0 + sag * 2, s ? y0 : y0 + 10);
+      const d = document.createElement("div"); d.className = "dl";
+      d.style.left = (x - 14) + "px"; d.style.top = y + "px";
+      d.style.setProperty("--lc", cols[(i + s) % 4]); d.style.setProperty("--d", (2 + Math.random() * 1.5).toFixed(2) + "s");
+      decor.appendChild(d);
+    }
+  } else if (scene === "tokyo") {
+    [["ラーメン", .04, 240, "#ff4fd8", 22], ["カラオケ", .9, 260, "#5ae6ff", 22], ["コンビニ", .43, 150, "#ffe066", 16]].forEach(([t, f, up, col, fs], i) => {
+      const d = document.createElement("div"); d.className = "sign"; d.textContent = t;
+      d.style.left = (W * f) + "px"; d.style.top = (horizon - up * K) + "px"; d.style.fontSize = Math.max(12, fs * K) + "px";
+      d.style.setProperty("--c", col); d.style.setProperty("--f", (4 + i * 1.7) + "s");
+      decor.appendChild(d);
+    });
+  }
 }
 
 function layout() {
   DPR = Math.min(2, window.devicePixelRatio || 1);
   W = innerWidth; H = innerHeight;
+  K = Math.max(.5, Math.min(1.25, Math.min(W / 1280, H / 800) * 1.05));
   for (const cv of [bg, fx]) { cv.width = W * DPR; cv.height = H * DPR; }
-  const sr = stage.getBoundingClientRect();
   const inGame = !$("answers").classList.contains("hidden");
+  const sr = stage.getBoundingClientRect();
+  topInset = inGame ? sr.top : 0;
   horizon = inGame ? sr.bottom - 26 : H * .8;
-  drawScene();
+  bctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  DRAW[scene](bctx);
+  buildDecor();
   if (G) G.floor = horizon - sr.top;
 }
 addEventListener("resize", layout);
 
-/* ================= Лепестки сакуры ================= */
-const petals = [];
-const PETAL_COLORS = ["#ffc4d6", "#ffb0c8", "#ffd9e4", "#ff9dbb", "#fff0f5"];
-function newPetal(x, y, burst) {
-  const a = Math.random() * Math.PI * 2, sp = burst ? 120 + Math.random() * 260 : 0;
-  return {
-    x, y, burst,
-    vx: burst ? Math.cos(a) * sp : 12 + Math.random() * 25,
-    vy: burst ? Math.sin(a) * sp - 120 : 20 + Math.random() * 30,
-    rot: Math.random() * 6, vr: (Math.random() - .5) * 4,
-    ph: Math.random() * 6, vph: 2 + Math.random() * 3,
-    size: burst ? 4 + Math.random() * 5 : 3 + Math.random() * 5,
-    color: PETAL_COLORS[(Math.random() * PETAL_COLORS.length) | 0],
-    life: burst ? 1.2 + Math.random() * .6 : Infinity, age: 0,
+function setScene(s, fade) {
+  if (s === scene) return;
+  const apply = () => {
+    scene = s; document.body.dataset.scene = s;
+    for (let i = parts.length - 1; i >= 0; i--) if (!parts[i].burst) parts.splice(i, 1);
+    layout();
   };
+  if (!fade) { apply(); return; }
+  bg.style.opacity = 0; decor.style.opacity = 0;
+  setTimeout(() => { apply(); bg.style.opacity = 1; decor.style.opacity = 1; }, 450);
 }
-function ambientCount() { return Math.min(55, Math.round(W * H / 26000)); }
-function burst(x, y, n = 22) { for (let i = 0; i < n; i++) petals.push(newPetal(x, y, true)); }
-function drawPetal(p) {
-  const c = fctx, s = p.size;
-  c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.scale(1, .45 + Math.abs(Math.sin(p.ph)) * .55);
-  c.globalAlpha = p.burst ? Math.max(0, 1 - p.age / p.life) : .85;
-  c.fillStyle = p.color;
-  c.beginPath();
-  c.moveTo(0, s);
-  c.bezierCurveTo(-s * .9, s * .3, -s * .8, -s * .6, -s * .3, -s);
-  c.lineTo(0, -s * .7); c.lineTo(s * .3, -s);
-  c.bezierCurveTo(s * .8, -s * .6, s * .9, s * .3, 0, s);
-  c.fill(); c.restore();
+
+/* ================= Частицы ================= */
+const parts = [];
+const AMBIENT = { spring: "petal", summer: "fly", autumn: "leaf", winter: "flake", tokyo: "rain" };
+const BURST = { spring: "petal", summer: "spark", autumn: "leaf", winter: "flake", tokyo: "spark" };
+const SPLASH = { spring: "#9fb8ff", summer: "#ffb45e", autumn: "#ffb07a", winter: "#ffffff", tokyo: "#5ae6ff" };
+const COLORS = {
+  petal: ["#ffc4d6", "#ffb0c8", "#ffd9e4", "#ff9dbb", "#fff0f5"],
+  leaf: ["#d8352a", "#e8602f", "#b3202c", "#f28a2e", "#ffb13b"],
+  flake: ["#ffffff", "#eaf3ff", "#d6e8ff"],
+  sparkSummer: ["#ffd36b", "#ff7ab6", "#7ee3ff", "#ff9a4a", "#b7ff7a"],
+  sparkTokyo: ["#ff4fd8", "#5ae6ff", "#ffe066"],
+};
+const LEAF = [[0,-1],[.2,-.56],[.6,-.76],[.48,-.28],[1,-.24],[.6,.08],[.76,.44],[.24,.32],[.08,1],[-.08,1],[-.24,.32],[-.76,.44],[-.6,.08],[-1,-.24],[-.48,-.28],[-.6,-.76],[-.2,-.56]];
+const pick = a => a[(Math.random() * a.length) | 0];
+
+function ambientCount(kind) {
+  const area = W * H;
+  return { petal: Math.min(55, area / 26000), fly: Math.min(26, area / 40000), leaf: Math.min(30, area / 40000), flake: Math.min(130, area / 8000), rain: Math.min(120, area / 8000) }[kind] | 0;
 }
-let lastFx = performance.now();
+function newAmbient(kind, initial) {
+  const p = { kind, burst: false, age: 0, life: Infinity, rot: Math.random() * 6, vr: (Math.random() - .5) * 3, ph: Math.random() * 6, vph: 2 + Math.random() * 3 };
+  if (kind === "petal" || kind === "leaf") {
+    Object.assign(p, { x: Math.random() * W - 40, y: initial ? Math.random() * H : -20, vx: 12 + Math.random() * 25, vy: 20 + Math.random() * 30,
+      size: kind === "leaf" ? 6 + Math.random() * 6 : 3 + Math.random() * 5, color: pick(COLORS[kind]) });
+  } else if (kind === "flake") {
+    Object.assign(p, { x: Math.random() * W, y: initial ? Math.random() * H : -10, vx: 0, vy: 25 + Math.random() * 45, size: .8 + Math.random() * 2.8, color: pick(COLORS.flake) });
+  } else if (kind === "rain") {
+    Object.assign(p, { x: Math.random() * (W + 200) - 100, y: initial ? Math.random() * H : -30 - Math.random() * 200, vx: 140, vy: 760 + Math.random() * 200, size: 14 + Math.random() * 14 });
+  } else if (kind === "fly") {
+    Object.assign(p, { x: Math.random() * W, y: horizon * (.45 + Math.random() * .5), vx: (Math.random() - .5) * 30, vy: (Math.random() - .5) * 20, size: 1.8 + Math.random() * 1.6 });
+  }
+  return p;
+}
+function burst(x, y, n, kind = BURST[scene]) {
+  const cols = kind === "spark" ? (scene === "tokyo" ? COLORS.sparkTokyo : COLORS.sparkSummer) : COLORS[kind] || COLORS.petal;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, sp = (kind === "spark" ? 160 : 120) + Math.random() * 240;
+    parts.push({ kind, burst: true, x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - (kind === "spark" ? 40 : 120),
+      rot: Math.random() * 6, vr: (Math.random() - .5) * 8, ph: Math.random() * 6, vph: 3 + Math.random() * 3,
+      size: kind === "spark" ? 1.6 + Math.random() * 2 : kind === "leaf" ? 5 + Math.random() * 5 : kind === "flake" ? 1.5 + Math.random() * 3 : 4 + Math.random() * 5,
+      color: pick(cols), life: 1 + Math.random() * .7, age: 0 });
+  }
+}
+function firework() {
+  const x = W * (.1 + Math.random() * .8), y = topInset + (horizon - topInset) * (.12 + Math.random() * .3);
+  const col = pick(COLORS.sparkSummer), n = 46, sp = 110 + Math.random() * 70;
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2, v = sp * (.85 + Math.random() * .3);
+    parts.push({ kind: "spark", burst: true, x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, size: 1.4 + Math.random() * 1.4, color: col,
+      life: 1.3 + Math.random() * .6, age: 0, ph: 0, vph: 0, rot: 0, vr: 0, slow: true });
+  }
+  parts.push({ kind: "flash", burst: true, x, y, size: sp * 1.2, color: col, life: .5, age: 0, vx: 0, vy: 0, ph: 0, vph: 0, rot: 0, vr: 0 });
+  if (G && G.running) Sound.pop();
+}
+function splash(x, y) {
+  for (let i = 0; i < 16; i++) parts.push({ kind: "drop", burst: true, x, y, vx: (Math.random() - .5) * 220, vy: -80 - Math.random() * 220,
+    size: 1.5 + Math.random() * 2.5, color: SPLASH[scene], life: .9 + Math.random() * .4, age: 0, ph: 0, vph: 0, rot: 0, vr: 0 });
+}
+
+function drawPart(c, p) {
+  const fade = p.burst ? Math.max(0, 1 - p.age / p.life) : 1;
+  switch (p.kind) {
+    case "petal": {
+      const s = p.size;
+      c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.scale(1, .45 + Math.abs(Math.sin(p.ph)) * .55);
+      c.globalAlpha = p.burst ? fade : .85; c.fillStyle = p.color; c.beginPath();
+      c.moveTo(0, s); c.bezierCurveTo(-s * .9, s * .3, -s * .8, -s * .6, -s * .3, -s); c.lineTo(0, -s * .7); c.lineTo(s * .3, -s);
+      c.bezierCurveTo(s * .8, -s * .6, s * .9, s * .3, 0, s); c.fill(); c.restore(); break;
+    }
+    case "leaf": {
+      const s = p.size;
+      c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.scale(1, .5 + Math.abs(Math.sin(p.ph)) * .5);
+      c.globalAlpha = p.burst ? fade : .9; c.fillStyle = p.color; c.beginPath();
+      LEAF.forEach(([a, b], i) => i ? c.lineTo(a * s, b * s) : c.moveTo(a * s, b * s)); c.closePath(); c.fill(); c.restore(); break;
+    }
+    case "flake":
+      c.globalAlpha = (p.burst ? fade : .85); c.fillStyle = p.color; c.beginPath(); c.arc(p.x, p.y, p.size, 0, 7); c.fill();
+      if (p.size > 2.4) { c.globalAlpha *= .3; c.beginPath(); c.arc(p.x, p.y, p.size * 2, 0, 7); c.fill(); }
+      break;
+    case "rain":
+      c.globalAlpha = .35; c.strokeStyle = "#b4d2ff"; c.lineWidth = 1.2; c.beginPath();
+      c.moveTo(p.x, p.y); c.lineTo(p.x - p.vx / p.vy * p.size, p.y - p.size); c.stroke(); break;
+    case "fly": {
+      const a = .35 + .65 * Math.abs(Math.sin(p.ph));
+      c.globalAlpha = a * .35; c.fillStyle = "#d2ff6e"; c.beginPath(); c.arc(p.x, p.y, p.size * 3.2, 0, 7); c.fill();
+      c.globalAlpha = a; c.fillStyle = "#f2ffb0"; c.beginPath(); c.arc(p.x, p.y, p.size, 0, 7); c.fill(); break;
+    }
+    case "spark":
+      c.globalCompositeOperation = "lighter";
+      c.globalAlpha = fade * .45; c.fillStyle = p.color; c.beginPath(); c.arc(p.x, p.y, p.size * 3, 0, 7); c.fill();
+      c.globalAlpha = fade; c.beginPath(); c.arc(p.x, p.y, p.size, 0, 7); c.fill();
+      c.globalCompositeOperation = "source-over"; break;
+    case "flash": {
+      const g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+      g.addColorStop(0, p.color); g.addColorStop(1, "rgba(0,0,0,0)");
+      c.globalCompositeOperation = "lighter"; c.globalAlpha = fade * .35; c.fillStyle = g;
+      c.beginPath(); c.arc(p.x, p.y, p.size, 0, 7); c.fill(); c.globalCompositeOperation = "source-over"; break;
+    }
+    case "drop":
+      c.globalAlpha = fade; c.fillStyle = p.color; c.beginPath(); c.arc(p.x, p.y, p.size, 0, 7); c.fill(); break;
+  }
+  c.globalAlpha = 1;
+}
+
+let lastFx = performance.now(), fwTimer = 1.5;
 function fxLoop(now) {
   const dt = Math.min(.05, (now - lastFx) / 1000); lastFx = now;
-  fctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  fctx.clearRect(0, 0, W, H);
+  const c = fctx;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, W, H);
+  const kind = AMBIENT[scene];
   let ambient = 0;
-  for (let i = petals.length - 1; i >= 0; i--) {
-    const p = petals[i];
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
     p.age += dt; p.ph += p.vph * dt; p.rot += p.vr * dt;
-    if (p.burst) { p.vx *= .97; p.vy = p.vy * .97 + 260 * dt; }
-    else { ambient++; p.vx += Math.sin(now / 1500 + p.ph) * 4 * dt; }
+    if (p.burst) {
+      const drag = p.slow ? .985 : .97;
+      p.vx *= drag; p.vy = p.vy * drag + (p.kind === "spark" ? (p.slow ? 50 : 160) : p.kind === "drop" ? 420 : 240) * dt;
+    } else {
+      ambient++;
+      if (p.kind === "petal" || p.kind === "leaf") p.vx += Math.sin(now / 1500 + p.ph) * 4 * dt;
+      else if (p.kind === "flake") p.vx = Math.sin(now / 1200 + p.ph) * 18;
+      else if (p.kind === "fly") {
+        p.vx += (Math.random() - .5) * 60 * dt; p.vy += (Math.random() - .5) * 60 * dt;
+        p.vx = Math.max(-30, Math.min(30, p.vx)); p.vy = Math.max(-20, Math.min(20, p.vy));
+        if (p.y < horizon * .4) p.vy = Math.abs(p.vy); if (p.y > horizon - 10) p.vy = -Math.abs(p.vy);
+        if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      }
+    }
     p.x += p.vx * dt; p.y += p.vy * dt;
-    if (p.age > p.life || p.y > H + 20 || p.x > W + 30) { petals.splice(i, 1); continue; }
-    drawPetal(p);
+    const out = p.kind === "fly" ? false : (p.y > H + 30 || p.x > W + 60 || p.x < -120);
+    if (p.age > p.life || out || (!p.burst && p.kind !== kind)) { parts.splice(i, 1); continue; }
+    drawPart(c, p);
   }
-  for (let k = ambient; k < ambientCount(); k++) petals.push(newPetal(Math.random() * W - 40, -10 - Math.random() * H * (ambient ? 0 : 1), false));
+  const need = ambientCount(kind);
+  for (let k = ambient; k < need; k++) parts.push(newAmbient(kind, ambient === 0));
+  if (scene === "summer") { fwTimer -= dt; if (fwTimer <= 0) { firework(); fwTimer = 1.6 + Math.random() * 2.6; } }
   requestAnimationFrame(fxLoop);
 }
 
 /* ================= Экраны ================= */
-const SCREENS = ["menu", "lessons", "intro", "pause", "result"];
+const SCREENS = ["menu", "lessons", "intro", "exam", "pause", "result"];
 function show(name) {
   for (const s of SCREENS) $("scr" + s[0].toUpperCase() + s.slice(1)).classList.toggle("hidden", s !== name);
 }
@@ -1245,66 +1690,153 @@ function setGameUI(on) {
   $("answers").classList.toggle("hidden", !on);
   layout();
 }
+function toMap() { endGame(); setGameUI(false); buildMap(); show("lessons"); }
 document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => {
-  const to = b.dataset.go;
-  if (to === "lessons") { endGame(); setGameUI(false); buildGrid(); }
-  show(to);
+  if (b.dataset.go === "lessons") toMap(); else show(b.dataset.go);
 }));
 
 const STAR = on => `<svg viewBox="0 0 24 24" class="${on ? "on" : ""}"><path fill="#ffd98a" d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8z"/></svg>`;
-const SAKURA = `<svg viewBox="0 0 24 24"><g fill="#ff9fbd">${[0,72,144,216,288].map(a => `<path transform="rotate(${a} 12 12)" d="M12 12C8 10 7.5 5.5 9.2 2.6L12 4.4l2.8-1.8C16.5 5.5 16 10 12 12z"/>`).join("")}</g><circle cx="12" cy="12" r="2.2" fill="#ffd98a"/></svg>`;
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
 
-function buildGrid() {
-  const g = $("lessonGrid"); g.innerHTML = "";
-  for (const L of LESSONS) {
-    const p = progress[L.n] || {};
-    const b = document.createElement("button");
-    b.className = "tile" + (p.stars ? " done" : "");
-    b.innerHTML = `<div class="num">第${L.n}課</div><div class="lbl">Урок ${L.n} · ${L.words.length} слов</div><div class="theme">${L.theme}</div>
-      <div class="stars">${[1,2,3].map(i => `<span class="${(p.stars || 0) >= i ? "on" : ""}">★</span>`).join("")}</div>
-      ${p.best ? `<div class="best">${p.best}</div>` : ""}`;
-    b.onclick = () => openIntro(L.n);
-    g.appendChild(b);
+function lifeIcon() {
+  switch (scene) {
+    case "summer": return `<svg viewBox="0 0 24 24"><rect x="9" y="1" width="6" height="3" rx="1" fill="#1c1014"/><ellipse cx="12" cy="12.5" rx="7.5" ry="8.5" fill="#e8452f"/><ellipse cx="12" cy="11" rx="4" ry="5" fill="#ffb070" opacity=".8"/><rect x="9" y="20" width="6" height="3" rx="1" fill="#1c1014"/></svg>`;
+    case "autumn": return `<svg viewBox="-1.1 -1.1 2.2 2.2"><path fill="#e8602f" d="M${LEAF.map(p => p.join(" ")).join(" L")} Z"/></svg>`;
+    case "winter": return `<svg viewBox="0 0 24 24"><path d="M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 3.5l3 2.5 3-2.5M9 20.5l3-2.5 3 2.5M3 10l2.6 1.5L3 13M21 10l-2.6 1.5L21 13" fill="none" stroke="#eaf3ff" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+    case "tokyo": return `<svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="3" fill="rgba(255,79,216,.35)" stroke="#ff4fd8" stroke-width="2"/></svg>`;
+    default: return `<svg viewBox="0 0 24 24"><g fill="#ff9fbd">${[0,72,144,216,288].map(a => `<path transform="rotate(${a} 12 12)" d="M12 12C8 10 7.5 5.5 9.2 2.6L12 4.4l2.8-1.8C16.5 5.5 16 10 12 12z"/>`).join("")}</g><circle cx="12" cy="12" r="2.2" fill="#ffd98a"/></svg>`;
   }
 }
 
+function buildMap() {
+  const box = $("chapters"); box.innerHTML = "";
+  CHAPTERS.forEach((ch, ci) => {
+    const d = document.createElement("div");
+    d.className = "chap"; d.style.background = ch.grad;
+    d.innerHTML = `<div class="cn">Глава ${ci + 1}</div><div class="ck" style="color:${ch.color}">${ch.kanji}</div>
+      <div class="ct">${ch.name}</div><div class="cs">${ch.sub} · уроки ${ch.from}–${ch.to}</div>`;
+    for (let n = ch.from; n <= ch.to; n++) {
+      const p = progress[n] || {}, L = LESSONS[n - 1];
+      const b = document.createElement("button"); b.className = "lbtn";
+      b.innerHTML = `<span>第${n}課 <span style="opacity:.6">· ${L.words.length}</span></span><span class="st">${[1,2,3].map(i => `<span class="${(p.stars || 0) >= i ? "on" : ""}">★</span>`).join("")}</span>`;
+      b.title = L.theme;
+      b.onclick = () => openIntro(n);
+      d.appendChild(b);
+    }
+    box.appendChild(d);
+  });
+  const mc = Object.keys(mistakes).length;
+  $("mistakesSub").textContent = mc ? `${mc} ${plural(mc, "слово", "слова", "слов")} на повторение` : "пока нет слов";
+  $("mistakesBtn").disabled = !mc;
+  $("endlessSub").textContent = records.endless ? `рекорд ${records.endless}` : "слова пройденных уроков";
+}
+function plural(n, a, b, c) { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; }
+
 let currentLesson = 1;
+function wordListHtml(words) {
+  return words.map(w => `<div class="wl"><div class="k">${esc(w.jp)}${w.kanji ? `<small>${esc(w.kanji)}</small>` : ""}</div><div class="t">${esc(w.ru)}</div></div>`).join("");
+}
 function openIntro(n) {
   currentLesson = n;
   const L = LESSONS[n - 1];
+  setScene(chapterOf(n).scene, true);
   $("introTitle").textContent = `第${n}課 · Урок ${n}`;
-  $("introSub").textContent = `${L.theme} · ${L.words.length} слов. Повтори их — и вперёд! Нажимай на перевод или клавиши 1–6.`;
-  $("introList").innerHTML = L.words.map(w => `<div class="wl"><div class="k">${w.jp}</div><div class="t">${w.ru}</div></div>`).join("");
+  $("introSub").textContent = `${chapterOf(n).kanji} ${chapterOf(n).name} · ${L.theme} · ${L.words.length} слов. Жми на ответ или клавиши 1–6, золотые бонусы — кликом или пробелом.`;
+  $("introList").innerHTML = wordListHtml(L.words);
   show("intro");
 }
 
+function openExam() {
+  const opts = LESSONS.map(L => `<option value="${L.n}">第${L.n}課 · Урок ${L.n}</option>`).join("");
+  $("examFrom").innerHTML = opts; $("examTo").innerHTML = opts;
+  const passed = LESSONS.filter(L => progress[L.n] && progress[L.n].stars).map(L => L.n);
+  $("examFrom").value = passed.length ? Math.min(...passed) : 1;
+  $("examTo").value = passed.length ? Math.max(...passed) : 5;
+  updateExamInfo();
+  show("exam");
+}
+function examWords() {
+  let a = +$("examFrom").value, b = +$("examTo").value;
+  if (a > b) [a, b] = [b, a];
+  const seen = new Set(), words = [];
+  for (let n = a; n <= b; n++) for (const w of LESSONS[n - 1].words) { const k = mKey(w); if (!seen.has(k)) { seen.add(k); words.push(w); } }
+  return { a, b, words };
+}
+function updateExamInfo() {
+  const { a, b, words } = examWords();
+  $("examInfo").textContent = `Уроки ${a}–${b}: ${words.length} слов в пуле, в экзамене будет ${Math.min(40, words.length)}.`;
+}
+$("examFrom").onchange = updateExamInfo; $("examTo").onchange = updateExamInfo;
+
 /* ================= Игра ================= */
 const SPEEDS = { slow: 13, normal: 9.5, fast: 7 };
-const MAX_LIVES = 5, SLOTS = 6;
+const SLOTS = 6;
 let G = null;
 
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; }
+const isJp = s => /[぀-ヿ一-鿿]/.test(s);
+
+function makeItem(w) {
+  return settings.dir === "rj" ? { d: w, q: w.ru, a: w.jp } : { d: w, q: w.jp, a: w.ru };
+}
+
+// opts: { mode, n, words, queue, lives, total, jp, ru, sceneKey }
+function startGame(opts) {
+  endGame();
+  const others = LESSONS.flatMap(l => l.words);
+  G = Object.assign({
+    queue: shuffle(opts.words.map(makeItem)),
+    pool: opts.words, others,
+    active: [], bonuses: [], slots: Array(SLOTS).fill(""),
+    cleared: 0, score: 0, combo: 0, maxCombo: 0,
+    right: 0, wrong: 0, misses: 0, learned: 0, review: new Map(),
+    spawnCd: 0, bonusCd: 9 + Math.random() * 6, time: 0, slowUntil: 0,
+    running: false, paused: false, last: 0, floor: 0, locked: 0, raf: 0,
+    sceneIdx: CHAPTERS.findIndex(c => c.scene === opts.sceneKey),
+  }, opts);
+  if (opts.queue) G.queue = opts.queue;
+  G.maxLives = G.lives;
+  if (!G.total) G.total = G.queue.length;
+  setScene(opts.sceneKey, false);
+  show(null); setGameUI(true);
+  $("hudJp").textContent = opts.jp; $("hudRu").textContent = opts.ru;
+  $("answers").innerHTML = "";
+  for (let i = 0; i < SLOTS; i++) G.slots[i] = pickDistractor();
+  for (let i = 0; i < SLOTS; i++) renderSlot(i);
+  updateHud(); renderLives();
+  countdown(() => { G.running = true; G.last = performance.now(); G.raf = requestAnimationFrame(tick); });
+}
 
 function startLesson(n) {
-  endGame();
   currentLesson = n;
-  const L = LESSONS[n - 1];
-  const others = LESSONS.slice(0, n - 1).flatMap(l => l.words).concat(LESSONS.slice(n).flatMap(l => l.words).slice(0, 60));
-  G = {
-    n, L, total: L.words.length,
-    queue: shuffle([...L.words]),
-    distractPool: { own: L.words, other: others },
-    active: [], slots: Array(SLOTS).fill(""),
-    cleared: 0, score: 0, combo: 0, maxCombo: 0, lives: MAX_LIVES,
-    right: 0, wrong: 0, misses: 0, review: new Map(),
-    spawnCd: 0, running: false, paused: false, last: 0, floor: 0, locked: 0, raf: 0,
-  };
-  show(null); setGameUI(true);
-  $("hudJp").textContent = `第${n}課`; $("hudRu").textContent = `Урок ${n}`;
-  G.slots = G.slots.map(() => pickDistractor());
-  renderSlots(true);
-  updateHud();
-  countdown(() => { G.running = true; G.last = performance.now(); G.raf = requestAnimationFrame(tick); });
+  const ch = chapterOf(n);
+  startGame({ mode: "lesson", n, words: LESSONS[n - 1].words, lives: 5, jp: `第${n}課`, ru: `Урок ${n} · ${ch.kanji} ${ch.name}`, sceneKey: ch.scene });
+}
+function startMistakes() {
+  const list = Object.values(mistakes);
+  if (!list.length) return;
+  // каждое слово встречается столько раз, сколько осталось до «выучено»
+  const rounds = [];
+  for (let r = 0; r < MASTER; r++) rounds.push(shuffle(list.filter(m => MASTER - m.streak > r).map(m => ({ ...m, id: "m" + mKey(m) }))));
+  const queue = rounds.flat().map(makeItem);
+  const maxL = Math.max(...list.map(m => m.lesson || 1));
+  startGame({ mode: "mistakes", words: list, queue, total: queue.length, lives: 5, jp: "復習", ru: "Мои ошибки", sceneKey: chapterOf(maxL).scene });
+}
+function startExam() {
+  const { a, b, words } = examWords();
+  const chosen = shuffle([...words]).slice(0, 40);
+  G_examRange = [a, b];
+  startGame({ mode: "exam", words: chosen, others: words, lives: 3, jp: "試験", ru: `Экзамен · уроки ${a}–${b}`, sceneKey: chapterOf(b).scene });
+}
+let G_examRange = [1, 5];
+function endlessPool() {
+  const passed = LESSONS.filter(L => progress[L.n] && progress[L.n].stars);
+  const src = passed.length ? passed : LESSONS.slice(0, 1);
+  return src.flatMap(L => L.words);
+}
+function startEndless() {
+  const words = endlessPool();
+  startGame({ mode: "endless", words, total: Infinity, lives: 5, jp: "∞", ru: "Бесконечный режим", sceneKey: "spring" });
 }
 
 function countdown(done) {
@@ -1326,59 +1858,73 @@ function endGame() {
   cancelAnimationFrame(G.raf);
   G.running = false;
   G.active.forEach(w => w.el.remove());
-  stage.querySelectorAll(".float, .toast, .countdown").forEach(e => e.remove());
+  G.bonuses.forEach(b => b.el.remove());
+  stage.querySelectorAll(".float, .toast, .countdown, .reveal, .scene-title").forEach(e => e.remove());
+  $("effect").classList.add("hidden");
   G = null;
 }
 
-const prog = () => G.cleared / G.total;
-const fallTime = () => SPEEDS[settings.speed] * (1 - .28 * prog()) * (1 - Math.min(.15, (G.n - 1) * .006));
-const maxActive = () => {
+const prog = () => G.mode === "endless" ? Math.min(1, G.cleared / 60) : G.cleared / G.total;
+function fallTime() {
+  let t = SPEEDS[settings.speed];
+  if (G.mode === "endless") t *= Math.max(.42, 1 - G.cleared * .009);
+  else t *= (1 - .28 * prog()) * (G.mode === "lesson" ? 1 - Math.min(.15, (G.n - 1) * .006) : .88);
+  return t;
+}
+function maxActive() {
   const p = prog();
-  const m = p < .15 ? 1 : p < .5 ? 2 : 3;
+  let m = p < .15 ? 1 : p < .5 ? 2 : 3;
+  if (G.mode === "endless" && G.cleared > 80) m = 4;
   return settings.speed === "slow" ? Math.min(2, m) : m;
-};
+}
+const slowFactor = () => G.time < G.slowUntil ? .4 : 1;
 
 function spawn() {
-  const data = G.queue.shift();
+  // не выпускаем два одинаковых вопроса одновременно
+  let idx = G.queue.findIndex(it => !G.active.some(a => a.q === it.q || a.a === it.a));
+  if (idx < 0) return;
+  const it = G.queue.splice(idx, 1)[0];
   const el = document.createElement("div");
   el.className = "word";
-  const len = data.jp.length;
-  const sw = stage.clientWidth;
-  const fs = Math.max(18, Math.min(36, (sw - 60) / (len * 1.15)));
-  el.innerHTML = `<div class="card" style="font-size:${fs}px;--sway:${(2.4 + Math.random() * 1.6).toFixed(2)}s;animation-delay:-${(Math.random() * 2).toFixed(2)}s">${data.jp}</div>`;
+  const sw = stage.clientWidth, len = it.q.length;
+  const fs = Math.max(16, Math.min(34, sw / 13, (sw - 70) / (len * (isJp(it.q) ? 1.15 : .62))));
+  el.innerHTML = `<div class="card" style="font-size:${fs.toFixed(0)}px;--sway:${(2.4 + Math.random() * 1.6).toFixed(2)}s;--flick:${(4 + Math.random() * 4).toFixed(1)}s;animation-delay:-${(Math.random() * 2).toFixed(2)}s">${esc(it.q)}</div>`;
   stage.appendChild(el);
   const w = el.offsetWidth, h = el.offsetHeight;
-  // выбираем позицию подальше от уже падающих слов
+  const x = freeX(w, h);
+  const word = Object.assign(it, { el, x, y: -h - 30, w, h });
+  el.style.transform = `translate3d(${x}px, ${word.y}px, 0)`;
+  G.active.push(word);
+  if (!G.slots.includes(it.a)) {
+    const live = new Set(G.active.map(a => a.a));
+    const free = G.slots.map((t, i) => live.has(t) ? -1 : i).filter(i => i >= 0);
+    const i = free[(Math.random() * free.length) | 0];
+    G.slots[i] = it.a; renderSlot(i);
+  }
+}
+function freeX(w, h) {
+  const sw = stage.clientWidth;
   let best = 12, bestD = -1;
+  const others = G.active.concat(G.bonuses);
   for (let k = 0; k < 14; k++) {
     const x = 12 + Math.random() * Math.max(0, sw - w - 24);
     let d = Infinity;
-    for (const o of G.active) if (o.y < h * 3) d = Math.min(d, Math.abs((o.x + o.w / 2) - (x + w / 2)) - (o.w + w) / 2);
+    for (const o of others) if (o.y < h * 3) d = Math.min(d, Math.abs((o.x + o.w / 2) - (x + w / 2)) - (o.w + w) / 2);
     if (d > bestD) { bestD = d; best = x; }
   }
-  const word = { data, el, x: best, y: -h - 24, w, h };
-  el.style.transform = `translate3d(${word.x}px, ${word.y}px, 0)`;
-  G.active.push(word);
-  // перевод появляется среди вариантов
-  if (!G.slots.includes(data.ru)) {
-    const live = new Set(G.active.map(a => a.data.ru));
-    const free = G.slots.map((t, i) => live.has(t) ? -1 : i).filter(i => i >= 0);
-    const i = free[(Math.random() * free.length) | 0];
-    G.slots[i] = data.ru; renderSlot(i);
-  }
+  return best;
 }
 
 function pickDistractor() {
   const used = new Set(G.slots);
-  G.active.forEach(a => used.add(a.data.ru));
-  const fromOwn = Math.random() < .65 || !G.distractPool.other.length;
-  const pool = (fromOwn ? G.distractPool.own : G.distractPool.other).filter(w => !used.has(w.ru));
-  const fallback = G.distractPool.own.concat(G.distractPool.other).filter(w => !used.has(w.ru));
-  const src = pool.length ? pool : fallback;
-  return src[(Math.random() * src.length) | 0].ru;
+  G.active.forEach(a => used.add(a.a));
+  const field = settings.dir === "rj" ? "jp" : "ru";
+  const fromOwn = Math.random() < .65;
+  let src = (fromOwn ? G.pool : G.others).filter(w => !used.has(w[field]));
+  if (!src.length) src = G.others.filter(w => !used.has(w[field]));
+  return src[(Math.random() * src.length) | 0][field];
 }
 
-function renderSlots() { for (let i = 0; i < SLOTS; i++) renderSlot(i); }
 function renderSlot(i) {
   const box = $("answers");
   let b = box.children[i];
@@ -1388,29 +1934,83 @@ function renderSlot(i) {
     box.appendChild(b);
   }
   b.classList.remove("swap", "right", "wrong"); void b.offsetWidth; b.classList.add("swap");
-  b.innerHTML = `<span class="key">${i + 1}</span>${G.slots[i]}`;
+  b.classList.toggle("jp", isJp(G.slots[i]));
+  b.innerHTML = `<span class="key">${i + 1}</span>${esc(G.slots[i])}`;
+}
+
+/* ---- бонусы ---- */
+const BONUS = {
+  slow: { k: "遅", label: "замедление" },
+  life: { k: "命", label: "+1 жизнь" },
+  bomb: { k: "爆", label: "бомба" },
+};
+function spawnBonus() {
+  let type = pick(["slow", "slow", "life", "bomb", "bomb"]);
+  if (type === "life" && G.lives >= G.maxLives) type = "slow";
+  const el = document.createElement("button");
+  el.className = "bonus"; el.setAttribute("aria-label", "Бонус: " + BONUS[type].label);
+  el.innerHTML = `<span class="coin">${BONUS[type].k}</span><span class="bl">${BONUS[type].label}</span>`;
+  stage.appendChild(el);
+  const b = { type, el, w: 76, h: 80, y: -90, x: 0 };
+  b.x = freeX(b.w, b.h);
+  el.style.transform = `translate3d(${b.x}px, ${b.y}px, 0)`;
+  el.addEventListener("pointerdown", e => { e.preventDefault(); collect(b); });
+  G.bonuses.push(b);
+}
+function collect(b) {
+  if (!G || !G.running || G.paused || !G.bonuses.includes(b)) return;
+  Sound.unlock();
+  G.bonuses = G.bonuses.filter(x => x !== b); b.el.remove();
+  const sr = stage.getBoundingClientRect(), cx = sr.left + b.x + b.w / 2, cy = sr.top + b.y + 30;
+  for (let i = 0; i < 26; i++) parts.push({ kind: "spark", burst: true, x: cx, y: cy, vx: (Math.random() - .5) * 400, vy: (Math.random() - .5) * 400,
+    size: 1.5 + Math.random() * 2, color: pick(["#ffd35a", "#fff3c4", "#ffb13b"]), life: .9, age: 0, ph: 0, vph: 0, rot: 0, vr: 0 });
+  if (b.type === "slow") {
+    G.slowUntil = G.time + 6; G.slowTotal = 6; Sound.bonus();
+    $("effK").textContent = "遅"; $("effT").textContent = "Замедление"; $("effect").classList.remove("hidden");
+  } else if (b.type === "life") {
+    G.lives = Math.min(G.maxLives, G.lives + 1); Sound.bonus(); renderLives(true);
+  } else {
+    Sound.boom();
+    stage.classList.remove("shake"); void stage.offsetWidth; stage.classList.add("shake");
+    for (const w of [...G.active]) clearWord(w, 60, false);
+  }
+  floatText(b.x + b.w / 2, b.y + 30, BONUS[b.type].label);
+  updateHud();
 }
 
 function tick(now) {
   if (!G || !G.running) return;
   const dt = Math.min(.05, (now - G.last) / 1000); G.last = now;
   if (!G.paused) {
-    const dist = G.floor + 60;
-    const speed = dist / fallTime();
+    G.time += dt;
+    const speed = (G.floor + 60) / fallTime() * slowFactor();
+    // бесконечный режим: пополняем очередь
+    if (G.mode === "endless" && G.queue.length < 4) G.queue.push(...shuffle(G.pool.map(makeItem)));
     G.spawnCd -= dt;
     if (G.queue.length && (G.active.length === 0 || (G.active.length < maxActive() && G.spawnCd <= 0))) {
       spawn(); G.spawnCd = fallTime() * (.3 + Math.random() * .15);
     }
+    G.bonusCd -= dt;
+    if (G.bonusCd <= 0) { spawnBonus(); G.bonusCd = 12 + Math.random() * 10; }
     let lowest = null;
     for (const w of [...G.active]) {
       w.y += speed * dt;
       w.el.style.transform = `translate3d(${w.x}px, ${w.y}px, 0)`;
       w.el.classList.toggle("danger", w.y + w.h > G.floor * .78);
-      if (w.y + w.h >= G.floor) { miss(w); continue; }
+      if (w.y + w.h >= G.floor) { miss(w); if (!G || !G.running) return; continue; }
       if (!lowest || w.y > lowest.y) lowest = w;
     }
+    G.target = lowest;
     G.active.forEach(w => w.el.classList.toggle("target", w === lowest));
-    if (!G.queue.length && !G.active.length) { finish(true); return; }
+    for (const b of [...G.bonuses]) {
+      b.y += speed * .8 * dt;
+      b.el.style.transform = `translate3d(${b.x}px, ${b.y}px, 0)`;
+      if (b.y + b.h >= G.floor + 20) { G.bonuses = G.bonuses.filter(x => x !== b); b.el.remove(); }
+    }
+    const eff = $("effect");
+    if (G.time < G.slowUntil) $("effBar").style.width = ((G.slowUntil - G.time) / G.slowTotal * 100).toFixed(1) + "%";
+    else if (!eff.classList.contains("hidden")) eff.classList.add("hidden");
+    if (G.mode !== "endless" && !G.queue.length && !G.active.length) { finish(true); return; }
   }
   G.raf = requestAnimationFrame(tick);
 }
@@ -1418,12 +2018,25 @@ function tick(now) {
 function removeWord(w) {
   w.el.remove();
   G.active = G.active.filter(a => a !== w);
-  // освободившийся перевод меняем на новый ложный вариант
-  const ru = w.data.ru;
-  if (!G.active.some(a => a.data.ru === ru)) {
-    const i = G.slots.indexOf(ru);
-    if (i >= 0) setTimeout(() => { if (G && G.slots[i] === ru && !G.active.some(a => a.data.ru === ru)) { G.slots[i] = pickDistractor(); renderSlot(i); } }, 380);
+  const a = w.a;
+  if (!G.active.some(o => o.a === a)) {
+    const i = G.slots.indexOf(a);
+    if (i >= 0) setTimeout(() => { if (G && G.slots[i] === a && !G.active.some(o => o.a === a)) { G.slots[i] = pickDistractor(); renderSlot(i); } }, 380);
   }
+}
+
+function clearWord(w, basePts, byClick) {
+  const sr = stage.getBoundingClientRect();
+  const cx = w.x + w.w / 2, cy = w.y + w.h / 2;
+  G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo); G.right++; G.cleared++;
+  const heightBonus = Math.round(60 * Math.max(0, 1 - (w.y + w.h) / G.floor));
+  const pts = basePts + heightBonus + (G.combo - 1) * 15;
+  G.score += pts;
+  burst(sr.left + cx, sr.top + cy, 20 + Math.min(20, G.combo * 2));
+  if (w.d.kanji && byClick) reveal(cx, cy, w.d, pts); else floatText(cx, cy, `+${pts}`);
+  if (markCorrect(w.d)) { G.learned++; toast(`<b>✓</b>${esc(w.d.jp)} — выучено!`, true); }
+  removeWord(w);
+  if (G.mode === "endless" && G.cleared % 20 === 0) nextEndlessScene();
 }
 
 function answer(i) {
@@ -1431,23 +2044,16 @@ function answer(i) {
   Sound.unlock();
   const text = G.slots[i];
   const btn = $("answers").children[i];
-  const hits = G.active.filter(w => w.data.ru === text).sort((a, b) => b.y - a.y);
+  const hits = G.active.filter(w => w.a === text).sort((a, b) => b.y - a.y);
   btn.classList.remove("right", "wrong"); void btn.offsetWidth;
   if (hits.length) {
     const w = hits[0];
-    const sr = stage.getBoundingClientRect();
-    const cx = w.x + w.w / 2, cy = w.y + w.h / 2;
-    G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo); G.right++; G.cleared++;
-    const heightBonus = Math.round(60 * Math.max(0, 1 - (w.y + w.h) / G.floor));
-    const pts = 100 + heightBonus + (G.combo - 1) * 15;
-    G.score += pts;
-    burst(sr.left + cx, sr.top + cy, 20 + Math.min(20, G.combo * 2));
-    floatText(cx, cy, `+${pts}`);
-    Sound.right(G.combo); speak(w.data.jp);
+    clearWord(w, 100, true);
+    Sound.right(G.combo); speak(w.d.jp);
     btn.classList.add("right");
-    removeWord(w);
   } else {
     G.combo = 0; G.wrong++;
+    if (G.target) { addMistake(G.target.d); G.review.set(mKey(G.target.d), G.target.d); }
     btn.classList.add("wrong");
     Sound.wrong();
     G.locked = performance.now() + 650;
@@ -1459,48 +2065,76 @@ function answer(i) {
 
 function miss(w) {
   G.combo = 0; G.lives--; G.misses++;
-  G.review.set(w.data.jp, w.data);
+  G.review.set(mKey(w.d), w.d);
+  addMistake(w.d);
   removeWord(w);
-  G.queue.splice(Math.max(0, G.queue.length - 2 + ((Math.random() * 3) | 0)), 0, w.data); // слово вернётся позже
+  if (G.mode !== "endless") G.queue.splice(Math.max(0, G.queue.length - 2 + ((Math.random() * 3) | 0)), 0, { d: w.d, q: w.q, a: w.a });
+  else G.cleared++; // в бесконечном слово просто уходит
   const sr = stage.getBoundingClientRect();
   splash(sr.left + w.x + w.w / 2, sr.top + G.floor);
   stage.classList.remove("shake"); void stage.offsetWidth; stage.classList.add("shake");
-  const t = document.createElement("div"); t.className = "toast";
-  t.innerHTML = `<b>${w.data.jp}</b>${w.data.ru}`;
+  toast(`<b>${esc(w.d.jp)}</b>${w.d.kanji ? esc(w.d.kanji) + " · " : ""}${esc(w.d.ru)}`);
+  Sound.miss(); speak(w.d.jp);
+  renderLives(); updateHud();
+  if (G.lives <= 0) finish(G.mode === "endless");
+}
+
+function toast(html, ok) {
   stage.querySelectorAll(".toast").forEach(e => e.remove());
-  stage.appendChild(t); setTimeout(() => t.remove(), 2200);
-  Sound.miss(); speak(w.data.jp);
-  updateHud();
-  if (G.lives <= 0) finish(false);
+  const t = document.createElement("div"); t.className = "toast" + (ok ? " ok" : "");
+  t.innerHTML = html; stage.appendChild(t); setTimeout(() => t.remove(), 2200);
 }
-
-function splash(x, y) {
-  for (let i = 0; i < 14; i++) {
-    const p = newPetal(x, y, true);
-    p.color = ["#9fb8ff", "#c8d6ff", "#ffffff"][i % 3];
-    p.vy = -80 - Math.random() * 220; p.vx = (Math.random() - .5) * 220; p.size = 2 + Math.random() * 3;
-    petals.push(p);
-  }
-}
-
 function floatText(x, y, text) {
   const f = document.createElement("div"); f.className = "float"; f.textContent = text;
   f.style.left = x + "px"; f.style.top = y + "px";
   stage.appendChild(f); setTimeout(() => f.remove(), 900);
 }
+function reveal(x, y, w, pts) {
+  const r = document.createElement("div"); r.className = "reveal";
+  r.innerHTML = `<div class="rk">${esc(w.kanji)}</div><div class="rr">${esc(w.jp)} · ${esc(w.ru)} · +${pts}</div>`;
+  const sw = stage.clientWidth;
+  r.style.left = Math.max(110, Math.min(sw - 110, x)) + "px"; r.style.top = Math.max(60, y) + "px";
+  stage.appendChild(r); setTimeout(() => r.remove(), 1700);
+}
+
+function nextEndlessScene() {
+  G.sceneIdx = (G.sceneIdx + 1) % CHAPTERS.length;
+  const ch = CHAPTERS[G.sceneIdx];
+  setScene(ch.scene, true);
+  setTimeout(() => {
+    if (!G) return;
+    renderLives();
+    const t = document.createElement("div"); t.className = "scene-title";
+    t.innerHTML = `<div class="k">${ch.kanji}</div><div class="n">${ch.name}</div>`;
+    stage.appendChild(t); setTimeout(() => t.remove(), 2400);
+  }, 460);
+}
+
+function renderLives(gain) {
+  const icon = lifeIcon();
+  $("lives").innerHTML = Array.from({ length: G.maxLives }, (_, i) =>
+    `<span class="life${i < G.lives ? "" : " lost"}${gain && i === G.lives - 1 ? " gain" : ""}">${icon}</span>`).join("");
+}
 
 function updateHud() {
   $("score").textContent = G.score;
-  $("bar").style.width = (prog() * 100).toFixed(1) + "%";
-  $("progTxt").textContent = `${G.cleared} / ${G.total}`;
+  if (G.mode === "endless") {
+    $("bar").style.width = ((G.cleared % 20) / 20 * 100).toFixed(1) + "%";
+    $("progTxt").textContent = `${G.cleared} слов · до новой сцены ${20 - G.cleared % 20}`;
+  } else {
+    $("bar").style.width = (prog() * 100).toFixed(1) + "%";
+    $("progTxt").textContent = `${G.cleared} / ${G.total}`;
+  }
   const tries = G.right + G.wrong + G.misses;
   $("accTxt").textContent = tries ? `точность ${Math.round(G.right / tries * 100)}%` : "";
-  $("lives").innerHTML = Array.from({ length: MAX_LIVES }, (_, i) => SAKURA.replace("<svg", `<svg class="${i < G.lives ? "" : "lost"}"`)).join("");
   const c = $("combo");
   if (G.combo >= 2) {
     c.textContent = `コンボ ×${G.combo}`; c.classList.add("show");
     c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
   } else c.classList.remove("show");
+  if (G.lives !== undefined && $("lives").children.length) {
+    [...$("lives").children].forEach((e, i) => e.classList.toggle("lost", i >= G.lives));
+  }
 }
 
 function finish(win) {
@@ -1509,53 +2143,75 @@ function finish(win) {
   cancelAnimationFrame(g.raf);
   const tries = g.right + g.wrong + g.misses;
   const acc = tries ? Math.round(g.right / tries * 100) : 0;
-  const stars = !win ? 0 : (g.lives === MAX_LIVES && g.wrong <= 2) ? 3 : g.lives >= 3 ? 2 : 1;
-  const p = progress[g.n] || {};
-  progress[g.n] = { stars: Math.max(p.stars || 0, stars), best: Math.max(p.best || 0, win ? g.score : 0) };
-  store.set("oc_progress", progress);
-
+  let stars = 0, big = win ? "合格" : "残念", sub = "", newRecord = false;
+  if (g.mode === "lesson") {
+    stars = !win ? 0 : (g.lives === g.maxLives && g.wrong <= 2) ? 3 : g.lives >= 3 ? 2 : 1;
+    const p = progress[g.n] || {};
+    progress[g.n] = { stars: Math.max(p.stars || 0, stars), best: Math.max(p.best || 0, win ? g.score : 0) };
+    store.set("oc_progress", progress);
+    sub = win ? `Урок ${g.n} пройден!` : `Урок ${g.n}: жизни кончились… Попробуй ещё раз!`;
+  } else if (g.mode === "exam") {
+    stars = !win ? 0 : acc >= 95 ? 3 : acc >= 85 ? 2 : 1;
+    sub = win ? `Экзамен по урокам ${G_examRange[0]}–${G_examRange[1]} сдан!` : "Экзамен не сдан — повтори слова и попробуй снова.";
+  } else if (g.mode === "mistakes") {
+    stars = !win ? 0 : g.lives === g.maxLives ? 3 : g.lives >= 3 ? 2 : 1;
+    const left = Object.keys(mistakes).length;
+    sub = `Выучено слов: ${g.learned}. ${left ? `Осталось повторить: ${left}.` : "Список ошибок пуст!"}`;
+  } else {
+    big = "終わり";
+    newRecord = g.score > records.endless;
+    if (newRecord) { records.endless = g.score; records.endlessWords = g.cleared; store.set("oc_records", records); }
+    sub = newRecord ? `Новый рекорд! ${g.cleared} слов` : `Рекорд: ${records.endless} очков`;
+    win = true;
+  }
   win ? Sound.win() : Sound.lose();
   if (win) { const sr = stage.getBoundingClientRect(); for (let i = 0; i < 5; i++) setTimeout(() => burst(sr.left + Math.random() * sr.width, sr.top + sr.height * (.2 + Math.random() * .4), 30), i * 180); }
 
   setTimeout(() => {
-    const big = $("resBig");
-    big.textContent = win ? "合格" : "残念";
-    big.className = "big " + (win ? "win" : "lose");
-    $("resSub").textContent = win ? `Урок ${g.n} пройден!` : `Урок ${g.n}: сакура облетела… Попробуй ещё раз!`;
+    $("resBig").textContent = big;
+    $("resBig").className = "big " + (win ? "win" : "lose");
+    $("resSub").textContent = sub;
+    $("resStars").classList.toggle("hidden", g.mode === "endless");
     $("resStars").innerHTML = [0, 1, 2].map(() => STAR(false)).join("");
     [...$("resStars").children].forEach((s, i) => { if (i < stars) setTimeout(() => s.classList.add("on"), 250 + i * 250); });
     $("resScore").textContent = g.score;
     $("resAcc").textContent = acc + "%";
     $("resCombo").textContent = g.maxCombo;
-    $("resWords").textContent = `${g.cleared}/${g.total}`;
+    $("resWords").textContent = g.mode === "endless" ? g.cleared : `${g.cleared}/${g.total}`;
     const rev = [...g.review.values()];
-    $("resReview").innerHTML = rev.length ? `<div class="review-h">Повтори эти слова:</div><div class="wordlist">${rev.map(w => `<div class="wl"><div class="k">${w.jp}</div><div class="t">${w.ru}</div></div>`).join("")}</div>` : "";
-    $("nextBtn").classList.toggle("hidden", !win || g.n >= LESSONS.length);
+    $("resReview").innerHTML = rev.length ? `<div class="review-h">Повтори эти слова (они в «Моих ошибках»):</div><div class="wordlist">${wordListHtml(rev)}</div>` : "";
+    $("nextBtn").classList.toggle("hidden", !(g.mode === "lesson" && win && g.n < LESSONS.length));
+    lastMode = g.mode;
     endGame();
     show("result");
   }, win ? 900 : 700);
 }
+let lastMode = "lesson";
 
-function pause() {
-  if (!G || !G.running || G.paused) return;
-  G.paused = true; show("pause");
-}
-function resume() {
-  if (!G) return;
-  G.paused = false; G.last = performance.now(); show(null);
-}
+function pause() { if (!G || !G.running || G.paused) return; G.paused = true; show("pause"); }
+function resume() { if (!G) return; G.paused = false; G.last = performance.now(); show(null); }
 
 /* ================= Управление ================= */
-$("playBtn").onclick = () => { Sound.unlock(); buildGrid(); show("lessons"); };
+$("playBtn").onclick = () => { Sound.unlock(); toMap(); };
 $("startBtn").onclick = () => { Sound.unlock(); startLesson(currentLesson); };
-$("retryBtn").onclick = () => startLesson(currentLesson);
+$("mistakesBtn").onclick = () => { Sound.unlock(); startMistakes(); };
+$("examBtn").onclick = openExam;
+$("examStart").onclick = () => { Sound.unlock(); startExam(); };
+$("endlessBtn").onclick = () => { Sound.unlock(); startEndless(); };
+$("retryBtn").onclick = () => {
+  if (lastMode === "lesson") startLesson(currentLesson);
+  else if (lastMode === "exam") startExam();
+  else if (lastMode === "mistakes") { if (Object.keys(mistakes).length) startMistakes(); else toMap(); }
+  else startEndless();
+};
 $("nextBtn").onclick = () => openIntro(currentLesson + 1);
 $("pauseBtn").onclick = pause;
 $("resumeBtn").onclick = resume;
-$("quitBtn").onclick = () => { endGame(); setGameUI(false); buildGrid(); show("lessons"); };
+$("quitBtn").onclick = toMap;
 
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") { G && G.paused ? resume() : pause(); return; }
+  if (e.key === " " && G && G.bonuses.length) { e.preventDefault(); collect([...G.bonuses].sort((a, b) => b.y - a.y)[0]); return; }
   const n = parseInt(e.key, 10);
   if (n >= 1 && n <= SLOTS) answer(n - 1);
 });
@@ -1563,11 +2219,13 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) pause
 
 function renderSettings() {
   document.querySelectorAll("#speedSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === settings.speed));
+  document.querySelectorAll(".dirSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === settings.dir));
   $("sndToggle").classList.toggle("on", settings.sound);
   $("voiceToggle").classList.toggle("on", settings.voice);
   store.set("oc_settings", settings);
 }
 document.querySelectorAll("#speedSeg button").forEach(b => b.onclick = () => { settings.speed = b.dataset.v; renderSettings(); });
+document.querySelectorAll(".dirSeg button").forEach(b => b.onclick = () => { settings.dir = b.dataset.v; renderSettings(); });
 $("sndToggle").onclick = () => { settings.sound = !settings.sound; renderSettings(); Sound.unlock(); Sound.tick(); };
 $("voiceToggle").onclick = () => { settings.voice = !settings.voice; renderSettings(); if (settings.voice) speak("こんにちは"); };
 
