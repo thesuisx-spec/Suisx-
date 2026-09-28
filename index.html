@@ -6,7 +6,7 @@
 <title>おちることば · Падающие слова</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Shippori+Mincho:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Shippori+Mincho:wght@700;800&family=Klee+One:wght@600&display=swap" rel="stylesheet">
 <style>
   :root {
     --ink: #f6f0ff;
@@ -375,6 +375,161 @@
   .stat span { font-size: 12px; color: #b9b0d8; }
   .review-h { font-weight: 700; margin: 16px 0 6px; }
 
+
+  /* ---------- Главное меню: разделы ---------- */
+  .sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 6px 0 4px; text-align: left; }
+  .sec {
+    display: flex; flex-direction: column; gap: 8px; padding: 20px 22px; border-radius: 22px; cursor: pointer; color: var(--ink);
+    border: 1px solid rgba(255,255,255,.18); font-family: var(--font); box-shadow: 0 18px 50px rgba(0,0,0,.35);
+    transition: transform .15s, border-color .2s;
+  }
+  .sec:hover { transform: translateY(-3px); border-color: rgba(255,255,255,.5); }
+  .sec .sk { font-size: 64px; line-height: 1; font-weight: 600; color: #fff8ec; }
+  .sec .st { font-size: 24px; font-weight: 800; }
+  .sec .sd { font-size: 14px; line-height: 1.45; color: #e6dcf8; }
+  .sec .sp { font-size: 12px; color: #d9d0f5; opacity: .85; }
+  .sec-kana { background: linear-gradient(160deg, rgba(255,248,236,.18), rgba(255,159,189,.14)); }
+  .sec-kana .sk { font-family: "Klee One", var(--font-title); }
+  .sec-words { background: linear-gradient(160deg, rgba(126,227,255,.14), rgba(255,154,74,.16)); }
+  .sec-words .sk { font-family: var(--font-title); font-weight: 800; }
+  .fs-btn { font: 700 13px var(--font); color: var(--ink); background: rgba(10,6,30,.55); border: 1px solid rgba(255,255,255,.18); border-radius: 12px; padding: 8px 14px; cursor: pointer; }
+
+  /* ---------- Азбука ---------- */
+  body { --ka: #ff9fbd; --ka-ink: #2a0b17; --kpaper1: #fffaf0; --kpaper2: #f4e6cc; --kline: #e2c9a6; --kink: #2b1a22; --knum: #c8323c; --kbg1: #3a2766; --kbg2: #151036; }
+  body[data-kana="kata"] { --ka: #7fc8ff; --ka-ink: #04203a; --kpaper1: #f6fbff; --kpaper2: #dfeefc; --kline: #b9d3ee; --kink: #10243a; --knum: #1f6fb8; --kbg1: #1f3f6e; --kbg2: #0f1a3a; }
+  .kscreen {
+    position: fixed; inset: 0; z-index: 6; overflow-y: auto; color: var(--ink); font-family: var(--font);
+    background: radial-gradient(ellipse at 30% -10%, var(--kbg1) 0%, var(--kbg2) 45%, #0b0a22 100%);
+    padding: max(16px, env(safe-area-inset-top)) 20px 16px; display: flex; flex-direction: column; gap: 16px;
+  }
+  .khead { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+  .khead .grow { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
+  .khead .t { font-family: var(--font-title); font-size: 32px; font-weight: 800; line-height: 1.05; }
+  .khead .s { font-size: 14px; color: #b9b0d8; }
+  .kseg { display: inline-flex; padding: 4px; border-radius: 14px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); }
+  .kseg button { font: 700 15px var(--font); color: #b9b0d8; background: none; border: 0; border-radius: 10px; padding: 9px 16px; cursor: pointer; }
+  .kseg button.on { background: var(--ka); color: var(--ka-ink); font-weight: 800; }
+  .klet { font-family: "Klee One", var(--font); font-weight: 600; }
+
+  /* путь */
+  .kstages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; flex: 1; }
+  .kstage { display: flex; flex-direction: column; gap: 10px; padding: 16px 14px 14px; border-radius: 22px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); }
+  .kstage.now { box-shadow: 0 0 0 2px var(--ka), 0 0 40px rgba(255,255,255,.08); }
+  .kstage.extra { border-style: dashed; }
+  .kstage .sh { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #b9b0d8; }
+  .kstage .sh b { color: var(--ka); letter-spacing: 0; text-transform: none; font-weight: 700; }
+  .krow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; background: rgba(10,6,30,.5); border: 1px solid rgba(255,255,255,.08); color: var(--ink); cursor: pointer; text-align: left; font-family: var(--font); }
+  .krow:hover { border-color: var(--ka); }
+  .kbig { flex: none; width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; background: var(--kpaper1); color: var(--kink); font-size: 32px; }
+  .kinfo { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .kchips { font-size: 19px; color: #eee8ff; letter-spacing: .08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kru { font-size: 12px; color: #b9b0d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kdone { color: #5fe3a1; font-size: 18px; font-weight: 800; }
+  .kgame { margin-top: auto; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 14px; cursor: pointer; text-align: left; font-family: var(--font); color: var(--ink);
+    background: rgba(255,255,255,.06); border: 1px dashed rgba(255,255,255,.28); }
+  .kgame.now { background: #ffd98a; color: #3a2400; border: 0; }
+  .kgame.done { background: rgba(95,227,161,.16); color: #d8ffe9; border: 1px solid rgba(95,227,161,.4); }
+  .kgame .gk { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-title); font-size: 22px; font-weight: 800; background: rgba(255,255,255,.14); }
+  .kgame.now .gk { background: #3a2400; color: #ffd98a; }
+  .kgame b { display: block; font-size: 16px; } .kgame small { font-size: 12px; opacity: .8; }
+  .kfoot { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: 13px; color: #b9b0d8; }
+  .kfoot .pill { padding: 5px 12px; border-radius: 99px; }
+
+  /* урок ряда */
+  .kmain { display: flex; gap: 28px; flex: 1; align-items: stretch; min-height: 0; }
+  .kcard { position: relative; flex: none; width: min(520px, 60vh, 90vw); aspect-ratio: 1; border-radius: 26px;
+    background: linear-gradient(180deg, var(--kpaper1), var(--kpaper2)); box-shadow: 0 24px 60px rgba(0,0,0,.45); align-self: center; }
+  .kcard .grid { position: absolute; inset: 6%; border: 2px solid var(--kline); border-radius: 8px;
+    background: linear-gradient(var(--kline), var(--kline)) center / 2px 100% no-repeat, linear-gradient(var(--kline), var(--kline)) center / 100% 2px no-repeat; opacity: .7; }
+  .kcard svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .kcard .ghost path { fill: none; stroke: rgba(0,0,0,.08); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+  .kcard .kst { fill: none; stroke: var(--kink); stroke-width: 3.6; stroke-linecap: round; stroke-linejoin: round; }
+  .kcard .kst.drawing { stroke: var(--knum); }
+  .kcard .knum circle { fill: var(--knum); }
+  .kcard .knum text { fill: #fff; font: 800 5.4px var(--font); text-anchor: middle; dominant-baseline: central; }
+  .kcard .knum { transition: opacity .2s; }
+  .kcard canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: none; touch-action: none; border-radius: 26px; }
+  .kcard.tracing canvas { display: block; cursor: crosshair; }
+  .kcard.tracing .kst, .kcard.tracing .knum { opacity: 0; }
+  .kcard.tracing .ghost path { stroke: rgba(0,0,0,.14); stroke-width: 5; }
+  .kcount { position: absolute; left: 20px; bottom: -14px; padding: 6px 14px; border-radius: 99px; background: var(--knum); color: #fff; font-size: 14px; font-weight: 800; }
+  .kside { flex: 1; display: flex; flex-direction: column; gap: 14px; min-width: 260px; }
+  .kread { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
+  .kread .r { font-size: clamp(48px, 7vw, 80px); font-weight: 800; line-height: 1; }
+  .kread .n { font-size: 20px; color: #b9b0d8; }
+  .kbtns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .kb { display: flex; align-items: center; justify-content: center; gap: 8px; font: 800 16px var(--font); border-radius: 14px; padding: 13px 14px; cursor: pointer;
+    background: rgba(255,255,255,.08); color: var(--ink); border: 1px solid rgba(255,255,255,.16); }
+  .kb:hover { background: rgba(255,255,255,.14); }
+  .kb.pri { background: var(--ka); color: var(--ka-ink); border: 0; }
+  .kb.go { background: #ffd98a; color: #3a2400; border: 0; }
+  .kex { padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 18px; }
+  .kex .w { font-size: clamp(34px, 4.5vw, 52px); line-height: 1.1; }
+  .kex .w em { font-style: normal; color: var(--ka); }
+  .kex .m { display: flex; flex-direction: column; gap: 2px; }
+  .kex .m span:first-child { font-size: 13px; color: #b9b0d8; }
+  .kex .m b { font-size: 21px; }
+  .kex .m i { font-style: normal; font-family: var(--font-title); font-size: 18px; color: #ffd98a; }
+  .knav { margin-top: auto; display: flex; gap: 10px; }
+  .knav .kb { flex: 1; } .knav .kb.go { flex: 2; }
+  .ktabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+  .ktab { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0; border-radius: 16px; cursor: pointer; color: var(--ink);
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); font-family: var(--font); }
+  .ktab .klet { font-size: 36px; line-height: 1.1; }
+  .ktab small { font-size: 13px; color: #b9b0d8; }
+  .ktab.on { border-color: var(--ka); background: rgba(255,255,255,.14); }
+  .ktab.seen small::after { content: " ✓"; color: #5fe3a1; }
+
+  /* игра Порядок */
+  .kchipsrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .kchip { font: 700 16px "Klee One", var(--font); padding: 6px 10px; border-radius: 10px; cursor: pointer; color: var(--ink);
+    border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.06); }
+  .kchip.on { border-color: var(--ka); background: rgba(255,255,255,.2); }
+  .kstats { display: flex; flex-wrap: wrap; gap: 12px; }
+  .kprog { flex: 1; min-width: 240px; display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 16px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); }
+  .kprog .bar { flex: 1; height: 12px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; }
+  .kprog .bar i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #5fe3a1, #ffd98a); transition: width .25s; }
+  .kprog b { font-size: 20px; font-variant-numeric: tabular-nums; }
+  .kstat { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 16px; border-radius: 16px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); min-width: 90px; }
+  .kstat b { font-size: 22px; font-variant-numeric: tabular-nums; }
+  .kstat span { font-size: 11px; color: #b9b0d8; }
+  .kstat.rec { background: rgba(255,217,138,.12); border-color: rgba(255,217,138,.4); }
+  .kstat.rec b { color: #ffd98a; }
+  .kgrid { flex: 1; display: grid; gap: 12px; min-height: 260px; }
+  .ktile { position: relative; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 0; cursor: pointer; padding: 0;
+    background: linear-gradient(180deg, var(--kpaper1), var(--kpaper2)); color: var(--kink); transition: transform .15s, box-shadow .2s, background .2s; font-family: "Klee One", var(--font); font-weight: 600; line-height: 1; }
+  .ktile .i { position: absolute; left: 10px; top: 7px; font: 700 12px var(--font); opacity: .45; }
+  .ktile .rr { font: 700 15px var(--font); margin-top: 4px; opacity: .85; min-height: 1em; }
+  .ktile.done { background: rgba(95,227,161,.16); color: #bff5da; box-shadow: inset 0 0 0 2px rgba(95,227,161,.45); }
+  .ktile.cur { box-shadow: 0 0 0 4px #ffd98a, 0 0 40px rgba(255,217,138,.6); transform: scale(1.04); z-index: 1; }
+  .ktile.bad { animation: kbad .45s; box-shadow: 0 0 0 4px #ff6b7d, 0 0 40px rgba(255,107,125,.7); }
+  @keyframes kbad { 20% { transform: translateX(-8px); } 40% { transform: translateX(7px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(3px); } }
+  .kgrid.flash { animation: kflash .5s; }
+  @keyframes kflash { 30% { background: rgba(255,107,125,.18); } }
+  .kctl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .kctl .kb { font-size: 17px; padding: 15px 12px; }
+  .kctl .ok { background: #5fe3a1; color: #06301c; border: 0; }
+  .kctl .no { background: #ff6b7d; color: #2e0610; border: 0; }
+  .kctl .sh { background: #ffd98a; color: #3a2400; border: 0; }
+  .kbd { font: 700 11px var(--font); padding: 3px 6px; border-radius: 6px; background: rgba(0,0,0,.2); }
+  .kreadseg { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #b9b0d8; }
+  .kreadseg .kseg button { font-size: 13px; padding: 6px 10px; }
+  .kwin { position: fixed; inset: 0; z-index: 7; display: grid; place-items: center; background: rgba(8,6,26,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 16px; }
+  .kwin .panel { text-align: center; }
+  .kwin .big { font-family: var(--font-title); font-size: 56px; line-height: 1.1; text-shadow: 0 0 28px var(--ka); }
+  .kcredit { font-size: 11px; color: #8f87b3; }
+  .kcredit a { color: #b9b0d8; }
+
+  @media (max-width: 1100px) { .kstages { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); } }
+  @media (max-width: 820px) {
+    .kmain { flex-direction: column; flex: none; }
+    .kcard { width: min(92vw, 420px); }
+    .kctl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .sections { grid-template-columns: 1fr; }
+    .sec .sk { font-size: 48px; }
+    .khead .t { font-size: 26px; }
+  }
+
   @media (max-width: 1000px) {
     .chapters { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
   }
@@ -429,18 +584,27 @@
   <div class="title-wrap">
     <div class="hanko">日本<br>語</div>
     <h1 class="logo">おちることば</h1>
-    <div class="logo-sub">Падающие слова</div>
-    <p class="logo-note">Minna no Nihongo I · 5 глав, 25 уроков · выбери правильный перевод, пока слово не упало</p>
-    <button class="btn" id="playBtn">Играть
-      <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11a.5.5 0 0 0 .77.42l8.5-5.5a.5.5 0 0 0 0-.84l-8.5-5.5A.5.5 0 0 0 4 2.5z"/></svg>
-    </button>
+    <div class="logo-sub">Японский в классе</div>
+    <p class="logo-note">Помощник учителя японского: азбука и слова в одном приложении</p>
+    <div class="sections">
+      <button class="sec sec-kana" id="kanaBtn">
+        <span class="sk">あア</span>
+        <span class="st">かな · Азбука</span>
+        <span class="sd">Хирагана и катакана по рядам: как пишется каждая буква, порядок черт, игра «Порядок»</span>
+      </button>
+      <button class="sec sec-words" id="playBtn">
+        <span class="sk">言葉</span>
+        <span class="st">ことば · Слова</span>
+        <span class="sd">Minna no Nihongo I: 25 уроков, падающие слова, «Мои ошибки», экзамен, бесконечный режим</span>
+      </button>
+    </div>
     <div class="settings">
-      <div class="seg-label">Направление</div>
+      <div class="seg-label">Слова: направление</div>
       <div class="seg dirSeg">
         <button data-v="jr">日本語 → русский</button>
         <button data-v="rj">русский → 日本語</button>
       </div>
-      <div class="seg-label">Скорость</div>
+      <div class="seg-label">Слова: скорость</div>
       <div class="seg" id="speedSeg">
         <button data-v="slow">Медленно</button>
         <button data-v="normal">Нормально</button>
@@ -449,6 +613,7 @@
       <div class="toggles">
         <button class="toggle" id="sndToggle">♪ Звук</button>
         <button class="toggle" id="voiceToggle">Озвучка слов</button>
+        <button class="fs-btn" id="fsBtn">На весь экран</button>
       </div>
     </div>
   </div>
@@ -553,6 +718,121 @@
     </div>
   </div>
 </section>
+
+<!-- Азбука: путь -->
+<section class="kscreen hidden" id="scrKanaHub">
+  <div class="khead">
+    <button class="icon-btn" id="khBack" aria-label="В главное меню">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 3 5 8l5 5"/></svg>
+    </button>
+    <div class="grow">
+      <div class="t">かな · Азбука</div>
+      <div class="s">Учим по рядам: сначала как пишется, после каждых трёх рядов — игра «Порядок»</div>
+    </div>
+    <div class="kseg kscript">
+      <button data-v="hira">ひらがな Хирагана</button>
+      <button data-v="kata">カタカナ Катакана</button>
+    </div>
+  </div>
+  <div class="kstages" id="kStages"></div>
+  <div class="kfoot">
+    <span class="pill" style="background:rgba(95,227,161,.14);color:#9ff0c6">✓ ряд пройден</span>
+    <span class="pill" style="background:rgba(255,255,255,.1)">рамка — идёт сейчас</span>
+    <span>Любой ряд и любую игру можно открыть в любой момент</span>
+    <span class="kcredit" style="margin-left:auto">Порядок черт: <a href="https://kanjivg.tagaini.net" target="_blank" rel="noopener">KanjiVG</a> © Ulrich Apel, CC BY-SA 3.0</span>
+  </div>
+</section>
+
+<!-- Азбука: урок ряда -->
+<section class="kscreen hidden" id="scrKanaRow">
+  <div class="khead">
+    <button class="icon-btn" id="krBack" aria-label="К пути по азбуке">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 3 5 8l5 5"/></svg>
+    </button>
+    <div class="grow">
+      <div class="t" id="krTitle">あ行 · Ряд А</div>
+      <div class="s" id="krSub"></div>
+    </div>
+    <div class="kseg kscript">
+      <button data-v="hira">ひらがな</button>
+      <button data-v="kata">カタカナ</button>
+    </div>
+  </div>
+  <div class="kmain">
+    <div class="kcard" id="kCard">
+      <div class="grid"></div>
+      <svg id="kSvg" viewBox="0 0 109 109" aria-hidden="true"></svg>
+      <canvas id="kTrace"></canvas>
+      <div class="kcount" id="kCount">3 черты</div>
+    </div>
+    <div class="kside">
+      <div class="kread"><div class="r" id="kReadRu">а</div><div class="n" id="kReadNote">a</div></div>
+      <div class="kbtns">
+        <button class="kb pri" id="kPlay"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11a.5.5 0 0 0 .77.42l8.5-5.5a.5.5 0 0 0 0-.84l-8.5-5.5A.5.5 0 0 0 4 2.5z"/></svg>Порядок черт</button>
+        <button class="kb" id="kSay"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 8a5 5 0 0 1 0 8"/></svg>Озвучить</button>
+        <button class="kb" id="kTraceBtn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20l4-1L19 8l-3-3L5 16l-1 4z"/></svg><span id="kTraceLbl">Обвести пальцем</span></button>
+        <button class="kb" id="kPair">あ ↔ ア</button>
+      </div>
+      <div class="kex" id="kEx"></div>
+      <div class="knav">
+        <button class="kb" id="kPrev">←</button>
+        <button class="kb go" id="kNext">Дальше →</button>
+      </div>
+    </div>
+  </div>
+  <div class="ktabs" id="kTabs"></div>
+</section>
+
+<!-- Азбука: игра «Порядок» -->
+<section class="kscreen hidden" id="scrKanaOrder">
+  <div class="khead">
+    <button class="icon-btn" id="koBack" aria-label="К пути по азбуке">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 3 5 8l5 5"/></svg>
+    </button>
+    <div class="grow">
+      <div class="t">順番 · Порядок</div>
+      <div class="s">Читайте по порядку: слева направо, сверху вниз. Ошибка — начинаем сначала</div>
+    </div>
+    <div class="kreadseg">Чтение:
+      <div class="kseg" id="kReadSeg">
+        <button data-v="none">нет</button>
+        <button data-v="done">у прочитанных</button>
+        <button data-v="all">у всех</button>
+      </div>
+    </div>
+  </div>
+  <div class="kchipsrow" id="kRowsChips"></div>
+  <div class="kstats">
+    <div class="kprog"><span style="font-size:14px;color:#b9b0d8">Прочитано</span><div class="bar"><i id="koBar"></i></div><b id="koCount">0 / 15</b></div>
+    <div class="kstat"><b id="koTime">0:00</b><span>время</span></div>
+    <div class="kstat"><b id="koTry">1</b><span>попытка</span></div>
+    <div class="kstat rec"><b id="koRec">—</b><span>рекорд класса</span></div>
+  </div>
+  <div class="kgrid" id="kGrid"></div>
+  <div class="kctl">
+    <button class="kb no" id="koNo">✗ Ошибка — заново <span class="kbd">X</span></button>
+    <button class="kb ok" id="koOk">✓ Прочитал <span class="kbd">Пробел</span></button>
+    <button class="kb sh" id="koShuffle"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>Перемешать <span class="kbd">S</span></button>
+    <button class="kb" id="koFull">На весь экран</button>
+  </div>
+</section>
+
+<div class="kwin hidden" id="kWin">
+  <div class="panel">
+    <div class="big">よくできました！</div>
+    <p class="sub" style="margin:8px 0 0;font-size:20px;color:#f6f0ff">Молодцы! Все буквы прочитаны без ошибок</p>
+    <div class="stats" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat"><b id="kwTime">0:00</b><span>время</span></div>
+      <div class="stat"><b id="kwTry">1</b><span>попыток</span></div>
+      <div class="stat"><b id="kwRec">—</b><span>рекорд класса</span></div>
+    </div>
+    <p class="sub" id="kwNote" style="margin:0"></p>
+    <div class="btn-row">
+      <button class="btn ghost" id="kwHub">К азбуке</button>
+      <button class="btn" id="kwAgain">Перемешать и ещё раз</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* =========================================================
@@ -2228,6 +2508,371 @@ document.querySelectorAll("#speedSeg button").forEach(b => b.onclick = () => { s
 document.querySelectorAll(".dirSeg button").forEach(b => b.onclick = () => { settings.dir = b.dataset.v; renderSettings(); });
 $("sndToggle").onclick = () => { settings.sound = !settings.sound; renderSettings(); Sound.unlock(); Sound.tick(); };
 $("voiceToggle").onclick = () => { settings.voice = !settings.voice; renderSettings(); if (settings.voice) speak("こんにちは"); };
+
+/* =========================================================
+   Азбука: хирагана и катакана по рядам
+   ========================================================= */
+const STROKES = {"あ":{"p":["M31.0,33c0.8,0.8,2.7,1.8,5.2,1.7c8.6-0.2,20-2.1,29.5-4.2c1.5-0.3,4.6-0.8,6.6-0.5","M49.7,17.6c0.8,1,1.8,3.2,1.3,5.2c-3.7,16.7-6.2,38.1-5.1,53.6c0.4,5.7,1.8,10.8,3.3,13.6","M65.6,44.1c0.7,1.1,1.1,4.3,0.5,6.1c-4.6,12.2-11.2,23.7-25.3,35.7c-6.8,5.8-15.8,3.7-16.2-8.3c-0.3-10.8,13.3-23.1,32.3-26.7c12.4-2.3,27,1.3,30.5,12.7c4.0,13.1-3.7,26.3-20.8,30.4"],"n":[[22.51,35.0],[41.51,19.0],[57.51,42.0]]},"い":{"p":["M21.5,29.6c2.0,2.1,2.6,4.6,2.1,7.4c-3.0,19.1-1.0,32.0,7.9,41.4c6.1,6.4,6.2,3.1,7.0-5.2","M72.9,36.5c9.4,8.0,17.7,18.8,18.4,33.8"],"n":[[14.96,27.13],[62.21,32.88]]},"う":{"p":["M42,15.5c5.6,2.1,9.6,3,12.8,3c8.2,0,8,1.1-0.3,5.5","M33,42.3c2.1,1.1,4.1,2.8,8.5,1.3c4.3-1.5,12.7-7.1,18.5-7c5.7,0.1,10.2,5,10.2,18c0,15.4-8.2,30.2-24.3,41.2"],"n":[[33.5,14.13],[28.75,39.63]]},"え":{"p":["M40.5,13.2c5.6,2.1,10,3,14.1,3c8.2,0,8,1.1-0.3,5.5","M32.5,45.1c1.8,1.2,4.5,1.7,7.3,0.6c3.2-1.2,17-7.8,21.2-9.8c4.2-2,8.3,0.0,4.3,4.6c-12.2,14.2-27.2,31.5-39.5,44.4c-3.2,3.4-0.5,3.5,1.5,1.3c13.5-14.1,18.1-20.1,23.6-20.1c7.1,0,3.5,16.7,6.7,22.3c3.2,5.6,19.1,3.7,26.1,2.1"],"n":[[33.9,13.5],[25.15,44.38]]},"お":{"p":["M22.8,35.1c1.3,1,3.6,2.3,6,2.1c2.3-0.2,19.6-5.1,21.1-5.7c1.5-0.6,4-1.2,5.8-2","M41.5,16.1c2.2,1,3.5,4.3,3.1,7.3c-2.5,16.1-3.3,45.5-2.2,58.3c0.7,8.6-0.6,10.4-7.1,7.1c-5.1-2.6-13.7-8-13.7-12.3c0-7.5,24.3-23.6,44.7-23.6c17.2,0,25,8.2,25,17.2c0,8.2-9.3,18.8-26.7,21","M73,22.1c5.3,2.6,8.8,5.8,10.6,8.2c2.2,3.0,0.3,4.5-1.1,5"],"n":[[17.25,34.88],[32.75,16.63],[64.38,21.63]]},"か":{"p":["M24.6,38.6c1.8,1.6,4.6,2.3,8.6,1c25.5-8.5,29.5-4.1,29.5,7.6c0,9.3-1.2,17.4-4.2,25.2c-7.6,19.7-10.8,17.3-16.1,10.8","M48.5,17.5c1,1.3,1.2,4.7,0.5,7.1c-5,15.2-18.0,40.9-19.6,43.8c-3.1,5.7-6.3,11.8-9.3,16.2","M77.3,31.6c7.5,6.8,13.2,15.7,15,24.8"],"n":[[16.75,37.38],[39.75,16.0],[70.0,29.75]]},"き":{"p":["M30.5,30.2c1.8,0.7,4.6,1.0,5.8,0.8c6.7-1,22.2-4.5,26.5-6c2.1-0.7,3.5-1.2,4.8-2.1","M36.2,48.7c2.0,0.8,4.9,1.2,6.2,0.9c7.2-1.1,23.8-5.0,28.3-6.7c2.3-0.8,3.7-1.4,5.2-2.4","M42,14.1c1.5,0.8,3.1,2.9,4,5.1c5.5,13.7,16,29.2,26.3,40.7c7.6,8.4,9.1,9.3-6,3.8","M33.7,83.2c10.6,9.7,27.2,8.6,38.1,5"],"n":[[24.5,29.5],[28.13,48.13],[32.5,13.0],[24.5,77.0]]},"く":{"p":["M60.6,15c0.5,1.6,0.3,5.4-1,7.3c-6.7,9.6-14.3,19.0-18.6,24.5c-4,5-3.7,7.0-0.8,11c5.5,7.5,12.7,18.7,17.6,27.2c1.4,2.5,2.7,4.7,4.5,8.6"],"n":[[53.66,12.38]]},"け":{"p":["M24.6,19.7c1.2,1.5,2.6,3.7,2.1,6.3c-3,15.8-6.5,29.5-4.8,44.6c2.0,18.8,2.2,4.7,6.7-3.5","M53.6,38.6c2.1,1.3,4.2,1.8,6.8,1.5c8.2-1.2,15.3-2.5,20.6-4c2.7-0.7,5.2-1.1,6.8-1.1","M71.6,14.3c2.1,1.3,2.8,3.3,2.8,5.1c0,11.6,0.1,20.3,0.1,30.1c0,20.7-0.6,30.8-12.5,42.2"],"n":[[16.3,18.75],[46.68,36.88],[64.05,13.25]]},"こ":{"p":["M34.7,26.7c1.1,0.8,2.9,2.0,6,1.5c7.6-1.2,14.1-2.5,22.3-2.6c15.5-0.1,5.8,5-5.7,9","M30,68.1c2.2,14.5,15.2,17.9,31,16.7c6.5-0.5,11.8-1.2,17.6-2.8"],"n":[[28.0,25.88],[23.75,68.13]]},"さ":{"p":["M27,38.9c2.4,1.3,5.3,1.4,8.3,1.0c8.7-1.2,28.6-7.7,34.1-10.4c2.7-1.3,3.7-1.9,6.2-3.5","M41.5,13.8c1.5,0.8,3.6,2.9,4.5,5.1c5.5,13.7,15.2,27.6,26.8,39.5c7.9,8.1,6.3,10-6,3.1","M35.2,80.5c4.5,11.7,20.8,12.5,38.3,7.5"],"n":[[21.25,38.5],[32.0,13.0],[28.25,77.0]]},"し":{"p":["M39.1,17.5c1.2,3.1,0.9,6.7,0.3,10.2c-2.1,13.5-3,26.5-3,39.1c0,27.3,19.8,30.1,45.5,17.2"],"n":[[30.87,14.13]]},"す":{"p":["M15.5,37.1c2.8,2.1,6.9,1.5,12.7,0.2c16.1-3.5,36.1-5.3,46.6-6.5c7-0.7,11.8-0.6,17.7,0.1","M57.6,13.3c2,1.5,2.7,3.2,2.7,5.8c0,10.3,0,35.1,0,40.7c0,14.6-15.6,16.3-15.6,1.7c0-14.2,18-14.1,18,6.3c0,13.2-7.7,21.5-16,28.3"],"n":[[9.12,35.5],[49.0,14.13]]},"せ":{"p":["M16.5,49.9c2.8,2.4,6.8,1.5,12.7,0.5c19-3.3,33-5.7,47.1-7.6c6.9-0.9,11.8-1.2,17.7-0.3","M69.7,17.7c2,1.5,2.7,3.2,2.7,5.8c0,10.3,0,17.8,0,23.5c0,25.6-5.7,23.2-11.8,19","M35.6,26.2c2,1.5,2.7,3.2,2.7,5.8c0,10.3,0,28.3,0,34c0,14.5,6.3,19.5,20.1,19.5c10.2,0,13.7,0.0,22.6-1.6"],"n":[[10.12,48.5],[61.25,16.5],[27.75,25.25]]},"そ":{"p":["M38.4,22c1.8,1.2,4.9,1.0,7.5,0.3c6.5-1.7,13.2-3.7,19.3-5.3c4.6-1.2,7.1,2.0,3.6,5.2c-12.1,10.8-31.1,24.4-40,30.2c-6.2,4.1-5.8,5.7,1.3,3.8c17.0-4.4,35.9-8.6,50.1-10.3c9.3-1.1,9.6,0.1,0.5,1.3c-15.8,2.1-34.3,14.2-34.3,26.5c0,12.8,11.6,20.3,31.5,16.6"],"n":[[31.9,20.5]]},"た":{"p":["M24.3,35.3c1.3,0.6,3.8,1.5,6.3,1.1c6.5-1,16.2-2.8,24.8-4.7c2.6-0.5,5.3-1.5,7.6-2.3","M45,16.8c0.7,1.2,0.8,3.6,0.3,5.2c-6.3,20.9-12.7,36.3-18.8,52.3c-1.3,3.5-4.7,11.7-6,14.6","M56.3,53.2c12.3-2.7,18.2-3.7,23.6-3.1c15.1,1.6-1.1,2.2-4.2,4.8","M54.1,82.2c4.3,7,14.2,8.1,34.5,5.6"],"n":[[16.88,34.88],[35.13,16.25],[52.26,50.63],[46.76,80.0]]},"ち":{"p":["M24.5,32.6c1.3,0.6,3.8,1.5,6.3,1.1c6.5-1,18.2-4.1,26.8-6c2.6-0.5,5.3-1.5,7.6-2.3","M45.6,15.6c0.7,1.2,0.7,3.5,0.3,5.2c-3,15-4.2,22.5-8.3,38.6c-3.2,12.6-5.3,11.1,3.6,4.3c8.2-6.2,19.7-9.5,28.5-9.5c8.6,0,14.5,5.8,14.5,14.5c-0.1,13.5-16.5,20.6-29.8,23.2"],"n":[[20.0,28.88],[36.75,15.5]]},"つ":{"p":["M14,44.7c1.8,1.6,4.6,2.0,8.1,0.6c17.8-7.6,30-11.1,44.8-10.8c12.5,0.2,22.9,7.1,22.8,19.1c-0.1,18.7-24.7,28.7-45.0,32.0"],"n":[[9.76,40.38]]},"て":{"p":["M20.5,26.3c1.8,1.6,4.4,1.9,8.1,1.3c21.7-3.5,33-5.1,50.1-8.3c12.3-2.3,13-0.8,0.3,1.3c-17.8,3.1-33.7,19.1-33.7,37.6c0,20.5,17.9,30.2,35.1,30.2"],"n":[[16.37,20.0]]},"と":{"p":["M35.5,18.3c1.7,0.7,3.6,2.6,4.1,5.3c0.5,2.7,4.7,25,5.3,28.1","M78.1,25.5c0.2,1.8,0.0,4.0-2.2,5.7c-6.3,4.6-13.2,8.4-22.7,15.2c-12.8,9.1-21.6,18.3-21.6,27.5c0,10.1,8.5,13.8,26.8,13.8c6.2,0,14.7-0.1,21.6-1.2"],"n":[[27.87,18.75],[69.25,22.25]]},"な":{"p":["M22.8,28.9c1.1,0.5,3.3,1.1,5.4,1.0c5.5-0.1,10.9-0.9,16.5-2.4c4.8-1.2,9.1-3.1,11.3-4.2","M42.9,14c0.6,0.8,0.5,2.5,0.3,3.7c-2.9,14.1-7.9,26.5-14.2,37.8c-2.0,3.6-4.2,7.2-6.5,10.6","M72.2,23.2c6.8,2.5,12.6,5.6,14.7,9.5c4.0,7.4-0.2,3.3-3.5,3.8","M68.8,44.6c-1,1.8-2.1,5.2-1.8,8.2c0.6,7,1.5,13.1,1.5,20.6c0,20-27.8,19.7-27.8,9.3c0-5.6,8.2-8.2,13.8-8.2c8.7,0,21.5,3.2,29.7,11.5"],"n":[[17.63,23.75],[32.51,12.0],[64.63,22.13],[64.26,41.63]]},"に":{"p":["M24.5,22.7c1.2,1.5,1.6,3.7,1.1,6.3c-3,15.8-9,32.5-7.3,47.6c2.0,18.8,4.5,5.7,8.5-3.5","M53.2,30.6c0.9,0.7,2.4,1.5,5.1,1.3c6.9-0.6,15.0-3.3,22.0-3.3c13.1-0.1,1.5,3.7-8.3,7.3","M52.5,68c1.7,12.9,11.9,16.0,24.2,14.9c5.0-0.4,8.9-0.8,14.2-2.0"],"n":[[16.79,22.13],[46.91,29.0],[46.41,66.0]]},"ぬ":{"p":["M25.3,28.5c2,1.3,2.9,3.2,3.3,5.8c1.8,12.1,4.1,23.9,8.5,34.6c1.7,4.3,3.9,8.3,6.8,12.4","M57.1,19.2c0.8,2.1,1.0,3.7,0.6,5.8c-3.1,15-13.1,39.8-18.1,48.6c-11.8,21-20.6,1.2-20.6-4.5c0-22.6,43.7-44.2,62.3-29.5c7.6,6.0,9.8,14.5,9.1,23.3c-2,26.7-32.8,28.3-32.8,16.8c0-9.3,17.3-7.1,27.1-1.1c3.1,1.9,7.2,5.2,9.5,7.5"],"n":[[17.63,27.88],[47.25,17.25]]},"ね":{"p":["M33.2,14.5c1.6,1.6,2.1,3.2,1.8,5.8c-1.0,11.9-2.0,31.6-2.5,53.1c-0.1,4.6-0.1,9.3-0.2,14","M17.1,37.8c1.6,0.8,3.2,1.3,5.6,0.7c2.1-0.5,7.8-2.3,12.3-4.0c6.2-2.3,6.8-1.4,3.1,3.6c-5.5,7.5-13.0,17.3-18.4,26.7c-5.6,9.6-3.4,8.3,2,3c19.1-18.6,38.5-39.1,54.1-39.1c11.3,0,12.8,11.2,12.8,32.5c0,28.6-30.1,24.8-30.1,16.2c0-9.6,18.7-7.8,28.0-1.8c2.7,1.7,5.8,4.8,7.5,6.7"],"n":[[25.91,13.75],[12.91,34.13]]},"の":{"p":["M53.8,28.6c1,1.5,1.3,4.1,0.8,6.6c-1.7,9.5-6.8,25-10.7,33.1c-9.6,20.2-16.5,14.7-24.3-1.9c-9.1-19.5,23.5-48.8,50.6-40.3c32.3,10.1,28,54.6-4.7,60.8"],"n":[[46.45,34.88]]},"は":{"p":["M24.5,18c1.2,1.5,2.1,4,1.6,6.6c-3.5,17.6-6.9,36.4-4,54.8c2.5,15.5,1.1,2,5.6-6.2","M49.6,37.8c2.4,1.5,4.8,2.1,7.8,1.7c9.3-1.4,17.4-2.9,23.4-4.5c3.1-0.8,5.9-1.2,7.8-1.2","M69.7,16.5c2.2,2.1,2.8,4.1,2.8,6.5c0,2.3,1.5,38.6,1.5,48c0,22.5-30.6,19.6-30.6,10.5c0-9.7,23.8-5.6,29.5-2.8c5.6,2.7,11.9,8.2,13.3,9.3"],"n":[[16.89,17.63],[43.02,36.38],[59.89,16.0]]},"ひ":{"p":["M20,25.1c1.2,0.8,3.7,2.2,6.5,1.3c2.7-0.8,7.3-2.3,11.3-4.5c6-3.1,8.4-1.0,4.2,4c-27.1,32.6-23.7,58.5-1.5,62.8c18.0,3.5,37.6-16.3,35.6-56.5c-0.7-14.5-0.1-14.7,4.1-1.7c3.7,11.3,10.2,20.7,16.1,26.5"],"n":[[15.25,21.38]]},"ふ":{"p":["M42.6,15.6c3.6,3.3,7.5,5.3,12.7,6.1c9.5,1.3,3.5,3.3-1.8,6.1","M43.6,46.8c1.8,4.6,7.5,9.4,14.2,17.5c10.6,12.7,0.4,30-19.1,21.6","M16.5,73.3c0.7,4,1.8,8.1,5,10.1c1.1,0.7,0.1-3.3,13.2-9.1","M80.1,61.8c5.1,3.3,10.2,7.4,11.3,8.8c6.7,8.5-0.2,4.6-4.6,7.1"],"n":[[36.75,13.88],[37.75,43.88],[13.5,67.63],[69.38,59.13]]},"へ":{"p":["M15,48.7c2.2,1.6,4.6,1.9,7-0.3c3.6-3.6,7.4-6.5,11.2-10.5c5.5-5.7,8.4-4.7,13.1-0.8c12.1,10.1,30.3,25.1,33.3,27.3c3,2.2,12.3,10.3,13.8,11.6"],"n":[[9.87,42.75]]},"ほ":{"p":["M24.5,18.7c1.2,1.5,2.1,4,1.6,6.6c-3.5,17.6-6.9,37.4-4,55.8c2.5,15.5,1.1,2,5.6-6.2","M53.0,21.1c1.9,1.2,3.8,1.7,6.1,1.4c7.3-1.1,13.7-2.4,18.4-3.7c2.4-0.7,4.6-1.0,6.1-1.0","M53.8,44.3c2.2,1.4,4.4,1.9,7.1,1.5c8.5-1.3,15.7-2.4,21.2-3.9c2.8-0.7,5.7-1.1,7.4-1.1","M72.5,23c1.3,1.6,1.6,4.1,1.6,6.5c0,2.3,2,35.1,2,44.5c0,17.5-29.8,17.1-29.8,8c0-9.7,21.3-7.8,29.5-2.8c5.3,3.2,12,8.2,13.3,9.3"],"n":[[17.13,18.13],[46.38,20.5],[45.51,46.0],[66.13,29.38]]},"ま":{"p":["M29.8,32.2c2.2,1.1,4.4,1.5,7.1,1.2c11.5-1.0,25.9-3.1,34.6-4.8c2.8-0.5,5.4-0.4,7.1-0.4","M33.8,51.8c2.4,1.6,4.9,1.7,7.9,1.2c9.5-1.4,17.8-3.1,27.0-5.1c3.2-0.7,6.3-1.3,8.2-1.3","M55.8,14c1.5,1.8,1.8,4.5,1.8,7.1c0,2.6,0.4,43.8,0.4,54.2c0,21.3-30.0,19.9-30.0,9.8c0-10.7,25.8-9.9,38.5-3.1c6.1,3.2,11.5,6.3,14.8,9.1"],"n":[[24.26,28.13],[26.63,50.88],[47.26,13.13]]},"み":{"p":["M32.5,26c1.8,1.7,4.0,1.7,6.8,1.2c3.8-0.6,7.6-1.7,11.8-3.1c4.2-1.3,6.2-0.1,4.5,5.1c-1.7,5.2-6.6,17.3-12,30.1c-13.6,32.5-29.2,29.2-29.2,18.6c0-14.2,20.4-15.3,33-13.5c18.5,2.7,30,6.6,44.3,14.2","M79.3,54.7c0.7,2.3,0.4,4.3,0,6.2c-2.1,8.1-7.5,25-22.1,33.7"],"n":[[26.51,24.88],[71.13,52.0]]},"む":{"p":["M19.5,31.6c2.1,1.5,4.2,1.6,6.8,1.2c8.1-1.4,15.3-2.9,23.1-4.9c2.7-0.6,5.4-1.2,7.0-1.2","M37.0,15.5c1.6,1.2,2.3,2.8,2.1,5.2c-0.8,11.1-1.5,20.7-4,34.8c-3.6,20.4-19.2,16.9-18.6,7.3c0.5-7.7,6.2-12.8,12.6-13.5c5-0.5,14.2,1.9,5.8,15c-12.6,19.6-11.4,24.5,5.1,25.5c10.9,0.6,19.2,0.7,28.4-0.9c14.1-2.5,7.4-2.6,7.4-11.1","M78.5,36.2c6.8,3.1,11.7,5.9,14.8,10.1c6.2,8.2-1.3,3.6-4.5,4.5"],"n":[[12.9,29.0],[26.65,13.0],[70.4,34.75]]},"め":{"p":["M27.4,31.7c1.7,1,2.4,3.0,2.5,5.2c0.5,11.6,2.7,23.5,7.2,31.3c1.3,2.4,5.3,8.5,7.2,10.3","M59.6,19.3c1,1.5,1.3,4.1,0.8,6.6c-2.7,14.6-13.6,37.7-20.1,47.2c-12.2,17.1-16.7,13.1-22.2,0.6c-5.3-15.3,26.4-42.1,53.4-35.2c29.0,8.2,23.9,46.0-7.9,50.1"],"n":[[20.1,30.0],[50.1,18.0]]},"も":{"p":["M49.1,14.7c1.8,1.8,1.8,4.5,1.1,8c-3,14.2-5,26.6-7,42.1c-2.5,19.7-0.7,29.8,17,29.8c20.2-0.0,28.6-13.1,20.0-35.7","M26.5,34.6c1.1,0.8,2.8,2.2,6,2c11.1-0.7,20-2.1,27.7-3.4c3.8-0.6,5.8-1.1,8.8-1.0","M26.4,53.3c-1.5,4,1,6.7,7.7,6.7c8.7,0,17.6-1,22.8-1.8c2.0-0.3,5.3-1,7.5-1.7"],"n":[[40.55,14.38],[21.3,29.63],[21.8,50.88]]},"や":{"p":["M18,49.3c1.8,1.6,5.2,2.5,8.6,0.8c18.5-8.8,35.7-19.3,50.8-19.2c9.0,0.1,16.0,4.1,15.9,12.2c0,8.3-10.8,16.5-24.5,17.8","M47.1,15.8c5.1,0.8,10.4,4.0,11.5,6.6c2.1,5-1,2.3-2.8,2.6","M30,24.3c2.3,1.8,3.2,2.8,3.8,5.2c2.6,10.5,11.1,41.1,14.7,52.5c0.6,2.0,1.8,6.2,2.8,9.3"],"n":[[12.88,44.13],[39.88,13.88],[19.26,25.0]]},"ゆ":{"p":["M21.0,25.3c1.3,1.5,2.0,4.1,1.5,6.2c-2.8,11.7-4,22.2-2.1,35c2.7,18.8,1.1,3.8,3.2-1.5c9-22.7,27.2-34.5,44.3-34.5c16.8,0,21.8,11.3,21.8,20.2c0,27.3-30.8,29.6-43,16.7","M58.4,16.7c2.6,1.7,3.1,3.1,3.5,7.1c0.8,10.5,1.4,18.7,1.6,29.3c0.5,24-6.2,32-12.3,39.2"],"n":[[12.67,22.0],[49.8,15.88]]},"よ":{"p":["M58.2,35.3c7.5-1.2,13.7-2.6,18.5-4.1c2.5-0.7,4.7-1.1,6.2-1.1","M54.6,13.8c2.2,2.1,2.9,4.1,2.8,6.5c-0.7,17-0.1,34.8,1.3,53.5c1.8,23.0-34.8,20.8-34.8,11.5c0-12,26.2-8,35.9-4.1c8.1,3.2,11.5,4.8,18.5,10.3"],"n":[[61.62,28.88],[45.62,14.63]]},"ら":{"p":["M35.3,15c3.7,3,9.2,4.4,16.5,4.2c11.1-0.2-0.2,2.3-1.2,3.5","M35.8,35.7c-2.1,4.3-2.7,8.6-3.1,13.2c-0.4,5.8-0.3,12.0-2.1,19.1c-3.1,12.2,1.4,4.7,3,3.5c11.8-10,21.7-12.6,32.6-12.4c9.2,0.1,16.8,5.1,16.7,13.8c-0.1,13.6-14.2,21.4-32.4,22.4"],"n":[[28.96,13.75],[27.21,35.25]]},"り":{"p":["M38.7,25.2c1.2,1.5,2.2,4.0,1.6,6.6c-2.8,12.1-6.2,29.6-4.2,42.3c2,12.5,1.7-0.7,5.6-6.2","M69.3,18.7c2.2,2.1,2.8,4.1,2.8,6.5c0,2.3,0,26.3,0,35.7c0,16.5-5,25.7-12.6,33.1"],"n":[[30.37,25.0],[61.62,17.0]]},"る":{"p":["M34.3,20.3c1.7,1.2,4.6,2.6,8.5,1.5c3.8-1.1,9.6-2.5,15.6-4.6c6-2.1,7.5-0.1,4.3,4.2c-3.1,4.3-18.8,24.6-27.7,34c-8.5,9-13.0,11.8,0.7,3.2c15.6-9.7,43-10.8,43,13.3c0,22.5-40.8,24.5-40.8,12.6c0-11.2,18.1-8.7,24.3-0.3"],"n":[[28.94,18.63]]},"れ":{"p":["M34.4,13c1.5,1.3,2.8,3.7,2.5,6.3c-0.5,4-2.7,44.5-2.7,52.8c0,8.3,0.1,16.6,0.1,19.5","M16.9,40.7c2.1,1.3,3.7,1.4,7.5,0c4.5-1.7,6.5-2.6,13-5.5c4.2-1.8,4.4,0.2,2.5,3.5c-5.2,9-10.5,16.7-18.8,27.6c-7.5,9.8-6.9,12.8,3.2,3.1c14-13.3,20.3-19.7,33.8-32.5c6.3-6,19.3-12.0,18.1,0.8c-1.0,10.6-1.8,22.1-2.2,30.7c-1.0,21.7,11.5,18,20.1,8.6"],"n":[[27.36,12.88],[11.86,36.25]]},"ろ":{"p":["M36.9,21.8c1.5,2,4.6,3.6,8.5,2.5c3.8-1.1,8.1-2.2,14.1-4.3c6-2.1,6.5-0.1,3.3,4.2c-7.8,10.8-18,22.7-27.5,35.2c-7.4,9.8-10.6,11.3,2.8,2.2c17.3-11.6,46.6-14,46.6,8.1c0,15.6-16,22.5-32.1,25.1"],"n":[[31.08,19.38]]},"わ":{"p":["M38.5,14.7c1.5,1.3,2.2,3.7,2,6.3c-1,11.8-2.7,44.4-2.7,52.8c0,8.3-0.6,16.6-0.6,19.5","M17.5,40.7c2.1,1.3,3.6,1.3,7.5,0c5.8-2,9.8-3.1,16.2-6c4.2-1.8,6.1,0,2.7,4c-6.7,7.9-13,16.5-22.1,27.8c-7.7,9.6-7.5,12.2,3,2.8c21.8-19.3,49.7-35.6,63.5-21c14.3,15.2,1.6,36.6-23.3,42.6"],"n":[[31.16,13.25],[12.41,36.25]]},"を":{"p":["M28.5,27.8c1.6,1.1,3.1,1.6,6.0,1.1c10.8-1.9,16.7-3.3,24.7-4.7c3.6-0.6,5.6-0.9,8.4-0.7","M49.9,14.3c0.7,1,1.4,3.2,0.3,5.6c-4.6,10.1-10,20.7-17.1,30.2c-9.2,12.3-9.2,11.1,2.1,2.5c9-6.8,23.7-12.1,22.8,19.8","M83.0,39.8c0.6,1.7,0,4-3,5.7c-3,1.7-49.6,24.1-44.7,38.2c3.2,9.4,17.9,9.1,29.9,7.7c4.4-0.5,9.1-1.1,12.4-1.7"],"n":[[21.94,25.88],[39.69,12.75],[76.69,37.38]]},"ん":{"p":["M56.3,16.5c0.7,1.7,1.1,5.8-0.3,8.2c-7,11.2-27.2,43.4-33.8,54.3c-9,14.7-7.6,16.2,1.5,1.2c17.8-29.3,32-23.7,32-6.7c0,25,19,26.5,34.2-5"],"n":[[45.85,15.88]]},"が":{"p":["M24.6,38.6c1.8,1.6,4.6,2.3,8.6,1c25.5-8.5,29.5-4.1,29.5,7.6c0,9.3-1.2,17.4-4.2,25.2c-7.6,19.7-10.8,17.3-16.1,10.8","M48.5,17.5c1,1.3,1.2,4.7,0.5,7.1c-5,15.2-18.0,40.9-19.6,43.8c-3.1,5.7-6.3,11.8-9.3,16.2","M77.3,31.6c7.5,6.8,13.2,15.7,15,24.8","M80.5,18.2c2.7,1.7,6,5.3,7.7,8.5","M86.8,13.3c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[16.75,37.38],[39.75,16.0],[70.0,29.75],[72.87,17.25],[79.0,12.13]]},"ぎ":{"p":["M30.5,30.5c1.8,0.7,4.6,1.0,5.8,0.8c6.7-1,22.2-4.5,26.5-6c2.1-0.7,3.5-1.2,4.8-2.1","M36.2,48.9c2.0,0.8,4.9,1.2,6.2,0.9c7.2-1.1,23.8-5.0,28.3-6.7c2.3-0.8,3.7-1.4,5.2-2.4","M42,14.3c1.5,0.8,3.1,2.9,4,5.1c5.5,13.7,16,29.2,26.3,40.7c7.6,8.4,9.1,9.3-6,3.8","M33.7,83.5c10.6,9.7,27.2,8.6,38.1,5","M77.3,19c2.7,1.7,6,5.3,7.7,8.5","M83.7,14.1c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[24.5,29.5],[28.13,48.13],[32.5,13.0],[24.5,77.0],[69.75,18.0],[75.88,12.88]]},"ぐ":{"p":["M60.6,15c0.5,2.1,0.7,5-1,7.3c-6.9,9.4-14.2,19.0-18.6,24.5c-4,5-3.7,7.0-0.8,11c5.5,7.5,12.7,18.7,17.6,27.2c1.4,2.5,2.7,4.7,4.5,8.6","M73.5,30c2.7,1.7,6,5.3,7.7,8.5","M79.9,25.1c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[53.66,12.38],[65.91,29.0],[72.04,23.88]]},"げ":{"p":["M24.9,20.2c1.2,1.5,2.3,3.7,1.8,6.3c-3,15.8-6.5,29.5-4.8,44.6c2.0,18.8,2.2,4.7,6.7-3.5","M53.6,39.1c2.1,1.3,4.2,1.8,6.8,1.5c8.2-1.2,15.3-2.5,20.6-4c2.7-0.7,5.2-1.1,6.8-1.1","M71.6,14.6c2.1,1.3,2.8,3.6,2.8,5.3c0,11.6,0.1,20.3,0.1,30.1c0,20.7-0.6,30.8-12.5,42.2","M86.1,13c2.7,1.7,6,5.3,7.7,8.5","M92.5,8.1c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[16.29,19.25],[46.67,37.38],[64.04,13.75],[78.54,12.0],[84.67,6.88]]},"ご":{"p":["M34.7,27c1.1,0.8,2.9,2.0,6,1.5c7.6-1.2,14.1-2.5,22.3-2.6c15.5-0.1,5.8,5-5.7,9","M30,68.3c2.2,14.5,15.2,17.9,31,16.7c6.5-0.5,11.8-1.2,17.6-2.8","M80.3,16.2c2.7,1.7,6,5.3,7.7,8.5","M86.7,11.3c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[28.0,26.13],[23.75,68.38],[72.75,15.25],[78.88,10.13]]},"ざ":{"p":["M27,39.1c2.4,1.3,5.3,1.4,8.3,1.0c8.7-1.2,28.6-8.0,34.1-10.6c2.7-1.3,3.7-1.9,6.2-3.5","M41.5,14.1c1.5,0.8,3.6,2.9,4.5,5.1c5.5,13.7,15.2,27.6,26.8,39.5c7.9,8.1,6.3,10-6,3.1","M35.2,80.7c4.5,11.7,20.8,12.5,38.3,7.5","M79.8,14.2c2.7,1.7,6,5.3,7.7,8.5","M86.2,9.3c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[21.25,38.75],[32.0,13.25],[28.25,77.25],[72.25,13.25],[78.38,8.13]]},"じ":{"p":["M39.1,17.2c1.2,3.1,0.9,6.7,0.3,10.2c-2.1,13.5-3,26.5-3,39.1c0,27.3,19.8,30.1,45.5,17.2","M64.2,27c2.7,1.7,6,5.3,7.7,8.5","M70.6,22.1c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[30.87,13.88],[56.62,26.0],[62.75,20.88]]},"ず":{"p":["M15.5,37.1c2.8,2.1,6.9,1.5,12.7,0.2c16.1-3.5,36.1-5.3,46.6-6.5c7-0.7,11.8-0.6,17.7,0.1","M57.6,13.3c2,1.5,2.7,3.2,2.7,5.8c0,10.3,0,35.1,0,40.7c0,14.6-15.6,16.3-15.6,1.7c0-14.2,18-14.1,18,6.3c0,13.2-7.7,21.5-16,28.3","M77,13c2.7,1.7,6,5.3,7.7,8.5","M83.3,8.1c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[9.12,35.5],[49.0,14.13],[69.37,12.0],[75.5,6.88]]},"ぜ":{"p":["M16.5,49.9c2.8,2.4,6.8,1.5,12.7,0.5c19-3.3,32.5-5.3,47.1-7.6c6.9-1.1,11.8-1.2,17.7-0.3","M69.7,17.7c2,1.5,2.7,3.2,2.7,5.8c0,10.3,0,17.8,0,23.5c0,25.6-5.7,23.2-11.8,19","M35.6,26.2c2,1.5,2.7,3.2,2.7,5.8c0,10.3,0,28.3,0,34c0,14.5,6.3,19.5,20.1,19.5c10.2,0,13.7,0.0,22.6-1.6","M84.5,17.2c2.7,1.7,6,5.3,7.7,8.5","M90.8,12.3c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[10.12,48.5],[61.25,16.5],[27.75,25.25],[76.87,16.25],[83.0,11.13]]},"ぞ":{"p":["M38.4,22c1.8,1.2,4.9,1.0,7.5,0.3c6.5-1.7,13.2-3.7,19.3-5.3c4.6-1.2,7.1,2.0,3.6,5.2c-12.1,10.8-31.1,24.4-40,30.2c-6.2,4.1-5.8,5.7,1.3,3.8c17.0-4.4,35.9-8.6,50.1-10.3c9.3-1.1,9.6,0.1,0.5,1.3c-15.8,2.1-34.3,14.2-34.3,26.5c0,12.8,11.6,20.3,31.5,16.6","M81.7,26.7c2.7,1.7,6,5.3,7.7,8.5","M88.1,21.8c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[31.9,20.5],[74.4,28.0],[80.28,21.13]]},"だ":{"p":["M24.3,35.3c1.3,0.6,3.8,1.5,6.3,1.1c6.5-1,16.2-2.8,24.8-4.7c2.6-0.5,5.3-1.5,7.6-2.3","M45,16.8c0.7,1.2,0.8,3.6,0.3,5.2c-6.3,20.9-12.7,36.3-18.8,52.3c-1.3,3.5-4.7,11.7-6,14.6","M56.3,53.2c12.3-2.7,18.2-3.7,23.6-3.1c15.1,1.6-1.1,2.2-4.2,4.8","M54.1,82.2c4.3,7,14.2,8.1,34.5,5.6","M76,22.5c2.7,1.7,6,5.3,7.7,8.5","M82.3,17.6c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[16.88,34.88],[35.13,16.25],[52.26,50.63],[46.76,80.0],[68.38,21.5],[74.51,16.38]]},"ぢ":{"p":["M24.5,32.8c1.3,0.6,3.8,1.5,6.3,1.1c6.5-1,18.2-4.1,26.8-6c2.6-0.5,5.3-1.5,7.6-2.3","M45.6,15.8c0.7,1.2,0.7,3.5,0.3,5.2c-3,15-4.2,22.5-8.3,38.6c-3.2,12.6-5.3,11.1,3.6,4.3c8.2-6.2,19.7-9.5,28.5-9.5c8.6,0,14.5,5.8,14.5,14.5c-0.1,13.5-16.5,20.6-29.8,23.2","M74.6,21.7c2.7,1.7,6,5.3,7.7,8.5","M81,16.8c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[20.0,29.13],[36.75,15.75],[67.0,20.75],[73.13,15.63]]},"づ":{"p":["M14,44.7c1.8,1.6,4.6,2.0,8.1,0.6c17.8-7.6,30-11.1,44.8-10.8c12.5,0.2,22.9,7.1,22.8,19.1c-0.1,18.7-24.7,28.7-45.0,32.0","M81,18c2.7,1.7,6,5.3,7.7,8.5","M87.3,13.1c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[9.38,40.38],[73.38,17.0],[79.51,11.88]]},"で":{"p":["M20.5,26.3c1.8,1.6,4.4,1.9,8.1,1.3c21.7-3.5,33-5.1,50.1-8.3c12.3-2.3,13-0.8,0.3,1.3c-17.8,3.1-33.7,19.1-33.7,37.6c0,20.5,17.9,30.2,35.1,30.2","M75,41.7c2.7,1.7,6,5.3,7.7,8.5","M81.3,36.8c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[16.5,20.38],[67.37,40.75],[73.5,35.63]]},"ど":{"p":["M35.5,18.3c1.7,0.7,3.6,2.6,4.1,5.3c0.5,2.7,4.7,25,5.3,28.1","M78.1,25.5c0.2,1.8,0.0,4.0-2.2,5.7c-6.3,4.6-13.2,8.4-22.7,15.2c-12.8,9.1-21.6,18.3-21.6,27.5c0,10.1,8.5,13.8,26.8,13.8c6.2,0,14.7-0.1,21.6-1.2","M84.2,14.5c2.7,1.7,6,5.3,7.7,8.5","M90.6,9.6c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[27.87,18.75],[69.25,22.25],[76.62,13.5],[82.75,8.38]]},"ば":{"p":["M24.7,17.7c1.2,1.5,1.9,4.2,1.3,6.8c-3.5,17.6-6.9,36.4-4,54.8c2.5,15.5,1.1,2,5.6-6.2","M49.8,37.8c2.4,1.5,4.8,2.4,7.8,1.9c9.3-1.4,17.2-3.1,23.1-4.8c3.1-0.8,5.9-1.2,7.8-1.2","M69.7,16.5c2.2,2.1,2.8,4.1,2.8,6.5c0,2.3,1.5,38.6,1.5,48c0,22.5-30.6,19.6-30.6,10.5c0-9.7,23.8-5.6,29.5-2.8c5.6,2.7,12,8.2,13.3,9.3","M84.7,15.2c2.7,1.7,6,5.3,7.7,8.5","M91.1,10.3c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[16.88,17.63],[43.01,36.38],[59.88,16.0],[77.13,14.25],[83.26,9.13]]},"び":{"p":["M20,25.1c1.2,0.8,3.7,2.2,6.5,1.3c2.7-0.8,7.3-2.3,11.3-4.5c6-3.1,8.4-1.0,4.2,4c-27.1,32.6-23.7,58.5-1.5,62.8c18.0,3.5,37.6-16.3,35.6-56.5c-0.7-14.5-0.1-14.7,4.1-1.7c3.7,11.3,10.2,20.7,16.1,26.5","M86.5,13.5c2.7,1.7,6,5.3,7.7,8.5","M92.8,8.6c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[18.37,17.63],[78.87,12.5],[85.0,7.38]]},"ぶ":{"p":["M42.1,15.6c3.6,3.3,7.5,5.3,12.7,6.1c9.5,1.3,3.5,3.3-1.8,6.1","M43.1,46.8c1.8,4.6,7.5,9.4,14.2,17.5c10.6,12.7,0.5,30-19.1,21.6","M16.5,73.8c0.7,4,1.8,8.1,5,10.1c1.1,0.7,0.1-3.3,13.2-9.1","M79.6,61.8c5.5,3.3,10.2,7.4,11.3,8.8c6.7,8.5-0.2,4.6-4.6,7.1","M73.6,16.2c2.7,1.7,6,5.3,7.7,8.5","M80,11.3c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[36.25,13.88],[37.25,43.88],[13.0,67.63],[68.88,59.13],[66.0,15.25],[72.13,10.13]]},"べ":{"p":["M15,48.7c2.2,1.6,5,1.3,7.6-1c3.8-3.5,6.1-5.7,10.6-9.8c5.8-5.3,8.4-4.7,13.1-0.8c12.1,10.1,30.3,25.1,33.3,27.3c3,2.2,12.3,10.3,13.8,11.6","M66.7,26.7c2.7,1.7,6,5.3,7.7,8.5","M73.1,21.8c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[9.88,42.75],[59.13,25.75],[65.26,20.63]]},"ぼ":{"p":["M24.5,18.7c1.2,1.5,2.1,4,1.6,6.6c-3.5,17.6-6.9,37.4-4,55.8c2.5,15.5,1.1,2,5.6-6.2","M53.0,21.1c1.9,1.2,3.8,1.7,6.1,1.4c7.3-1.1,13.7-2.4,18.4-3.7c2.4-0.7,4.6-1.0,6.1-1.0","M53.8,44.3c2.2,1.4,4.4,1.9,7.1,1.5c8.5-1.3,15.7-2.4,21.2-3.9c2.8-0.7,5.7-1.1,7.4-1.1","M72.5,23c1.3,1.6,1.6,4.1,1.6,6.5c0,2.3,2,35.1,2,44.5c0,17.5-29.8,17.1-29.8,8c0-9.7,21.3-7.8,29.5-2.8c5.3,3.2,12,8.2,13.3,9.3","M87.5,26c2.7,1.7,6,5.3,7.7,8.5","M93.8,21.1c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[17.13,18.13],[46.38,20.5],[45.51,46.0],[66.13,29.38],[79.88,27.0],[86.01,21.38]]},"ぱ":{"p":["M24.5,18c1.2,1.5,2.1,4,1.6,6.6c-3.5,17.6-6.9,36.4-4,54.8c2.5,15.5,1.1,2,5.6-6.2","M49.6,37.8c2.4,1.5,4.8,2.1,7.8,1.7c9.3-1.4,17.4-2.9,23.4-4.5c3.1-0.8,5.9-1.2,7.8-1.2","M69.7,16.5c2.2,2.1,2.8,4.1,2.8,6.5c0,2.3,1.5,38.6,1.5,48c0,22.5-30.6,19.6-30.6,10.5c0-9.7,23.8-5.6,29.5-2.8c5.6,2.7,11.9,8.2,13.3,9.3","M91.0,24.3c-9.6,0-9.2-14.2,0-14.2c9.7-0.0,9.5,14.2,0,14.2"],"n":[[16.89,17.63],[43.02,36.38],[59.89,16.0],[88.02,31.75]]},"ぴ":{"p":["M20,25.1c1.2,0.8,3.7,2.2,6.5,1.3c2.7-0.8,7.3-2.3,11.3-4.5c6-3.1,8.4-1.0,4.2,4c-27.1,32.6-23.7,58.5-1.5,62.8c18.0,3.5,37.6-16.3,35.6-56.5c-0.7-14.5-0.1-14.7,4.1-1.7c3.7,11.3,10.2,20.7,16.1,26.5","M93.8,22.1c-9.6,0-9.2-14.2,0-14.2c9.7,0.0,9.5,14.2,0,14.2"],"n":[[16.62,20.88],[89.12,29.13]]},"ぷ":{"p":["M42.1,15.6c3.6,3.3,7.5,5.3,12.7,6.1c9.5,1.3,3.5,3.3-1.8,6.1","M43.1,46.8c1.8,4.6,7.5,9.4,14.2,17.5c10.6,12.7,0.4,30-19.1,21.6","M16.5,73.8c0.7,4,1.8,8.1,5,10.1c1.1,0.7,0.1-3.3,13.2-9.1","M79.6,61.8c5.5,3.3,10.2,7.4,11.3,8.8c6.7,8.5-0.2,4.6-4.6,7.1","M80.8,26.6c-9.6,0-9.2-14.2,0-14.2c9.7,0.0,9.5,14.2,0,14.2"],"n":[[36.25,13.88],[37.25,43.88],[13.0,67.63],[68.88,59.13],[75.0,33.13]]},"ぺ":{"p":["M15,48.7c2.2,1.6,4.6,1.9,7-0.3c3.6-3.6,7.4-6.5,11.2-10.5c5.5-5.7,8.4-4.7,13.1-0.8c12.1,10.1,30.3,25.1,33.3,27.3c3,2.2,12.3,10.3,13.8,11.6","M73.6,36.7c-9.6,0-9.2-14.2,0-14.2c9.7,0,9.5,14.2,0,14.2"],"n":[[9.88,42.75],[65.63,43.0]]},"ぽ":{"p":["M24.5,19c1.2,1.5,2.1,4,1.6,6.6c-3.5,17.6-6.9,37.4-4,55.8c2.5,15.5,1.1,2,5.6-6.2","M53.0,21.3c1.9,1.2,3.8,1.7,6.1,1.4c7.3-1.1,13.7-2.4,18.4-3.7c2.4-0.7,4.6-1.0,6.1-1.0","M53.8,44.5c2.2,1.4,4.4,1.9,7.1,1.5c8.5-1.3,15.7-2.4,21.2-3.9c2.8-0.7,5.7-1.1,7.4-1.1","M72.5,23.2c1.3,1.6,1.6,4.1,1.6,6.5c0,2.3,2,35.1,2,44.5c0,17.5-29.8,17.1-29.8,8c0-9.7,21.3-7.8,29.5-2.8c5.3,3.2,12,8.2,13.3,9.3","M95.1,34.5c-9.6,0-9.2-14.2,0-14.2c9.7,0,9.5,14.2,0,14.2"],"n":[[17.13,18.38],[46.38,20.75],[46.76,43.13],[66.13,29.63],[92.01,41.88]]},"ア":{"p":["M23.5,26.2c2.4,1.5,3.9,1.4,8.5,0.7c11.4-1.7,37.7-5.5,48.2-6.7c5.2-0.6,7.9,2.0,2.6,6.0c-6.7,5-13.1,9.5-23.2,16","M53.1,41.1c0.7,1.5,1.0,3.2,0.5,5.2c-4.0,18.4-9.9,31.8-19.9,45.4"],"n":[[20.41,22.13],[44.79,41.75]]},"イ":{"p":["M69.7,16.7c0.1,1.7-0.3,3.8-1.6,5.5c-10.1,12.8-23.7,29.6-45.6,42.8","M56.3,43.8c1,1.1,1.2,3,1.2,4.6c0,1.6,0,32.7,0,34.6c0,1.8-0.1,9.1-0.1,11.7"],"n":[[61.13,15.13],[50.75,53.63]]},"ウ":{"p":["M53.2,14.6c1,1.1,1.2,3,1.2,4.6c0,1.6,0,10.7,0,12.6","M26.5,31.2c1,1.1,1.2,3,1.2,4.6c0.0,4.4,0.2,10.9,0.4,16.3c0.0,2.5,0.1,4.7,0.1,6.5","M29.1,35.8c19.3-2.2,40.2-4.2,49-5.5c8.7-1.2,8.2,0.8,6.2,6.8c-5,14.8-20.1,43.5-41,56.6"],"n":[[42.75,15.13],[18.0,27.0],[32.75,32.5]]},"エ":{"p":["M31.8,35.6c2.3,0.7,5.1,0.6,7.4,0.2c8.5-1.3,22.4-2.8,33.6-3.8c2.2-0.2,4.5-0.1,6.7,0.2","M53.3,38.1c1,1.1,1.3,3,1.2,4.6c-0.1,4.7-0.5,12.8-0.8,22.2c-0.0,2.3-0.1,4.7-0.2,7.1","M19,75.4c3.4,0.9,7.5,0.8,11.0,0.3c17.7-2.4,34.5-3.8,50.5-3.9c3.3-0.0,7.2,0.4,10.4,1.8"],"n":[[25.41,32.63],[45.66,44.13],[14.16,69.5]]},"オ":{"p":["M19.5,37.8c3.9,1.7,7.5,1.5,11.0,1.0c18.0-2.7,34.4-4.5,50.5-5.4c3.3-0.1,6.3,0.1,10.4,1.3","M60.3,16.3c1.3,1.4,1.6,3.9,1.6,6.1c0,8-0.2,46.2-0.2,58.6c0,20.3-5.8,7.5-9.2,5.5","M60.2,36.3c0,1.6-1.6,3.6-3.6,6c-7.8,9.5-21.1,22.7-34.6,33"],"n":[[15.41,33.0],[50.04,14.88],[45.41,46.13]]},"カ":{"p":["M25.5,40.6c1.8,1.2,4.5,1.8,7.1,1.5c17.8-2.5,32.7-4.5,42.5-5.8c7.1-1,10.5,0.2,8.6,7.8c-2.1,8.2-4.4,17.8-9.2,29.1c-10.4,24.8-14.1,14.5-19.2,11.8","M55.8,17.1c0.8,1.6,1.2,3.8,0.7,6.7c-4.2,22.8-15.8,45.2-30.2,58.8"],"n":[[18.13,41.13],[46.25,17.25]]},"キ":{"p":["M27,40.5c1.7,0.6,4.7,1.0,7.2,0.3c11.7-3.3,30.6-8.1,37.5-9.8c2.6-0.6,6.7-1.1,9-1","M19.5,65.8c2.2,0.8,6.2,1.1,9.4,0.1c17.7-5.5,32.6-9.0,49.1-12.9c3.4-0.8,8.8-1.5,11.7-1.3","M48.8,16.7c2.5,1.7,3.4,3.2,3.8,6.1c2.1,13.6,6.3,45.3,8.2,59.2c0.4,3,1,8.3,1.3,11.1"],"n":[[19.75,37.13],[17.13,61.13],[41.0,16.88]]},"ク":{"p":["M50,19.6c0.3,1.5,0.3,3.4-0.5,5.1c-4.1,8.1-7.8,15.5-16.1,24.1","M51.2,28.6c2.6,0.2,5.6-0.3,7.6-0.8c6-1.5,9.7-2.3,15.1-3.8c5.7-1.6,7.5-0.4,5.1,4.8c-10.3,22.8-26.2,44.1-48.6,60.5"],"n":[[42.0,17.13],[54.75,24.63]]},"ケ":{"p":["M40.9,17.8c0.4,1.9,0.3,4.4-0.5,6.5c-4.8,10.3-9.2,19.6-18.8,30.6","M37.8,37.6c2.1,0.8,4.1,1.0,6.6,0.5c12.6-2.7,25.5-4.8,35.7-6.5c3.6-0.5,6.2-0.7,9.2-0.5","M64.4,38.8c0.4,1.9,0.5,4.2-0.0,6.5c-3.6,13.7-9.2,31.2-24.6,43.8"],"n":[[32.5,17.38],[41.5,34.75],[56.25,44.0]]},"コ":{"p":["M30.1,35c1.7,1,3.0,2.1,6.5,1.6c14.2-2.2,29.6-4.2,37.3-5.5c9.3-1.5,9.8,0.2,8,7.5c-2.7,10.7-5.2,22.1-7,34.8","M27.5,77.3c2.6,1.1,4.3,1.5,8.2,1c11.3-1.5,22.6-3,33.7-3.3c4-0.1,5.8,0,9.6,0.5"],"n":[[22.88,32.0],[23.88,72.88]]},"サ":{"p":["M16.5,44.3c2.8,1.2,4.7,1.9,8.9,1.1c17.2-3.2,40.4-5.3,58.5-5.3c4.3,0,6.9,0.3,10.4,0.8","M36.6,23.3c1.1,1.3,1.1,2.5,1.2,4.7c0.2,9,0.3,20.2,0.7,28.8c0.1,3.2,0.3,7.1,0.3,9.2","M69.6,16.6c1.5,2,1.6,2.8,1.6,6.2c0,8.2-0.1,9-0.1,15.8c0,23.2-9.3,42.5-23.2,53"],"n":[[11.88,39.63],[27.0,21.63],[60.63,16.13]]},"シ":{"p":["M39.8,19.7c5.1,1.5,9.7,6.0,11.5,8.6","M26,42.6c3.2,0.8,10.2,5.5,12.2,8.1","M33,85c3.7,0.8,7.1,0.4,10.3-1.3c17.8-10.2,32.3-23.8,46.1-42.8"],"n":[[34.0,19.13],[23.38,38.63],[27.38,78.63]]},"ス":{"p":["M30.1,29.3c1.7,1.5,4.1,1.9,6.6,1.3c13.2-3.2,24.2-5.6,31.2-7.3c7-1.7,8.6,1.1,6.5,5.7c-11.2,24.1-28.3,45.8-53.5,57.2","M61,57.2c11,7.3,21,17,28,28.6"],"n":[[23.63,27.75],[65.76,55.75]]},"セ":{"p":["M17,49.3c3.1,1.5,5.0,2.1,8.6,1.3c23.5-5.2,31.2-7.4,50.6-11.6c23.1-5,6.5,7.7-3.2,18.1","M42.3,19.5c2,2.2,2.1,3.5,2.1,6.6c-0.1,17.5-0.8,31.7-0.8,41.1c0,14,3.1,16.9,12.3,17.1c8.3,0.1,14.1,0.1,18,0.1c3.8,0,7.5-0.5,10.5-1.1"],"n":[[13.51,45.13],[34.13,17.63]]},"ソ":{"p":["M23.5,25.5c3.9,4.1,7.7,9.9,10.7,17.8","M83.5,21c1.2,2.5,1.3,4.4,0.1,8.5c-5.8,20.3-26.2,49.5-45.6,61.2"],"n":[[20.5,22.38],[74.13,19.5]]},"タ":{"p":["M48.8,19.7c0.4,1.7,0.3,4-0.5,5.8c-4.7,9.3-9.1,17.8-18.6,27.7","M49.7,30.3c2.7,0.5,5,0,7.6-0.6c6.0-1.4,10.5-2.6,15.8-4.1c5.7-1.6,8.2,0.3,5.8,5.6c-10.8,24.6-22.1,43.9-50.1,59.9","M43.3,45.6c6.7,3.5,10.6,7.8,14.7,15.2"],"n":[[41.38,17.25],[54.75,26.0],[45.13,43.5]]},"チ":{"p":["M69.7,15.2c-0.3,2.6-2.0,4.3-3.8,5.3c-7.8,4.2-18.6,9.7-35.5,13.2","M18.5,51.5c2.8,0.8,4.3,1.6,7.8,1.2c22-2.5,36.3-4.2,56.1-4.8c4.8-0.1,7.8,0.5,10.8,1.5","M54.8,30.7c0.8,0.7,1.7,2.4,1.7,4.7c0,6.0,0.0,11.2,0.0,18.2c0,14.9-5.0,29.4-16.5,39.2"],"n":[[61.76,12.63],[13.63,46.75],[47.76,37.63]]},"ツ":{"p":["M21.5,31.3c2.3,3,4.5,9.3,4.8,13.8","M45.6,23.7c3.3,3.5,6.6,9.5,7,14.8","M84.6,27.8c0.7,2.2,0.3,5.2-0.7,8c-7.6,18.3-21.2,41.1-46,52.5"],"n":[[16.62,27.13],[38.75,20.88],[75.62,25.75]]},"テ":{"p":["M36.5,21.5c2.1,1.2,4.3,1.5,7.2,1.2c10.6-1.2,16.8-2.2,24.6-3.2c3.7-0.4,5.6-0.5,8.1-0.2","M20,44.1c2.8,1,5.2,1.0,7.5,0.7c22.3-3,37-5.6,54.1-6.1c5.6-0.1,7.7,0,10.3,0.6","M58,43.2c0.8,1,1.3,2.6,1.1,4.3c-1.7,15.3-11.6,34.9-24.6,41.8"],"n":[[29.38,19.25],[16.38,39.75],[50.38,49.88]]},"ト":{"p":["M44,16.3c1.2,1.1,2.1,3.2,2.1,5.5c0,26.1,0,53.5,0,57.6c0,4.1,0,10.5,0,13.3","M49.2,43.1c11.7,4.1,18.2,10.6,24.5,18.7"],"n":[[37.37,14.38],[52.25,39.5]]},"ナ":{"p":["M18.5,44.1c2.6,1,4.7,1.1,9.1,0.5c19.3-3,37.7-4.7,52.3-5.6c3.7-0.2,8.8-0.2,11.8,0.1","M53.2,14.5c1.7,1.2,2.7,3,2.7,6c0,3,0.1,21.5,0.1,24.2c0,20-6,37.6-18.3,49.1"],"n":[[14.26,40.5],[45.01,13.75]]},"ニ":{"p":["M32.6,34.6c2.5,1.1,4.3,1.6,7.4,1.3c11.5-0.9,18.3-2.4,27.0-3.1c2.6-0.2,6.2-0.1,8.3,0.0","M20,74.8c2.6,1,4.7,1.4,9.1,0.7c20.2-3.2,36.5-3.8,52.3-3.8c3.7,0,8,1,11.1,2.3"],"n":[[26.01,33.13],[15.76,68.5]]},"ヌ":{"p":["M33.3,27.6c2.7,1.2,5.3,1.1,8.5,0.6c10.1-1.7,19-3.1,28.6-5c6.6-1.3,7.7-0.1,5.3,5.6c-6.7,16.2-20.6,40.5-48.8,57.8","M44.8,46.3c12,6.7,22.3,15.3,30.6,28.1"],"n":[[27.25,24.38],[35.13,44.5]]},"ネ":{"p":["M51.3,12.3c3.3,2.1,8,5.8,11,10.8","M26.8,36.1c2.6,1.4,5.4,1.9,8.5,1.1c10.7-2.6,20.7-4.9,30.8-7.5c6.5-1.6,7.8,1.2,4.6,4.6c-11.6,12.4-22.7,23.3-48.8,37.9","M54.3,54.1c1.3,1.7,1.6,3.5,1.6,6c0,2.5,0,27.5,0,29.3c0,1.8,0,4,0,6.8","M65.3,53.6c12.5,6,19.8,11.7,24.8,18.8"],"n":[[45.25,11.25],[18.88,32.5],[49.25,63.5],[64.75,50.88]]},"ノ":{"p":["M72.3,25.2c0.7,2,0.9,4.8,0.2,7.2c-7.1,25-25.3,44.7-43.6,56.8"],"n":[[63.5,24.25]]},"ハ":{"p":["M39.3,36.8c0.3,1.1,0.4,2.8-0.1,4.1c-6.3,13.7-13.3,23.8-22.2,32.2","M65.5,36.3c13,9.1,23.1,22.6,28,33.3"],"n":[[27.76,35.0],[58.51,33.75]]},"ヒ":{"p":["M35.3,44.5c1.7,1.3,4.5,2.1,6.8,1.8c10.2-1.3,17.2-2.8,24.2-4.2c3.0-0.5,7.1-1,9.3-0.8","M31,17.6c1.3,1.2,1.8,3.3,1.8,6.1c0,2.7-0.8,44-0.8,47.2c0,9.7,4,14.6,13.7,14.6c6,0,16.3,0.1,21.3,0c5-0.1,9.5-0.6,13.5-1.5"],"n":[[36.88,41.88],[23.88,15.13]]},"フ":{"p":["M24.5,30c1.8,1.8,3.5,2.0,6.5,1.6c14.5-2,29-4.3,43.7-6.8c6.8-1.1,10.5,2.2,6.8,9.1c-10.3,19.1-21.2,39.5-50.0,53.6"],"n":[[21.63,24.88]]},"ヘ":{"p":["M15.5,49.0c2.7,1.5,5.3,0.6,6.9-0.9c4.0-4.0,9.4-8.3,12-10.8c3.1-3.2,7.3-5.2,12.0-1.1c11.2,9.8,25.0,21.4,35.7,30.3c4.2,3.5,7.7,6.8,11.2,9.5"],"n":[[11.76,43.63]]},"ホ":{"p":["M22.6,40.3c2.6,1,4.7,1.7,9.1,1.2c17.7-1.8,29.2-2.7,45.3-3.8c3.7-0.2,7.3-0.1,11.1,0.6","M53.7,17.1c1.3,1.8,1.3,4.5,1.3,7.3c0,2.8-0.1,46.6-0.1,51.8c0,23.1-6.2,11.2-9.7,9.6","M27.3,59.3c0.5,9.2-1.3,16.6-6.3,21.8","M73.2,52.7c10.8,9.6,15.5,17.6,16.6,24.8"],"n":[[16.01,38.25],[44.76,15.75],[21.51,57.13],[65.51,51.13]]},"マ":{"p":["M21.5,33.7c1.8,1.8,3.5,1.9,6.5,1.6c19.6-2.3,33.5-4,51.2-6.3c6.8-0.9,9.3,1.6,4.3,7.6c-7.1,8.5-17.8,20-28.7,31.6","M43.3,58.8c8.4,6.5,16.6,15.9,20.2,26.2"],"n":[[17.88,27.88],[36.12,59.12]]},"ミ":{"p":["M41.8,20c10.4,2.5,20.5,6.3,25,10.3","M42,46.8c10.7,2.6,21.1,6.6,25.7,10.8","M36.5,75c15.7,4.4,30.9,11,37.7,18.1"],"n":[[34.63,19.25],[34.38,46.13],[31.88,71.5]]},"ム":{"p":["M53.8,22.5c0.8,1.7,0.7,4.5-0.3,6.8c-9.2,18.3-16.1,30.9-25.2,45.7c-3.7,6.1-3,8.3,4.3,7.1c7.3-1.2,46.6-8.1,49.6-8.8","M72.2,60.1c6.8,6.3,13.6,14.8,16,25.3"],"n":[[45.71,21.0],[66.46,57.25]]},"メ":{"p":["M73.3,19.1c0.8,1.7,0.4,4.4-0.3,6.8c-7.7,22.1-21.7,47.6-45,62.8","M39.5,39.5c16.5,7.7,32.1,18,38.5,30.8"],"n":[[64.26,16.0],[33.76,37.38]]},"モ":{"p":["M27.8,26.1c2.5,1.1,4.3,1.6,7.4,1.3c11.5-0.9,21.9-2.1,32.7-3.9c2.6-0.4,6.2-0.4,8.3-0.1","M17.5,54.3c2.6,1,4.7,1.4,9.1,0.7c20.2-3.2,33.8-5.3,51.6-6.1c3.7-0.1,7.3,0.2,11.1,0.8","M48.7,29.8c1.1,1.6,1.4,3.6,1.4,6.1c0,6.5-0.6,33.5-0.6,35.8c0,7.6,3.0,11.0,10.5,11.7c5.3,0.4,12.3,0.2,16.3,0c4.4-0.2,6.5-0.7,9.5-1.4"],"n":[[20.88,23.63],[13.38,49.38],[42.13,35.38]]},"ヤ":{"p":["M18,45.7c2.1,1.6,6.1,2.3,10.1,1.3c18.8-4.6,33.3-7.8,48.8-11.8c22-5.7,1.5,14.2-2.7,20","M38.4,19.3c1.6,1.4,2.5,2.6,3.1,5.2c0.6,2.5,11.9,52.9,12.5,55.5c0.6,2.6,2.1,9.1,3.0,12.4"],"n":[[14.63,40.75],[30.26,19.25]]},"ユ":{"p":["M29.5,35.3c2.3,1.5,5.1,2.0,9.2,1.5c13.2-1.8,18.0-2.4,27.6-4c6.7-1.1,7.7,0.1,6.5,6.3c-2.3,11.5-4.8,24.5-6.5,34.5","M17,76.8c2.7,1.5,4.7,2.0,9.1,1.5c22.6-2.8,36-3.8,54.1-3.8c3.7,0,7.3,0.5,11.1,1.1"],"n":[[23.25,31.88],[13.88,71.75]]},"ヨ":{"p":["M29.1,30.1c2.3,1.5,5.1,1.9,9.2,1.5c14-1.6,26.7-3.0,36.3-4.2c6-0.7,6.8,0.5,6.5,6.3c-1,15.5-1.8,30.6-3.0,42.2","M29.2,52.8c2.3,1.5,5.1,1.9,9.2,1.5c10.5-1.2,22.8-2.2,31.1-3.0c2.7-0.2,5.2,0.0,7.7,0.5","M23.5,78.8c2.7,1.3,4.7,1.6,9.1,1.3c12.5-1.0,29.3-2.9,41.3-2.9c3.3,0,5.6,0,9.3,0.5"],"n":[[23.38,28.0],[22.25,51.75],[19.75,74.0]]},"ラ":{"p":["M38.6,21.0c2.0,1.8,4.4,2.5,8.0,2.1c9.2-0.9,14.3-2.0,21.5-2.9c2.4-0.3,4.1-0.5,6.5-0.1","M26,41.8c2.3,1.7,5.1,2.2,9.2,1.7c14-1.8,31.2-4.9,40.8-6.3c6-0.8,8.1,0.6,6.2,5.7c-6.8,18.6-22,38.2-45.2,48.6"],"n":[[33.13,19.0],[22.75,37.38]]},"リ":{"p":["M35,18.3c1.1,1.5,1.6,3,1.6,4.8c0,1.8,0,25,0,27c0,2,0,6.1,0,7.7","M71,15.3c1.5,1.2,2.3,3.1,2.3,5.3c0,2.2-0.1,28.8-0.1,32.8c0,19.6-9.5,32.2-21.7,40.3"],"n":[[28.62,15.88],[62.0,13.5]]},"ル":{"p":["M34.3,31.8c1.1,1.5,1.7,3,1.6,4.8c-1.1,22.8-8.8,40.6-17.5,49.5","M56.5,19.6c1.5,1.2,2.3,3.1,2.3,5.3c0,2.2-0.1,47.6-0.1,51.6c0,10.5,0.5,10.2,9.3,2.7c9.5-8,16.5-14.6,26.3-25.6"],"n":[[29.01,28.5],[50.13,16.88]]},"レ":{"p":["M34.5,19.7c1.5,1.2,2.3,3.1,2.3,5.3c0,2.2-0.1,50.1-0.1,54.1c-0.0,8.7-0.1,8.6,9.3,3.7c13.2-6.7,33.3-22.5,43.2-33.5"],"n":[[27.87,16.5]]},"ロ":{"p":["M25,33.2c1.5,1.2,2.1,3.1,2.3,5.3c0.9,10.0,2.1,23.6,3.1,34.8c0.3,3.4,0.5,6.5,0.8,9.3","M28.1,36.1c9.2-1,37.6-3.1,45.6-4.2c8-1.1,9.5,0.5,8.3,6.6c-2.1,10.8-4.1,21.8-6.7,34.8","M32,78.1c5.3-0.5,33.6-3,36.5-3c2.8,0,7.8-0.2,11.5,0.2"],"n":[[18.38,39.75],[30.51,32.25],[35.13,73.63]]},"ワ":{"p":["M25,23.6c1.5,1.2,2.1,3.1,2.3,5.3c0.9,10.0,0.8,8.1,1.8,19.3c0.3,3.4,0.5,6.5,0.8,9.3","M27.7,26.3c3.1,0.3,5.1,0.2,8.2-0.0c13.7-1.2,27.1-2.3,41.6-3.7c8.0-0.7,9.4,0.5,8.3,6.6c-4.7,27.2-20.6,47.6-43.8,61.5"],"n":[[17.88,25.75],[30.38,22.25]]},"ヲ":{"p":["M30.2,25.1c2.3,1.7,5.1,2.1,9.2,1.7c12.3-1.2,21.9-2.6,30.4-3.6c2.8-0.3,5.5-0.6,8.1-0.9","M29,46.6c2.2,1.4,4.4,1.9,8.0,1.4c8.1-1.1,19.9-2.6,28.5-3.7c2.3-0.3,4.6-0.6,6.7-0.9","M78,22.8c0.8,2,0.6,4.6,0.1,7c-4.8,22.5-23.5,47.1-44.1,60.7"],"n":[[27.0,20.38],[25.12,43.0],[79.25,18.88]]},"ン":{"p":["M26.5,24.8c5.7,2.1,12.6,8.4,15.7,14.2","M28.6,83.7c2.5,1.6,5.1,0.9,7.7-0.6c20.1-12.1,35-24.6,49.6-41.1"],"n":[[22.37,22.13],[22.5,76.13]]},"ガ":{"p":["M25.5,40.6c1.8,1.2,4.5,1.8,7.1,1.5c17.8-2.5,32.7-4.5,42.5-5.8c7.1-1,10.5,0.2,8.6,7.8c-2.1,8.2-4.4,17.8-9.2,29.1c-10.4,24.8-14.1,14.5-19.2,11.8","M55.8,17.1c0.8,1.6,1.2,3.8,0.7,6.7c-4.2,22.8-15.8,45.2-30.2,58.8","M83,19.7c2.7,1.7,6,5.3,7.7,8.5","M89.3,14.8c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[18.13,41.13],[46.25,17.25],[75.38,18.75],[81.5,13.63]]},"ギ":{"p":["M27,40.5c1.7,0.6,4.7,1.0,7.2,0.3c11.7-3.3,30.6-8.1,37.5-9.8c2.6-0.6,6.7-1.1,9-1","M19.5,65.8c2.2,0.8,6.2,1.1,9.4,0.1c17.7-5.5,32.6-9.0,49.1-12.9c3.4-0.8,8.8-1.5,11.7-1.3","M48.8,16.7c2.5,1.7,3.4,3.2,3.8,6.1c2.1,13.6,6.3,45.3,8.2,59.2c0.4,3,1,8.3,1.3,11.1","M81.8,15.1c2.7,1.9,6,5.9,7.7,9.3","M88.2,10c2.7,1.7,5.9,5.3,7.6,8.4"],"n":[[19.75,37.13],[17.13,61.13],[41.0,16.88],[74.25,14.0],[80.38,8.88]]},"グ":{"p":["M50,19.6c0.3,1.5,0.3,3.4-0.5,5.1c-4.1,8.1-7.8,15.5-16.1,24.1","M51.2,28.6c2.6,0.2,5.6-0.3,7.6-0.8c6-1.5,9.7-2.3,15.1-3.8c5.7-1.6,7.5-0.4,5.1,4.8c-10.3,22.8-26.2,44.1-48.6,60.5","M83.7,13.5c2.7,1.7,6,5.3,7.7,8.5","M90.1,8.6c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[42.0,17.13],[54.75,24.63],[76.13,12.5],[82.25,7.38]]},"ゲ":{"p":["M40.9,17.8c0.4,1.9,0.3,4.4-0.5,6.5c-4.8,10.3-9.2,19.6-18.8,30.6","M37.8,37.6c2.1,0.8,4.1,1.0,6.6,0.5c12.6-2.7,25.5-4.8,35.7-6.5c3.6-0.5,6.2-0.7,9.2-0.5","M64.4,38.8c0.4,1.9,0.5,4.2-0.0,6.5c-3.6,13.7-9.2,31.2-24.6,43.8","M83.6,13.9c2.9,1.8,6.4,5.5,8.3,8.8","M90.1,9.1c3.0,1.6,6.5,5,8.5,7.9"],"n":[[32.5,17.38],[41.5,34.75],[56.25,44.0],[76.5,12.75],[82.63,7.88]]},"ゴ":{"p":["M30.1,35c1.7,1,3.0,2.1,6.5,1.6c14.2-2.2,29.6-4.2,37.3-5.5c9.3-1.5,9.8,0.2,8,7.5c-2.7,10.7-5.2,22.1-7,34.8","M27.5,77.3c2.6,1.1,4.3,1.5,8.2,1c11.3-1.5,22.6-3,33.7-3.3c4-0.1,5.8,0,9.6,0.5","M84.7,15.5c2.7,1.7,6,5.3,7.7,8.5","M90.8,10.3c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[22.88,32.0],[23.88,72.88],[77.13,14.5],[83.0,9.13]]},"ザ":{"p":["M16.5,44.3c2.8,1.2,4.7,1.9,8.9,1.1c17.2-3.2,40.4-5.3,58.5-5.3c4.3,0,6.9,0.3,10.4,0.8","M36.6,23.3c1.1,1.3,1.1,2.5,1.2,4.7c0.2,9,0.3,20.2,0.7,28.8c0.1,3.2,0.3,7.1,0.3,9.2","M69.6,16.6c1.5,2,1.6,2.8,1.6,6.2c0,8.2-0.1,9-0.1,15.8c0,23.2-9.3,42.5-23.2,53","M82.7,18.7c2.8,1.7,6.2,5.4,8.0,8.6","M89.5,14.1c2.9,1.5,6.3,4.8,8.2,7.6"],"n":[[11.88,39.63],[27.0,21.63],[60.63,16.13],[75.38,16.88],[81.5,11.75]]},"ジ":{"p":["M39.8,19.7c5.1,1.5,9.7,6.0,11.5,8.6","M26,42.6c3.2,0.8,10.2,5.5,12.2,8.1","M33,85c3.6,1.6,6.5,0.8,10.3-1.3c17.8-10.3,32.3-23.8,46.1-42.8","M78.5,18.9c2.8,1.7,6.2,5.4,8.0,8.6","M85.2,14.3c2.9,1.5,6.3,4.8,8.2,7.6"],"n":[[34.0,19.13],[23.38,38.63],[27.38,78.63],[71.13,17.13],[77.25,12.0]]},"ズ":{"p":["M30.1,29.3c1.7,1.5,4.1,1.9,6.6,1.3c13.2-3.2,24.2-5.6,31.2-7.3c7-1.7,8.6,1.1,6.5,5.7c-11.2,24.1-28.3,45.8-53.5,57.2","M61,57.2c11,7.3,21,17,28,28.6","M85.3,16.5c2.7,1.7,6,5.3,7.7,8.5","M91.7,11.6c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[23.63,27.75],[65.76,55.75],[77.76,15.5],[83.88,10.38]]},"ゼ":{"p":["M17,49.3c3.1,1.5,5.0,2.1,8.6,1.3c23.5-5.2,31.2-7.4,50.6-11.6c23.1-5,6.5,7.7-3.2,18.1","M42.3,19.5c2,2.2,2.1,3.5,2.1,6.6c-0.1,17.5-0.8,31.7-0.8,41.1c0,14,3.1,16.9,12.3,17.1c8.3,0.1,14.1,0.1,18,0.1c3.8,0,7.5-0.5,10.5-1.1","M83.3,20.2c2.7,1.7,6,5.3,7.7,8.5","M89.7,15.3c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[13.51,45.13],[34.13,17.63],[75.76,19.25],[81.88,14.13]]},"ゾ":{"p":["M23.5,26.6c3.8,4.0,7.5,9.7,10.5,17.5","M83,21.9c1.2,2.5,1.3,4.4,0.1,8.5c-5.8,20.3-26.2,49-45.6,60.7","M86.2,10.6c2.7,1.7,6,5.3,7.7,8.5","M92.6,5.7c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[20.0,22.77],[73.63,21.77],[78.63,9.65],[84.75,5.27]]},"ダ":{"p":["M48.8,19.7c0.4,1.7,0.3,4-0.5,5.8c-4.7,9.3-9.1,17.8-18.6,27.7","M49.7,30.3c2.5,0.6,5.6-0.1,7.6-0.6c6-1.5,10.5-2.6,15.8-4.1c5.7-1.6,8.2,0.3,5.8,5.6c-10.8,24.6-22.1,43.9-50.1,59.9","M43.3,45.6c6.7,3.5,10.6,7.8,14.7,15.2","M83.6,14.1c2.9,1.8,6.4,5.5,8.3,8.8","M90.1,9.3c3.0,1.6,6.5,5,8.5,7.9"],"n":[[41.38,17.25],[54.75,26.0],[45.13,43.5],[76.5,13.0],[82.63,8.13]]},"ヂ":{"p":["M70,15.2c-0.3,2.6-2.2,4.3-4.1,5.3c-7.8,4.2-18.6,9.7-35.5,13.2","M18.5,51.5c2.8,0.8,4.3,1.6,7.8,1.2c22-2.5,36.3-4.2,56.1-4.8c4.8-0.1,7.8,0.5,10.8,1.5","M54.8,30.7c0.8,0.7,1.7,2.4,1.7,4.7c0,6.0,0.0,11.2,0.0,18.2c0,14.9-5.0,29.4-16.5,39.2","M79.8,25.7c2.8,1.7,6.2,5.4,8.0,8.6","M86.6,21.1c2.9,1.5,6.3,4.8,8.2,7.6"],"n":[[61.76,12.63],[13.63,46.75],[47.76,37.63],[73.76,23.38],[79.63,18.5]]},"ヅ":{"p":["M21.5,30.6c2.3,3,5,9.3,5.3,13.8","M45.8,23c3.3,3.5,6.6,9.5,7,14.8","M84.6,27.6c0.7,2.2,0.3,5.2-0.7,8c-7.6,18.3-21.2,41.3-46,52.7","M86.5,14.5c2.6,1.9,5.7,5.8,7.3,9.3","M92.6,9.6c2.7,1.8,5.9,5.5,7.6,8.7"],"n":[[16.62,27.13],[38.75,20.88],[75.62,25.75],[79.5,12.88],[85.37,8.0]]},"デ":{"p":["M36.5,21.5c2.1,1.2,4.3,1.5,7.2,1.2c10.6-1.2,16.8-2.2,24.6-3.2c3.7-0.4,5.6-0.5,8.1-0.2","M20,44.1c2.8,1,5.2,1.0,7.5,0.7c22.3-3,37-5.6,54.1-6.1c5.6-0.1,7.7,0,10.3,0.6","M58,43.2c0.8,1,1.3,2.6,1.1,4.3c-1.7,15.3-11.6,34.9-24.6,41.8","M84.2,16.9c2.8,1.7,6.2,5.4,8.0,8.6","M91,12.3c2.9,1.5,6.3,4.8,8.2,7.6"],"n":[[29.38,19.25],[16.38,39.75],[50.38,49.88],[76.88,15.13],[83.0,10.0]]},"ド":{"p":["M44,16.3c1.2,1.1,2.1,3.2,2.1,5.5c0,26.1,0,53.5,0,57.6c0,4.1,0,10.5,0,13.3","M49.2,43.1c11.7,4.1,18.2,10.6,24.5,18.7","M66.8,26.7c2.7,1.7,6,5.3,7.7,8.5","M73.2,21.8c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[37.37,14.38],[52.25,39.5],[59.25,25.75],[65.37,21.38]]},"バ":{"p":["M39.0,36.6c0.3,1.1,0.3,2.8-0.1,4.1c-5.4,13.9-13.0,24.1-21.9,32.4","M65.5,36.3c13,9.1,23.1,22.6,28,33.3","M81.1,21c2.7,1.7,6,5.3,7.7,8.5","M87.5,16.1c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[27.76,35.0],[58.51,33.75],[73.51,20.0],[79.63,15.63]]},"ビ":{"p":["M35.3,44.5c1.7,1.3,4.5,2.1,6.8,1.8c10.2-1.3,17.2-2.8,24.2-4.2c3.0-0.5,7.1-1,9.3-0.8","M31,17.6c1.3,1.2,1.8,3.3,1.8,6.1c0,2.7-0.8,44-0.8,47.2c0,9.7,4,14.6,13.7,14.6c6,0,16.3,0.1,21.3,0c5-0.1,9.5-0.6,13.5-1.5","M78.1,26.2c2.7,1.7,6,5.3,7.7,8.5","M84.5,21.3c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[36.88,41.88],[23.88,15.13],[70.51,25.25],[76.63,20.88]]},"ブ":{"p":["M24.5,30c1.8,1.8,3.5,2.0,6.5,1.6c14.5-2,29-4.3,43.7-6.8c6.8-1.1,10.5,2.2,6.8,9.1c-10.3,19.1-21.2,39.5-50.0,53.6","M86,15.6c2.6,1.9,5.7,5.9,7.3,9.3","M92.0,10.5c2.8,1.7,6.1,5.4,7.9,8.6"],"n":[[21.63,24.88],[78.13,14.75],[85.25,9.63]]},"ベ":{"p":["M15.5,49c2.7,1.5,5.3,0.6,6.8-0.8c4-3.8,9.3-8.5,11.8-11c3.1-3.1,7.2-5.0,11.8-1.1c11.1,9.5,26.2,22.5,36.8,31.1c4.2,3.4,7.6,6.6,11.1,9.2","M66.8,27c2.7,1.7,6,5.3,7.7,8.5","M73.2,22.1c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[11.76,43.63],[59.26,26.0],[65.38,21.63]]},"ボ":{"p":["M22.6,40.3c2.6,1,4.7,1.7,9.1,1.2c17.7-1.8,29.2-2.7,45.3-3.8c3.7-0.2,7.3-0.1,11.1,0.6","M53.7,17.1c1.3,1.8,1.3,4.5,1.3,7.3c0,2.8-0.1,46.6-0.1,51.8c0,23.1-6.2,11.2-9.7,9.6","M27.3,59.3c0.5,9.2-1.3,16.6-6.3,21.8","M73.5,53c10.8,9.6,15.5,17.6,16.6,24.8","M72.6,17.5c2.7,1.7,6,5.3,7.7,8.5","M79.0,12.6c3.0,1.5,6.6,4.8,8.6,7.6"],"n":[[16.01,38.25],[44.76,15.75],[21.51,57.13],[65.51,51.13],[65.26,16.0],[71.38,11.38]]},"パ":{"p":["M39.0,36.6c0.3,1.1,0.3,2.8-0.1,4.1c-5.4,13.9-13.0,24.1-21.9,32.4","M65.5,36.3c13,9.1,23.1,22.6,28,33.3","M86,30.1c-9.6,0-9.2-14.2,0-14.2c9.7,0.0,9.5,14.2,0,14.2"],"n":[[27.76,35.0],[58.51,33.75],[83.01,37.5]]},"ピ":{"p":["M35.3,44.5c1.7,1.3,4.5,2.1,6.8,1.8c10.2-1.3,17.2-2.8,24.2-4.2c3.0-0.5,7.1-1,9.3-0.8","M31,17.6c1.3,1.2,1.8,3.3,1.8,6.1c0,2.7-0.8,44-0.8,47.2c0,9.7,4,14.6,13.7,14.6c6,0,16.3,0.1,21.3,0c5-0.1,9.5-0.6,13.5-1.5","M83,32.8c-9.6,0-9.2-14.2,0-14.2c9.7-0.0,9.5,14.2,0,14.2"],"n":[[36.88,41.88],[23.88,15.13],[80.01,40.25]]},"プ":{"p":["M24.5,30c1.8,1.8,3.5,2.0,6.5,1.6c14.5-2,29-4.3,43.7-6.8c6.8-1.1,10.5,2.2,6.8,9.1c-10.3,19.1-21.2,39.5-50.0,53.6","M92.6,23.8c-9.6,0-9.2-14.2,0-14.2c9.7-0.0,9.5,14.2,0,14.2"],"n":[[21.63,24.88],[89.63,31.25]]},"ペ":{"p":["M15.5,49.2c2.7,1.5,5.3,0.6,6.8-0.8c4-3.8,9.1-8.7,11.6-11.2c3.1-3.1,7.2-5.0,11.8-1.1c11.1,9.5,26.2,22,36.8,30.6c4.2,3.4,7.6,6.6,11.1,9.2","M72.7,36.1c-9.6,0-9.2-14.2,0-14.2c9.7,0.0,9.5,14.2,0,14.2"],"n":[[11.5,43.63],[69.75,43.5]]},"ポ":{"p":["M22.6,40.3c2.6,1,4.7,1.7,9.1,1.2c17.7-1.8,29.2-2.7,45.3-3.8c3.7-0.2,7.3-0.1,11.1,0.6","M53.7,17.1c1.3,1.8,1.3,4.5,1.3,7.3c0,2.8-0.1,46.6-0.1,51.8c0,23.1-6.2,11.2-9.7,9.6","M27.3,59.3c0.5,9.2-1.3,16.6-6.3,21.8","M73.5,53c10.8,9.6,15.5,17.6,16.6,24.8","M79.7,25.6c-9.6,0-9.2-14.2,0-14.2c9.7,0.0,9.5,14.2,0,14.2"],"n":[[16.01,38.25],[44.76,15.75],[21.51,57.13],[65.51,51.13],[76.76,33.0]]}};
+const KROWS = [
+  ["a", "あいうえお", "а и у э о", "a i u e o"], ["ka", "かきくけこ", "ка ки ку кэ ко", "ka ki ku ke ko"],
+  ["sa", "さしすせそ", "са си су сэ со", "sa shi su se so"], ["ta", "たちつてと", "та ти цу тэ то", "ta chi tsu te to"],
+  ["na", "なにぬねの", "на ни ну нэ но", "na ni nu ne no"], ["ha", "はひふへほ", "ха хи фу хэ хо", "ha hi fu he ho"],
+  ["ma", "まみむめも", "ма ми му мэ мо", "ma mi mu me mo"], ["ya", "やゆよ", "я ю ё", "ya yu yo"],
+  ["ra", "らりるれろ", "ра ри ру рэ ро", "ra ri ru re ro"], ["wa", "わをん", "ва о н", "wa wo n"],
+  ["ga", "がぎぐげご", "га ги гу гэ го", "ga gi gu ge go"], ["za", "ざじずぜぞ", "дза дзи дзу дзэ дзо", "za ji zu ze zo"],
+  ["da", "だぢづでど", "да дзи дзу дэ до", "da ji zu de do"], ["ba", "ばびぶべぼ", "ба би бу бэ бо", "ba bi bu be bo"],
+  ["pa", "ぱぴぷぺぽ", "па пи пу пэ по", "pa pi pu pe po"],
+].map(([id, h, r, ro]) => ({ id, h: [...h], r: r.split(" "), ro: ro.split(" ") }));
+const KSTAGES = [
+  { rows: [0, 1, 2], game: [0, 1, 2] },
+  { rows: [3, 4, 5], game: [0, 1, 2, 3, 4, 5] },
+  { rows: [6, 7, 8], game: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
+  { rows: [9], game: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], final: true },
+  { rows: [10, 11, 12, 13, 14], game: [10, 11, 12, 13, 14], extra: true },
+];
+const toKata = s => s.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
+const toHira = s => s.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+const KREAD = {};
+KROWS.forEach(r => r.h.forEach((c, i) => { KREAD[c] = { ru: r.r[i], ro: r.ro[i] }; }));
+const KNOTE = {
+  "を": "в современном языке — только частица «о»", "ぢ": "встречается редко, обычно пишут じ", "づ": "встречается редко, обычно пишут ず",
+  "ん": "единственная буква-согласный", "ふ": "звук между «ф» и «х»", "つ": "одна буква — звук «цу»",
+};
+function parseEx(s) {
+  const m = {};
+  s.split("|").forEach(e => { const [c, w, ru, k] = e.split(":"); m[c] = { w, ru, k: k || "" }; });
+  return m;
+}
+const KEX = {
+  hira: parseEx("あ:あめ:дождь:雨|い:いぬ:собака:犬|う:うみ:море:海|え:えき:станция:駅|お:おちゃ:зелёный чай:お茶|か:かさ:зонт:傘|き:きって:почтовая марка:切手|く:くつ:обувь:靴|け:けさ:сегодня утром:今朝|こ:こども:ребёнок:子供|さ:さかな:рыба:魚|し:しお:соль:塩|す:すし:суси:寿司|せ:せんせい:учитель:先生|そ:そら:небо:空|た:たまご:яйцо:卵|ち:ちず:карта:地図|つ:つくえ:письменный стол:机|て:て:рука:手|と:とけい:часы:時計|な:なつ:лето:夏|に:にく:мясо:肉|ぬ:いぬ:собака:犬|ね:ねこ:кошка:猫|の:のみもの:напитки:飲み物|は:はな:цветок:花|ひ:ひと:человек:人|ふ:ふね:корабль:船|へ:へや:комната:部屋|ほ:ほん:книга:本|ま:まど:окно:窓|み:みず:вода:水|む:むし:насекомое:虫|め:め:глаз:目|も:もも:персик:桃|や:やま:гора:山|ゆ:ゆき:снег:雪|よ:よる:ночь:夜|ら:らいねん:в следующем году:来年|り:りんご:яблоко|る:くるま:автомобиль:車|れ:れいぞうこ:холодильник:冷蔵庫|ろ:ろうか:коридор:廊下|わ:わたし:я:私|を:ほんをよみます:читаю книгу:本を読みます|ん:みかん:мандарин|が:がくせい:студент:学生|ぎ:ぎんこう:банк:銀行|ぐ:かぐ:мебель:家具|げ:げんき:здоровый, бодрый:元気|ご:ごはん:еда, рис:ご飯|ざ:ざっし:журнал:雑誌|じ:じしょ:словарь:辞書|ず:みず:вода:水|ぜ:ぜんぶ:всё:全部|ぞ:ぞう:слон:象|だ:だいがく:университет:大学|ぢ:はなぢ:кровь из носа:鼻血|づ:つづく:продолжаться:続く|で:でんしゃ:электричка:電車|ど:どようび:суббота:土曜日|ば:ばんごはん:ужин:晩ご飯|び:びょういん:больница:病院|ぶ:ぶたにく:свинина:豚肉|べ:べんきょう:учёба:勉強|ぼ:ぼうし:шапка:帽子|ぱ:かんぱい:за здоровье!:乾杯|ぴ:ぴかぴか:блестящий|ぷ:てんぷら:тэмпура:天ぷら|ぺ:ぺこぺこ:очень голодный|ぽ:さんぽ:прогулка:散歩"),
+  kata: parseEx("ア:アメリカ:Америка|イ:イギリス:Великобритания|ウ:ウイスキー:виски|エ:エアコン:кондиционер|オ:オレンジ:апельсин|カ:カメラ:фотоаппарат|キ:キロ:килограмм, километр|ク:クラス:класс|ケ:ケーキ:торт|コ:コーヒー:кофе|サ:サッカー:футбол|シ:シャツ:рубашка|ス:スキー:лыжи|セ:セーター:свитер|ソ:ソフト:программа|タ:タクシー:такси|チ:チケット:билет|ツ:ツアー:тур|テ:テレビ:телевизор|ト:トイレ:туалет|ナ:ナイフ:нож|ニ:ニュース:новости|ヌ:カヌー:каноэ|ネ:ネクタイ:галстук|ノ:ノート:тетрадь|ハ:ハンサム:красивый (о мужчине)|ヒ:コーヒー:кофе|フ:フォーク:вилка|ヘ:ヘリコプター:вертолёт|ホ:ホテル:гостиница|マ:マンガ:манга|ミ:ミルク:молоко|ム:ゲーム:игра|メ:メール:эл. почта|モ:メモ:заметка|ヤ:タイヤ:шина|ユ:ユーモア:юмор|ヨ:ヨーグルト:йогурт|ラ:ラジオ:радио|リ:クリスマス:Рождество|ル:ルール:правило|レ:レストラン:ресторан|ロ:ロボット:робот|ワ:ワイン:вино|ン:パン:хлеб|ガ:ガム:жвачка|ギ:ギター:гитара|グ:グラム:грамм|ゲ:ゲーム:игра|ゴ:ゴルフ:гольф|ザ:ピザ:пицца|ジ:ジュース:сок|ズ:チーズ:сыр|ゼ:ゼロ:ноль|ゾ:ゾーン:зона|ダ:ダンス:танцы|デ:デパート:универмаг|ド:ドア:дверь|バ:バス:автобус|ビ:ビール:пиво|ブ:ブラジル:Бразилия|ベ:ベッド:кровать|ボ:ボールペン:шариковая ручка|パ:パン:хлеб|ピ:ピアノ:пианино|プ:プール:бассейн|ペ:ペン:ручка|ポ:ポスト:почтовый ящик"),
+};
+
+// Чтение слова по системе Поливанова (для примеров)
+function kanaRu(word) {
+  const s = [...toHira(word)], kata = /[\u30a0-\u30ff]/.test(word);
+  let out = "", longO = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i], nx = s[i + 1];
+    if ("ゃゅょ".includes(nx) && KREAD[c]) {
+      out += KREAD[c].ru.replace(/и$/, "") + { "ゃ": "я", "ゅ": "ю", "ょ": "ё" }[nx]; i++; continue;
+    }
+    if ("ぁぃぅぇぉ".includes(c)) { out = out.replace(/[аиуэо]$/, "") + { "ぁ": "а", "ぃ": "и", "ぅ": "у", "ぇ": "э", "ぉ": "о" }[c]; continue; }
+    if (c === "っ") { const n = KREAD[nx]; if (n) out += n.ru[0]; continue; }
+    if (c === "ー") continue;
+    if (c === "を") { out += " о "; continue; }
+    if (c === "ん") { out += nx && "ばびぶべぼぱぴぷぺぽまみむめも".includes(nx) ? "м" : "н"; continue; }
+    if (c === "う" && /[оё]$/.test(out)) { longO = true; continue; }   // долгое «о»
+    if (c === "い" && !longO && (kata ? /[аоэ]$/ : /[аоуэяюё]$/).test(out)) { out += "й"; continue; }
+    longO = false;
+    out += KREAD[c] ? KREAD[c].ru : c;
+  }
+  return out;
+}
+
+const kp = Object.assign({ hira: { seen: {}, games: {} }, kata: { seen: {}, games: {} }, rec: {}, reading: "none" }, store.get("oc_kana", {}));
+const saveKana = () => store.set("oc_kana", kp);
+const KS = { script: "hira", row: 0, i: 0 };
+const kch = c => KS.script === "kata" ? toKata(c) : c;
+const scriptName = () => KS.script === "kata" ? "Катакана" : "Хирагана";
+const rowDone = ri => KROWS[ri].h.every(c => kp[KS.script].seen[c]);
+const stageOfRow = ri => KSTAGES.findIndex(st => st.rows.includes(ri));
+const plStroke = n => n + " " + plural(n, "черта", "черты", "черт");
+const fmtTime = s => Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+
+function setScript(s) {
+  KS.script = s; document.body.dataset.kana = s;
+  document.querySelectorAll(".kscript button").forEach(b => b.classList.toggle("on", b.dataset.v === s));
+}
+function showKana(id) {
+  show(null);
+  ["scrKanaHub", "scrKanaRow", "scrKanaOrder"].forEach(x => $(x).classList.toggle("hidden", x !== id));
+}
+function hideKana() { ["scrKanaHub", "scrKanaRow", "scrKanaOrder"].forEach(x => $(x).classList.add("hidden")); $("kWin").classList.add("hidden"); stopKTimer(); }
+const kanaOpen = id => !$(id).classList.contains("hidden");
+
+/* ---- путь ---- */
+function openKanaHub() {
+  endGame(); setGameUI(false); hideKana();
+  setScript(KS.script); renderKanaHub(); showKana("scrKanaHub");
+}
+function renderKanaHub() {
+  const P = kp[KS.script];
+  const nowIdx = KSTAGES.findIndex((st, si) => !st.extra && (!st.rows.every(rowDone) || !P.games[si]));
+  $("kStages").innerHTML = KSTAGES.map((st, si) => {
+    const n = st.game.reduce((a, ri) => a + KROWS[ri].h.length, 0);
+    const complete = st.rows.every(rowDone) && P.games[si];
+    const rows = st.rows.map(ri => {
+      const r = KROWS[ri];
+      return `<button class="krow" data-row="${ri}"><span class="kbig klet">${kch(r.h[0])}</span><span class="kinfo"><span class="kchips klet">${r.h.map(kch).join("")}</span><span class="kru">${r.r.join(" ")}</span></span><span class="kdone">${rowDone(ri) ? "✓" : ""}</span></button>`;
+    }).join("");
+    const gcls = P.games[si] ? "done" : si === nowIdx && st.rows.every(rowDone) ? "now" : "";
+    const rec = kp.rec[recKey(st.game)];
+    return `<div class="kstage${si === nowIdx ? " now" : ""}${st.extra ? " extra" : ""}">
+      <div class="sh"><span>${st.extra ? "Дополнительно" : "Этап " + (si + 1)}</span><b>${complete ? "пройден" : si === nowIdx ? "сейчас" : st.extra ? "звонкие" : ""}</b></div>
+      ${rows}
+      <button class="kgame ${gcls}" data-stage="${si}"><span class="gk">順</span><span><b>${st.final ? "Итоговая игра" : "Порядок"}</b><small>${n} ${plural(n, "буква", "буквы", "букв")}${rec ? " · рекорд " + fmtTime(rec) : ""}</small></span></button>
+    </div>`;
+  }).join("");
+  $("kStages").querySelectorAll(".krow").forEach(b => b.onclick = () => openRow(+b.dataset.row, 0));
+  $("kStages").querySelectorAll(".kgame").forEach(b => b.onclick = () => openOrder(KSTAGES[+b.dataset.stage].game));
+}
+
+/* ---- урок ряда ---- */
+let kAnimTok = 0;
+function openRow(ri, i) {
+  KS.row = ri; KS.i = i;
+  showKana("scrKanaRow"); renderRow();
+}
+function renderRow() {
+  const r = KROWS[KS.row], hc = r.h[KS.i], c = kch(hc);
+  kAnimTok++;
+  kp[KS.script].seen[hc] = true; saveKana();
+  const si = stageOfRow(KS.row), st = KSTAGES[si];
+  $("krTitle").textContent = `${kch(r.h[0])}行 · Ряд ${r.r[0].toUpperCase()}`;
+  $("krSub").textContent = `${scriptName()} · ${st.extra ? "звонкие ряды" : "этап " + (si + 1)} · ряд ${st.rows.indexOf(KS.row) + 1} из ${st.rows.length}`;
+  // буква с порядком черт
+  const S = STROKES[c] || { p: [], n: [] };
+  $("kSvg").innerHTML = `<g class="ghost">${S.p.map(d => `<path d="${d}"/>`).join("")}</g>` +
+    S.p.map(d => `<path class="kst" d="${d}"/>`).join("") +
+    S.n.map(([x, y], k) => `<g class="knum"><circle cx="${x + 1.5}" cy="${y - 2}" r="4.2"/><text x="${x + 1.5}" y="${y - 1.8}">${k + 1}</text></g>`).join("");
+  $("kCount").textContent = plStroke(S.p.length);
+  $("kCard").classList.remove("tracing"); $("kTraceLbl").textContent = "Обвести пальцем"; clearTrace();
+  const rd = KREAD[hc];
+  $("kReadRu").textContent = rd.ru;
+  $("kReadNote").textContent = "ромадзи: " + rd.ro + (KNOTE[hc] ? " · " + KNOTE[hc] : "");
+  $("kPair").textContent = `${c} ↔ ${KS.script === "kata" ? hc : toKata(hc)} ${KS.script === "kata" ? "хирагана" : "катакана"}`;
+  const ex = KEX[KS.script][c];
+  if (ex) {
+    const w = [...ex.w].map(ch => ch === c ? `<em>${ch}</em>` : ch).join("");
+    $("kEx").innerHTML = `<div class="w klet">${w}</div><div class="m"><span>Слово с этой буквой</span><b>${esc(kanaRu(ex.w))} — ${esc(ex.ru)}</b>${ex.k ? `<i>${esc(ex.k)}</i>` : ""}</div>`;
+  } else {
+    $("kEx").innerHTML = `<div class="m"><span>Слово с этой буквой</span><b>Эта буква почти не встречается в словах</b></div>`;
+  }
+  // навигация
+  const last = KS.i === r.h.length - 1;
+  let next = `Дальше: ${kch(r.h[KS.i + 1] || "")} →`;
+  if (last) {
+    const lastInStage = st.rows[st.rows.length - 1] === KS.row;
+    next = lastInStage ? `Игра «Порядок» →` : `Ряд ${kch(KROWS[KS.row + 1].h[0])} →`;
+  }
+  $("kNext").textContent = next;
+  $("kPrev").textContent = KS.i ? `← ${kch(r.h[KS.i - 1])}` : KS.row ? `← ряд ${kch(KROWS[KS.row - 1].h[0])}` : "← К азбуке";
+  $("kTabs").style.gridTemplateColumns = `repeat(${r.h.length}, minmax(0, 1fr))`;
+  $("kTabs").innerHTML = r.h.map((h, k) => `<button class="ktab${k === KS.i ? " on" : ""}${kp[KS.script].seen[h] ? " seen" : ""}" data-i="${k}"><span class="klet">${kch(h)}</span><small>${r.r[k]}</small></button>`).join("");
+  $("kTabs").querySelectorAll(".ktab").forEach(b => b.onclick = () => { KS.i = +b.dataset.i; renderRow(); });
+}
+function rowNext() {
+  const r = KROWS[KS.row];
+  if (KS.i < r.h.length - 1) { KS.i++; renderRow(); return; }
+  const st = KSTAGES[stageOfRow(KS.row)];
+  if (st.rows[st.rows.length - 1] === KS.row) openOrder(st.game);
+  else { KS.row++; KS.i = 0; renderRow(); }
+}
+function rowPrev() {
+  if (KS.i) { KS.i--; renderRow(); }
+  else if (KS.row) { KS.row--; KS.i = KROWS[KS.row].h.length - 1; renderRow(); }
+  else openKanaHub();
+}
+function playStrokes() {
+  const tok = ++kAnimTok;
+  $("kCard").classList.remove("tracing"); $("kTraceLbl").textContent = "Обвести пальцем";
+  const paths = [...$("kSvg").querySelectorAll(".kst")], nums = [...$("kSvg").querySelectorAll(".knum")];
+  paths.forEach(p => { const L = p.getTotalLength(); p.style.transition = "none"; p.style.strokeDasharray = L; p.style.strokeDashoffset = L; p.classList.remove("drawing"); });
+  nums.forEach(n => n.style.opacity = 0);
+  $("kSvg").getBoundingClientRect();
+  let t = 250;
+  paths.forEach((p, k) => {
+    const d = Math.max(.35, p.getTotalLength() / 75);
+    setTimeout(() => {
+      if (tok !== kAnimTok) return;
+      nums[k].style.opacity = 1; p.classList.add("drawing");
+      p.style.transition = `stroke-dashoffset ${d}s linear`; p.style.strokeDashoffset = 0;
+      setTimeout(() => p.classList.remove("drawing"), d * 1000 + 120);
+    }, t);
+    t += d * 1000 + 300;
+  });
+}
+// обводка пальцем
+const trace = { drawing: false, ctx: null };
+function clearTrace() {
+  const cv = $("kTrace"), r = cv.getBoundingClientRect();
+  cv.width = Math.max(1, r.width * DPR); cv.height = Math.max(1, r.height * DPR);
+  trace.ctx = cv.getContext("2d");
+  trace.ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+function toggleTrace() {
+  const on = !$("kCard").classList.contains("tracing");
+  kAnimTok++;
+  [...$("kSvg").querySelectorAll(".kst")].forEach(p => { p.style.transition = "none"; p.style.strokeDashoffset = 0; });
+  [...$("kSvg").querySelectorAll(".knum")].forEach(n => n.style.opacity = 1);
+  $("kCard").classList.toggle("tracing", on);
+  $("kTraceLbl").textContent = on ? "Стереть и показать букву" : "Обвести пальцем";
+  clearTrace();
+}
+(() => {
+  const cv = $("kTrace");
+  const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top, r.width]; };
+  cv.addEventListener("pointerdown", e => {
+    trace.drawing = true; cv.setPointerCapture(e.pointerId);
+    const [x, y, w] = pos(e), c = trace.ctx;
+    c.strokeStyle = getComputedStyle(document.body).getPropertyValue("--knum").trim() || "#c8323c";
+    c.lineWidth = w * .035; c.lineCap = "round"; c.lineJoin = "round";
+    c.beginPath(); c.moveTo(x, y); c.lineTo(x + .1, y + .1); c.stroke();
+  });
+  cv.addEventListener("pointermove", e => { if (!trace.drawing) return; const [x, y] = pos(e); trace.ctx.lineTo(x, y); trace.ctx.stroke(); });
+  const up = () => { trace.drawing = false; };
+  cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+})();
+
+/* ---- игра «Порядок» ---- */
+let KO = null;
+const recKey = rows => KS.script + ":" + [...rows].sort((a, b) => a - b).join(",");
+function openOrder(rows) {
+  KO = { rows: [...rows], letters: [], cur: 0, attempt: 1, t0: 0, won: false };
+  shuffleOrder(false);
+  showKana("scrKanaOrder"); renderOrder();
+}
+function shuffleOrder(sound = true) {
+  KO.letters = shuffle(KO.rows.flatMap(ri => KROWS[ri].h));
+  KO.cur = 0; KO.t0 = 0; KO.won = false; KO.attempt = 1;
+  stopKTimer(); if (sound) Sound.tick();
+}
+function renderOrder() {
+  const n = KO.letters.length;
+  $("kRowsChips").innerHTML = `<span style="font-size:13px;color:#b9b0d8">Ряды в игре:</span>` + KROWS.map((r, ri) =>
+    `<button class="kchip${KO.rows.includes(ri) ? " on" : ""}" data-row="${ri}" aria-pressed="${KO.rows.includes(ri)}">${kch(r.h[0])}</button>`).join("");
+  $("kRowsChips").querySelectorAll(".kchip").forEach(b => b.onclick = () => {
+    const ri = +b.dataset.row, has = KO.rows.includes(ri);
+    if (has && KO.rows.length === 1) return;
+    KO.rows = has ? KO.rows.filter(x => x !== ri) : [...KO.rows, ri].sort((a, b) => a - b);
+    shuffleOrder(); renderOrder();
+  });
+  document.querySelectorAll("#kReadSeg button").forEach(b => b.classList.toggle("on", b.dataset.v === kp.reading));
+  const cols = n <= 15 ? 5 : n <= 30 ? 6 : n <= 48 ? 8 : 10;
+  const g = $("kGrid");
+  g.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  g.style.gridTemplateRows = `repeat(${Math.ceil(n / cols)}, minmax(0, 1fr))`;
+  g.innerHTML = KO.letters.map((h, k) => {
+    const showR = kp.reading === "all" || (kp.reading === "done" && k < KO.cur);
+    return `<button class="ktile${k < KO.cur ? " done" : ""}${k === KO.cur && !KO.won ? " cur" : ""}" data-k="${k}"><span class="i">${k + 1}</span><span class="kl">${kch(h)}</span><span class="rr">${showR ? KREAD[h].ru : ""}</span></button>`;
+  }).join("");
+  g.querySelectorAll(".ktile").forEach(b => b.onclick = () => { if (+b.dataset.k === KO.cur) orderOk(); });
+  sizeTiles();
+  updateOrderStats();
+}
+function sizeTiles() {
+  const t = $("kGrid").querySelector(".ktile"); if (!t) return;
+  const r = t.getBoundingClientRect();
+  const fs = Math.max(22, Math.min(r.height * .58, r.width * .62));
+  $("kGrid").querySelectorAll(".kl").forEach(e => e.style.fontSize = fs + "px");
+  $("kGrid").querySelectorAll(".rr").forEach(e => e.style.fontSize = Math.max(12, fs * .2) + "px");
+}
+addEventListener("resize", () => { if (KO && kanaOpen("scrKanaOrder")) sizeTiles(); });
+function updateOrderStats() {
+  const n = KO.letters.length;
+  $("koBar").style.width = (KO.cur / n * 100) + "%";
+  $("koCount").textContent = `${KO.cur} / ${n}`;
+  $("koTry").textContent = KO.attempt;
+  $("koTime").textContent = fmtTime(KO.t0 ? (performance.now() - KO.t0) / 1000 : 0);
+  const rec = kp.rec[recKey(KO.rows)];
+  $("koRec").textContent = rec ? fmtTime(rec) : "—";
+}
+let kTimer = 0;
+function stopKTimer() { clearInterval(kTimer); kTimer = 0; }
+function orderOk() {
+  if (!KO || KO.won) return;
+  Sound.unlock();
+  if (!KO.t0) { KO.t0 = performance.now(); stopKTimer(); kTimer = setInterval(updateOrderStats, 250); }
+  KO.cur++;
+  Sound.right(Math.min(10, KO.cur % 11));
+  if (KO.cur >= KO.letters.length) { orderWin(); return; }
+  renderOrderTiles();
+}
+function renderOrderTiles() {
+  $("kGrid").querySelectorAll(".ktile").forEach((b, k) => {
+    b.classList.toggle("done", k < KO.cur); b.classList.toggle("cur", k === KO.cur && !KO.won); b.classList.remove("bad");
+    const showR = kp.reading === "all" || (kp.reading === "done" && k < KO.cur);
+    b.querySelector(".rr").textContent = showR ? KREAD[KO.letters[k]].ru : "";
+  });
+  updateOrderStats();
+}
+function orderMistake() {
+  if (!KO || KO.won) return;
+  Sound.wrong();
+  const bad = $("kGrid").children[KO.cur];
+  if (bad) { bad.classList.remove("bad"); void bad.offsetWidth; bad.classList.add("bad"); }
+  $("kGrid").classList.remove("flash"); void $("kGrid").offsetWidth; $("kGrid").classList.add("flash");
+  KO.attempt++; KO.cur = 0; KO.t0 = 0; stopKTimer();
+  setTimeout(() => { if (KO && !KO.won) renderOrderTiles(); }, 450);
+  updateOrderStats();
+}
+function orderWin() {
+  KO.won = true; stopKTimer();
+  const time = (performance.now() - KO.t0) / 1000, key = recKey(KO.rows);
+  const old = kp.rec[key], isRec = !old || time < old;
+  if (isRec) kp.rec[key] = time;
+  const si = KSTAGES.findIndex(st => recKey(st.game) === key);
+  if (si >= 0) kp[KS.script].games[si] = true;
+  saveKana();
+  renderOrderTiles(); Sound.win();
+  const r = $("kGrid").getBoundingClientRect();
+  for (let i = 0; i < 6; i++) setTimeout(() => burst(r.left + Math.random() * r.width, r.top + Math.random() * r.height * .6, 34, "petal"), i * 160);
+  $("kwTime").textContent = fmtTime(time); $("kwTry").textContent = KO.attempt; $("kwRec").textContent = fmtTime(kp.rec[key]);
+  $("kwNote").textContent = isRec && old ? "Новый рекорд класса!" : isRec ? "Первый рекорд записан!" : "";
+  setTimeout(() => $("kWin").classList.remove("hidden"), 700);
+}
+
+/* ---- кнопки и клавиши азбуки ---- */
+document.querySelectorAll(".kscript button").forEach(b => b.onclick = () => {
+  setScript(b.dataset.v);
+  if (kanaOpen("scrKanaRow")) renderRow(); else renderKanaHub();
+});
+$("kanaBtn").onclick = () => { Sound.unlock(); openKanaHub(); };
+$("khBack").onclick = () => { hideKana(); show("menu"); };
+$("krBack").onclick = openKanaHub;
+$("koBack").onclick = openKanaHub;
+$("kPlay").onclick = playStrokes;
+$("kSay").onclick = () => { const was = settings.voice; settings.voice = true; speak(kch(KROWS[KS.row].h[KS.i])); settings.voice = was; };
+$("kTraceBtn").onclick = toggleTrace;
+$("kPair").onclick = () => { setScript(KS.script === "kata" ? "hira" : "kata"); renderRow(); };
+$("kNext").onclick = rowNext;
+$("kPrev").onclick = rowPrev;
+$("koOk").onclick = orderOk;
+$("koNo").onclick = orderMistake;
+$("koShuffle").onclick = () => { shuffleOrder(); renderOrder(); };
+$("koFull").onclick = toggleFullscreen;
+document.querySelectorAll("#kReadSeg button").forEach(b => b.onclick = () => { kp.reading = b.dataset.v; saveKana(); renderOrderTiles(); document.querySelectorAll("#kReadSeg button").forEach(x => x.classList.toggle("on", x === b)); });
+$("kwAgain").onclick = () => { $("kWin").classList.add("hidden"); shuffleOrder(); renderOrder(); };
+$("kwHub").onclick = () => { $("kWin").classList.add("hidden"); openKanaHub(); };
+function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  } catch {}
+}
+$("fsBtn").onclick = toggleFullscreen;
+
+document.addEventListener("keydown", e => {
+  if (!$("kWin").classList.contains("hidden")) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("kwAgain").click(); }
+    return;
+  }
+  if (kanaOpen("scrKanaOrder")) {
+    const k = e.key.toLowerCase();
+    if (k === " " || k === "enter" || k === "arrowright") { e.preventDefault(); orderOk(); }
+    else if (k === "x" || k === "ч" || k === "backspace") { e.preventDefault(); orderMistake(); }
+    else if (k === "s" || k === "ы") { shuffleOrder(); renderOrder(); }
+    else if (k === "escape") openKanaHub();
+  } else if (kanaOpen("scrKanaRow")) {
+    if (e.key === "ArrowRight") rowNext();
+    else if (e.key === "ArrowLeft") rowPrev();
+    else if (e.key === " ") { e.preventDefault(); playStrokes(); }
+    else if (e.key === "Escape") openKanaHub();
+  } else if (kanaOpen("scrKanaHub") && e.key === "Escape") { hideKana(); show("menu"); }
+}, true);
+
+setScript(KS.script);
 
 renderSettings();
 layout();
