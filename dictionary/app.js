@@ -1,6 +1,6 @@
-/* Лексикон — English dictionary with Russian and Japanese translations.
+/* Лексикон — English and English–Russian dictionary.
  * Data: Free Dictionary API (definitions, audio), Wiktionary (IPA UK/US, translations,
- * Russian/Japanese → English), Datamuse (autocomplete, related words). */
+ * Russian → English), Datamuse (autocomplete, related words). */
 'use strict';
 
 /* ============ Helpers ============ */
@@ -10,7 +10,6 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const wordHref = (w) => '#/w/' + encodeURIComponent(w);
 const norm = (s) => String(s || '').trim().replace(/\s+/g, ' ');
 const isCyr = (s) => /[Ѐ-ӿ]/.test(s);
-const isJa = (s) => /[぀-ヿ㐀-鿿豈-﫿]/.test(s);
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
 const ICON = {
@@ -59,9 +58,9 @@ const SCOPES = [
   { id: 'all', label: 'Все словари' },
   { id: 'en', label: 'Толковый', tag: 'EN' },
   { id: 'ru', label: 'Англо-русский', tag: 'EN·RU' },
-  { id: 'ja', label: 'Англо-японский', tag: 'EN·JA' },
 ];
 let scope = store.get('scope', 'all');
+if (!SCOPES.some((s) => s.id === scope)) scope = 'all';
 
 /* ============ Network ============ */
 async function getJSON(url, { timeout = 12000 } = {}) {
@@ -93,7 +92,7 @@ const api = {
     return null;
   },
   async suggest(q) {
-    if (isCyr(q) || isJa(q)) {
+    if (isCyr(q)) {
       const d = await getJSON('https://en.wiktionary.org/w/api.php?action=opensearch&format=json&limit=8&namespace=0&origin=*&search=' + encodeURIComponent(q), { timeout: 6000 });
       return d ? d[1] : [];
     }
@@ -201,25 +200,15 @@ function parseTranslationLine(line, lang) {
     if (!T_NAMES.has(t.name) || t.pos[0] !== lang) continue;
     let term = stripLinks(t.named.alt || t.pos[1] || '');
     if (!term) continue;
-    let reading = '', tr = t.named.tr || t.named.ts || '';
-    if (lang === 'ja') {
-      const m = term.match(/^(.+?)[(（]([^)）]+)[)）]$/);
-      if (m) { term = m[1]; reading = m[2]; }
-      if (tr) {
-        const parts = tr.split(/,\s*/);
-        if (!reading && parts.length > 1 && /[぀-ヿ]/.test(parts[0])) { reading = parts[0]; tr = parts.slice(1).join(', '); }
-        else if (!reading && /[぀-ヿ]/.test(tr)) { reading = tr; tr = ''; }
-      }
-    }
     const genders = t.pos.slice(2).filter(Boolean).map((g) => GENDER_RU[g] || g);
-    out.push({ term, reading, tr: stripLinks(tr), genders, qual: qual.join(', '), lit: t.named.lit || '' });
+    out.push({ term, genders, qual: qual.join(', ') });
     qual = [];
   }
   return out;
 }
 
 function parseTranslations(section) {
-  const groups = []; let pos = null, inTrans = false, cur = null, jaLine = false;
+  const groups = []; let pos = null, inTrans = false, cur = null;
   for (const raw of section.split('\n')) {
     const line = raw.trim();
     const h = line.match(/^(={3,6})\s*([^=]+?)\s*\1$/);
@@ -235,23 +224,19 @@ function parseTranslations(section) {
     const head = tps[0];
     if (head && /^(trans-top|trans-top-also|checktrans-top|ttbc-top)$/.test(head.name)) {
       const gloss = head.named['1'] || head.pos.filter(Boolean).slice(-1)[0] || (head.name === 'checktrans-top' ? 'требует проверки' : '');
-      cur = { pos, gloss: stripLinks(gloss), ru: [], ja: [] };
+      cur = { pos, gloss: stripLinks(gloss), ru: [] };
       groups.push(cur);
       continue;
     }
     if (head && head.name === 'trans-see') {
       const target = head.pos[1] || head.pos[0];
-      groups.push({ pos, gloss: stripLinks(head.pos[0]), see: stripLinks(target), ru: [], ja: [] });
+      groups.push({ pos, gloss: stripLinks(head.pos[0]), see: stripLinks(target), ru: [] });
       cur = null;
       continue;
     }
     if (head && head.name === 'trans-bottom') { cur = null; continue; }
     if (!cur) continue;
-    if (/^\*\s*Russian\s*:/.test(line)) { cur.ru.push(...parseTranslationLine(line, 'ru')); jaLine = false; continue; }
-    if (/^\*\s*Japanese\s*:/.test(line)) { cur.ja.push(...parseTranslationLine(line, 'ja')); jaLine = true; continue; }
-    if (/^\*[^:]/.test(line)) jaLine = false;
-    // Occasionally scripts are split onto sub-lines under "* Japanese:".
-    if (jaLine && /^\*:/.test(line) && /\{\{t\+?\|ja\|/.test(line)) cur.ja.push(...parseTranslationLine(line, 'ja'));
+    if (/^\*\s*Russian\s*:/.test(line)) cur.ru.push(...parseTranslationLine(line, 'ru'));
   }
   return groups;
 }
@@ -293,7 +278,7 @@ function lookup(word) {
 }
 
 async function doLookup(word) {
-  const foreign = isCyr(word) || isJa(word);
+  const foreign = isCyr(word);
   const [fd, wt, wd] = await Promise.all([
     settle(foreign ? Promise.resolve(null) : api.freeDict(word)),
     settle(foreign ? Promise.resolve(null) : api.wikitext(word)),
@@ -345,7 +330,7 @@ async function doLookup(word) {
   entry.ipa.uk = entry.ipa.uk || entry.ipa.ukFd || null;
   entry.ipa.us = entry.ipa.us || entry.ipa.usFd || null;
 
-  // Wiktionary REST definitions: fallback for English, main source for Russian/Japanese words
+  // Wiktionary REST definitions: fallback for English, main source for Russian words
   if (wd.ok && wd.v) {
     const toBlocks = (arr) => (arr || []).map((p) => ({
       pos: (p.partOfSpeech || '').toLowerCase(),
@@ -357,8 +342,7 @@ async function doLookup(word) {
       syn: [], ant: [],
     })).filter((b) => b.defs.length);
     if (foreign) {
-      const langs = isJa(word) ? ['ja', 'zh'] : ['ru', 'uk', 'be'];
-      for (const l of langs) {
+      for (const l of ['ru', 'uk', 'be']) {
         if (wd.v[l]) { entry.rev = toBlocks(wd.v[l]); entry.revLang = l; entry.revLangName = wd.v[l][0]?.language; break; }
       }
     } else if (!entry.blocks.length && wd.v.en) {
@@ -367,7 +351,7 @@ async function doLookup(word) {
     }
   }
 
-  entry.found = entry.blocks.length > 0 || entry.rev.length > 0 || entry.trans.some((g) => g.ru.length || g.ja.length);
+  entry.found = entry.blocks.length > 0 || entry.rev.length > 0 || entry.trans.some((g) => g.ru.length);
   return entry;
 }
 
@@ -441,14 +425,14 @@ function renderHome() {
   const hist = history.all().slice(0, 14);
   const fav = favs.all().slice(0, 14);
   const w = wordOfDay();
-  const tries = ['run', 'beautiful', 'take off', 'кошка', '猫'];
+  const tries = ['run', 'beautiful', 'take off', 'look forward to', 'кошка'];
   app.innerHTML = `
     <section class="hero fade-in">
       <h1 class="hero__title">Слова, которые <em>открываются</em></h1>
-      <p class="hero__sub">Толковый английский, англо-русский и англо-японский словарь: определения, произношение UK и US, примеры и переводы.</p>
+      <p class="hero__sub">Английский толковый и англо-русский словарь: определения, произношение UK и US, примеры и переводы.</p>
       <form class="search search--hero" id="heroSearch" role="search" autocomplete="off">
         ${ICON.search.replace('<svg', '<svg class="search__icon"')}
-        <input class="search__input" type="search" name="q" placeholder="English, русский или 日本語" aria-label="Поиск слова" spellcheck="false" autocapitalize="off" enterkeyhint="search" autofocus>
+        <input class="search__input" type="search" name="q" placeholder="Слово по-английски или по-русски" aria-label="Поиск слова" spellcheck="false" autocapitalize="off" enterkeyhint="search" autofocus>
         <button class="search__go" type="submit">Найти</button>
         <ul class="suggest" role="listbox" hidden></ul>
       </form>
@@ -478,8 +462,8 @@ function renderHome() {
 
     <div class="features">
       <div class="card feature" style="--band:var(--band-en)"><span class="code">EN</span><h3>Толковый словарь</h3><p>Значения по частям речи, примеры, синонимы и антонимы.</p></div>
-      <div class="card feature" style="--band:var(--band-ru)"><span class="code">EN · RU</span><h3>Англо-русский</h3><p>Переводы по значениям, с родом и видом глагола. Работает и в обратную сторону.</p></div>
-      <div class="card feature" style="--band:var(--band-ja)"><span class="code">EN · JA</span><h3>Англо-японский</h3><p>Кандзи с чтением каной и ромадзи, озвучка на японском.</p></div>
+      <div class="card feature" style="--band:var(--band-ru)"><span class="code">EN · RU</span><h3>Англо-русский</h3><p>Переводы по значениям, с ударением, родом и видом глагола. Озвучка на русском.</p></div>
+      <div class="card feature" style="--band:var(--band-rev)"><span class="code">RU · EN</span><h3>Русско-английский</h3><p>Введите русское слово — получите английские значения и примеры.</p></div>
     </div>`;
   setupSearch($('#heroSearch'));
   bindScopes(app);
@@ -521,15 +505,12 @@ async function renderEntry(word) {
   history.add(snap);
   favs.refresh(snap);
 
-  const jp = isJa(e.word);
   const posList = [...new Set((e.foreign ? e.rev : e.blocks).map((b) => b.pos).filter(Boolean))];
   const prons = [];
   if (!e.foreign) {
     const uk = e.ipa.uk || e.ipa.any, us = e.ipa.us || e.ipa.any;
     prons.push(`<button class="pron" data-region="uk" type="button" title="Британское произношение"><span class="pron__region">UK</span><span class="pron__ipa">${esc(uk || '')}</span>${ICON.speaker}</button>`);
     prons.push(`<button class="pron" data-region="us" type="button" title="Американское произношение"><span class="pron__region pron__region--us">US</span><span class="pron__ipa">${esc(us || '')}</span>${ICON.speaker}</button>`);
-  } else if (jp) {
-    prons.push(`<button class="pron" data-say="ja-JP" type="button"><span class="pron__region">JA</span>${ICON.speaker}</button>`);
   } else {
     prons.push(`<button class="pron" data-say="ru-RU" type="button"><span class="pron__region">RU</span>${ICON.speaker}</button>`);
   }
@@ -540,16 +521,15 @@ async function renderEntry(word) {
   else {
     if (show('en')) sections.push(enSection(e));
     if (show('ru')) sections.push(transSection(e, 'ru'));
-    if (show('ja')) sections.push(transSection(e, 'ja'));
   }
 
   app.innerHTML = `
     <div class="layout fade-in">
       <div>
-        <div class="crumbs"><a href="#/">Лексикон</a> › ${e.foreign ? (jp ? 'Японско-английский' : 'Русско-английский') : 'Английский'} › ${esc(e.word)}</div>
+        <div class="crumbs"><a href="#/">Лексикон</a> › ${e.foreign ? 'Русско-английский' : 'Английский'} › ${esc(e.word)}</div>
         <article class="card head">
           <div class="head__row">
-            <h1 class="headword${jp ? ' is-jp' : ''}">${esc(e.word)}</h1>
+            <h1 class="headword">${esc(e.word)}</h1>
             <div class="head__actions">
               <button class="roundbtn" id="shareBtn" type="button" title="Поделиться" aria-label="Поделиться">${ICON.share}</button>
               <button class="roundbtn${favs.has(e.word) ? ' is-on' : ''}" id="favBtn" type="button" aria-pressed="${favs.has(e.word)}" title="В избранное" aria-label="В избранное">${ICON.star}</button>
@@ -591,7 +571,6 @@ async function renderEntry(word) {
     const s = [];
     if (scope === 'all' || scope === 'en') s.push(enSection(e));
     if (scope === 'all' || scope === 'ru') s.push(transSection(e, 'ru'));
-    if (scope === 'all' || scope === 'ja') s.push(transSection(e, 'ja'));
     $('#sections').innerHTML = s.join('');
     bindSections(e);
   });
@@ -616,7 +595,7 @@ function nyms(label, list, cls) {
   return `<div class="nyms ${cls || ''}"><span class="nyms__label">${label}</span>${list.slice(0, 12).map((w) => `<a class="chip" href="${wordHref(w)}">${esc(w)}</a>`).join('')}</div>`;
 }
 
-function defBlocks(blocks, word, isJp) {
+function defBlocks(blocks, word) {
   return blocks.map((b, bi) => {
     const LIMIT = 8;
     const senses = b.defs.map((d, i) => `
@@ -626,7 +605,7 @@ function defBlocks(blocks, word, isJp) {
         ${nyms('Синонимы', d.syn)}${nyms('Антонимы', d.ant, 'nyms--ant')}
       </li>`).join('');
     return `<section class="posblock">
-      <div class="posblock__head"><span class="posblock__word${isJp ? ' is-jp' : ''}">${esc(word)}</span><span class="posblock__pos">${esc(b.pos)}</span></div>
+      <div class="posblock__head"><span class="posblock__word">${esc(word)}</span><span class="posblock__pos">${esc(b.pos)}</span></div>
       <ol class="senses">${senses}</ol>
       ${b.defs.length > LIMIT ? `<div class="more"><button class="linkbtn" data-more="b${bi}" type="button">Ещё ${b.defs.length - LIMIT} значений</button></div>` : ''}
       ${nyms('Синонимы', b.syn)}${nyms('Антонимы', b.ant, 'nyms--ant')}
@@ -647,46 +626,41 @@ function enSection(e) {
 
 function transSection(e, lang) {
   const groups = e.trans.filter((g) => g[lang].length || g.see);
-  const title = lang === 'ru' ? 'Англо-русский словарь' : 'Англо-японский словарь';
-  const code = lang === 'ru' ? 'EN · RU' : 'EN · JA';
+  const title = 'Англо-русский словарь';
+  const code = 'EN · RU';
   let body;
   if (!groups.some((g) => g[lang].length) && !groups.some((g) => g.see)) {
-    body = `<p class="note">${lang === 'ru' ? 'Переводы на русский' : 'Переводы на японский'} для «${esc(e.word)}» пока не найдены в открытых источниках.</p>`;
+    body = `<p class="note">Переводы на русский для «${esc(e.word)}» пока не найдены в открытых источниках.</p>`;
   } else {
     const LIMIT = 8;
     body = groups.map((g, i) => `
       <div class="tgroup"${i >= LIMIT ? ` data-extra="t${lang}" hidden` : ''}>
         <div class="tgroup__gloss">${g.pos ? `<span class="pos">${esc(ruPos(g.pos))}</span>` : ''}<span class="tgroup__text">${esc(g.gloss)}</span></div>
-        ${g.see ? `<p class="note" style="margin:0">Переводы — в статье <a href="${wordHref(g.see)}">${esc(g.see)}</a></p>` : `<div class="tlist">${g[lang].map((t) => tword(t, lang)).join('')}</div>`}
+        ${g.see ? `<p class="note" style="margin:0">Переводы — в статье <a href="${wordHref(g.see)}">${esc(g.see)}</a></p>` : `<div class="tlist">${g[lang].map((t) => tword(t)).join('')}</div>`}
       </div>`).join('') + (groups.length > LIMIT ? `<div class="more"><button class="linkbtn" data-more="t${lang}" type="button">Ещё ${groups.length - LIMIT} значений</button></div>` : '');
   }
   return `<section class="card dict dict--${lang}">${band(lang, code, title, wiktUrl(e) + '#Translations', 'Wiktionary')}<div class="dict__body">${body}</div></section>`;
 }
 
-function tword(t, lang) {
-  const say = `<button class="tword__say" type="button" data-text="${esc(lang === 'ja' ? (t.reading || t.term) : t.term.normalize('NFD').replace(/́/g, '').normalize('NFC'))}" data-lang="${lang === 'ja' ? 'ja-JP' : 'ru-RU'}" title="Произнести" aria-label="Произнести">${ICON.speaker}</button>`;
+const noStress = (s) => s.normalize('NFD').replace(/́/g, '').normalize('NFC');
+function tword(t) {
+  const plain = noStress(t.term);
+  const say = `<button class="tword__say" type="button" data-text="${esc(plain)}" data-lang="ru-RU" title="Произнести" aria-label="Произнести">${ICON.speaker}</button>`;
   const q = t.qual ? `<span class="tword__q">(${esc(t.qual)})</span>` : '';
-  if (lang === 'ja') {
-    const romaji = t.tr ? `<span class="tword__meta">${esc(t.tr)}</span>` : '';
-    return `<span class="tword tword--ja">${q}<span class="tword__stack"><a class="tword__text" href="${wordHref(t.term)}" style="color:inherit">${esc(t.term)}</a>${t.reading && t.reading !== t.term ? `<span class="tword__read">${esc(t.reading)}</span>` : ''}</span>${romaji}${say}</span>`;
-  }
   const g = t.genders.length ? `<span class="tword__meta">${esc(t.genders.join(' '))}</span>` : '';
-  return `<span class="tword">${q}<a class="tword__text" href="${wordHref(t.term.normalize('NFD').replace(/́/g, '').normalize('NFC'))}" style="color:inherit">${esc(t.term)}</a>${g}${say}</span>`;
+  return `<span class="tword">${q}<a class="tword__text" href="${wordHref(plain)}" style="color:inherit">${esc(t.term)}</a>${g}${say}</span>`;
 }
 
 function revSection(e) {
-  const jp = isJa(e.word);
-  const title = (jp ? 'Японско-английский' : 'Русско-английский') + ' словарь';
-  const code = jp ? 'JA · EN' : 'RU · EN';
-  const lang = e.revLangName || (jp ? 'Japanese' : 'Russian');
-  return `<section class="card dict dict--rev">${band('rev', code, title, wiktUrl(e) + '#' + lang, 'Wiktionary')}<div class="dict__body">${defBlocks(e.rev, e.word, jp)}</div></section>`;
+  const lang = e.revLangName || 'Russian';
+  return `<section class="card dict dict--rev">${band('rev', 'RU · EN', 'Русско-английский словарь', wiktUrl(e) + '#' + lang, 'Wiktionary')}<div class="dict__body">${defBlocks(e.rev, e.word)}</div></section>`;
 }
 
 async function renderNotFound(word, seq) {
   app.innerHTML = `<div class="emptystate fade-in"><div class="emptystate__art">?</div>
     <h2>«${esc(word)}» не найдено</h2><p>Проверьте написание или выберите похожее слово.</p>
     <div class="chips" id="spell" style="justify-content:center"></div></div>`;
-  const list = isCyr(word) || isJa(word) ? await api.suggest(word).catch(() => []) : await api.spell(word).catch(() => []);
+  const list = isCyr(word) ? await api.suggest(word).catch(() => []) : await api.spell(word).catch(() => []);
   if (seq !== renderSeq) return;
   $('#spell').innerHTML = list.filter((w) => w.toLowerCase() !== word.toLowerCase()).map((w) => `<a class="chip" href="${wordHref(w)}">${esc(w)}</a>`).join('') || '<a class="btn btn--ghost" href="#/">На главную</a>';
 }
