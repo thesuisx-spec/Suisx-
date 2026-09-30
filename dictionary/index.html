@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Лексикон — английский словарь</title>
+  <meta name="description" content="Английский толковый, англо-русский и англо-японский словарь: определения, произношение UK/US, примеры, переводы.">
+  <meta name="theme-color" content="#16213e" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0e1424" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600;700&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    try { const t = localStorage.getItem('lex.theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar__inner">
+      <a class="brand" href="#/" aria-label="Лексикон — на главную">
+        <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="3" width="26" height="26" rx="7" fill="var(--accent)"/><path d="M11 8v16h11" fill="none" stroke="var(--ink-strong)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="brand__name">Лексикон</span>
+      </a>
+      <form class="search search--compact" id="topSearch" role="search" autocomplete="off">
+        <svg class="search__icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input class="search__input" type="search" name="q" placeholder="Найти слово…" aria-label="Поиск слова" spellcheck="false" autocapitalize="off" enterkeyhint="search">
+        <ul class="suggest" role="listbox" hidden></ul>
+      </form>
+      <nav class="nav">
+        <a href="#/favorites" class="nav__link" data-nav="favorites" title="Избранное">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>
+          <span>Избранное</span>
+        </a>
+        <a href="#/history" class="nav__link" data-nav="history" title="История">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3 4v4.5h4.5"/><path d="M12 7.5V12l3 2"/></svg>
+          <span>История</span>
+        </a>
+        <button class="iconbtn" id="themeToggle" type="button" title="Сменить тему" aria-label="Сменить тему">
+          <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app" tabindex="-1"></main>
+
+  <footer class="footer">
+    <p>Данные: <a href="https://dictionaryapi.dev" target="_blank" rel="noopener">Free Dictionary API</a>,
+      <a href="https://en.wiktionary.org" target="_blank" rel="noopener">Wiktionary</a> (CC BY-SA 4.0),
+      <a href="https://www.datamuse.com/api/" target="_blank" rel="noopener">Datamuse</a>.
+      Дважды щёлкните по любому слову в статье, чтобы открыть его.</p>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

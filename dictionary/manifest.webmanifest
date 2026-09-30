@@ -1,0 +1,14 @@
+{
+  "name": "Лексикон — английский словарь",
+  "short_name": "Лексикон",
+  "description": "Толковый английский, англо-русский и англо-японский словарь.",
+  "lang": "ru",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f4ee",
+  "theme_color": "#16213e",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

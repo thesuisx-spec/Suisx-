@@ -1,0 +1,844 @@
+/* Лексикон — English dictionary with Russian and Japanese translations.
+ * Data: Free Dictionary API (definitions, audio), Wiktionary (IPA UK/US, translations,
+ * Russian/Japanese → English), Datamuse (autocomplete, related words). */
+'use strict';
+
+/* ============ Helpers ============ */
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const wordHref = (w) => '#/w/' + encodeURIComponent(w);
+const norm = (s) => String(s || '').trim().replace(/\s+/g, ' ');
+const isCyr = (s) => /[Ѐ-ӿ]/.test(s);
+const isJa = (s) => /[぀-ヿ㐀-鿿豈-﫿]/.test(s);
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+const ICON = {
+  star: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>',
+  speaker: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 19V5L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
+  share: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3.5M7.5 8 12 3.5 16.5 8"/><path d="M5 12.5V19a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-6.5"/></svg>',
+  search: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+  x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  spark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg>',
+  link: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
+};
+
+/* ============ Storage ============ */
+const store = {
+  get(key, def) { try { const v = localStorage.getItem('lex.' + key); return v == null ? def : JSON.parse(v); } catch (e) { return def; } },
+  set(key, val) { try { localStorage.setItem('lex.' + key, JSON.stringify(val)); } catch (e) {} },
+};
+const favs = {
+  all: () => store.get('favorites', []),
+  has: (w) => favs.all().some((f) => f.word.toLowerCase() === w.toLowerCase()),
+  toggle(item) {
+    let list = favs.all();
+    const on = !list.some((f) => f.word.toLowerCase() === item.word.toLowerCase());
+    list = list.filter((f) => f.word.toLowerCase() !== item.word.toLowerCase());
+    if (on) list.unshift({ ...item, t: Date.now() });
+    store.set('favorites', list);
+    return on;
+  },
+  remove(w) { store.set('favorites', favs.all().filter((f) => f.word.toLowerCase() !== w.toLowerCase())); },
+  refresh(item) { store.set('favorites', favs.all().map((f) => (f.word.toLowerCase() === item.word.toLowerCase() ? { ...f, ...item } : f))); },
+};
+const history = {
+  all: () => store.get('history', []),
+  add(item) {
+    const list = history.all().filter((h) => h.word.toLowerCase() !== item.word.toLowerCase());
+    list.unshift({ ...item, t: Date.now() });
+    store.set('history', list.slice(0, 300));
+  },
+  remove(w) { store.set('history', history.all().filter((h) => h.word.toLowerCase() !== w.toLowerCase())); },
+  clear() { store.set('history', []); },
+};
+
+const SCOPES = [
+  { id: 'all', label: 'Все словари' },
+  { id: 'en', label: 'Толковый', tag: 'EN' },
+  { id: 'ru', label: 'Англо-русский', tag: 'EN·RU' },
+  { id: 'ja', label: 'Англо-японский', tag: 'EN·JA' },
+];
+let scope = store.get('scope', 'all');
+
+/* ============ Network ============ */
+async function getJSON(url, { timeout = 12000 } = {}) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeout);
+  try {
+    const res = await fetch(url, { signal: ctl.signal });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } finally { clearTimeout(timer); }
+}
+const settle = (p) => p.then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
+
+const api = {
+  freeDict: (w) => getJSON('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(w.toLowerCase())),
+  async wikitext(w) {
+    for (const title of [...new Set([w, w.toLowerCase()])]) {
+      const d = await getJSON('https://en.wiktionary.org/w/api.php?action=parse&format=json&formatversion=2&prop=wikitext&redirects=1&origin=*&page=' + encodeURIComponent(title));
+      if (d && d.parse && d.parse.wikitext) return { title: d.parse.title, text: d.parse.wikitext };
+    }
+    return null;
+  },
+  async wikiDefs(w) {
+    for (const title of [...new Set([w, w.toLowerCase()])]) {
+      const d = await getJSON('https://en.wiktionary.org/api/rest_v1/page/definition/' + encodeURIComponent(title.replace(/ /g, '_')) + '?redirect=true');
+      if (d) return d;
+    }
+    return null;
+  },
+  async suggest(q) {
+    if (isCyr(q) || isJa(q)) {
+      const d = await getJSON('https://en.wiktionary.org/w/api.php?action=opensearch&format=json&limit=8&namespace=0&origin=*&search=' + encodeURIComponent(q), { timeout: 6000 });
+      return d ? d[1] : [];
+    }
+    const d = await getJSON('https://api.datamuse.com/sug?max=8&s=' + encodeURIComponent(q), { timeout: 6000 });
+    return (d || []).map((x) => x.word);
+  },
+  async related(w) {
+    const d = await getJSON('https://api.datamuse.com/words?max=14&ml=' + encodeURIComponent(w), { timeout: 8000 });
+    return (d || []).map((x) => x.word).filter((x) => x.toLowerCase() !== w.toLowerCase());
+  },
+  async spell(w) {
+    const d = await getJSON('https://api.datamuse.com/words?max=8&sp=' + encodeURIComponent(w.replace(/[?*]/g, '')) + '&v=enwiki', { timeout: 6000 }).catch(() => null);
+    const d2 = await getJSON('https://api.datamuse.com/sug?max=8&s=' + encodeURIComponent(w), { timeout: 6000 }).catch(() => null);
+    const out = [...(d || []), ...(d2 || [])].map((x) => x.word).filter((x) => x.toLowerCase() !== w.toLowerCase());
+    return [...new Set(out)].slice(0, 10);
+  },
+};
+
+/* ============ Wikitext parsing ============ */
+// Split template body by top-level "|", ignoring pipes inside [[...]] and {{...}}.
+function splitParams(body) {
+  const out = []; let depth = 0, cur = '';
+  for (let i = 0; i < body.length; i++) {
+    const two = body.slice(i, i + 2);
+    if (two === '{{' || two === '[[') { depth++; cur += two; i++; continue; }
+    if ((two === '}}' || two === ']]') && depth > 0) { depth--; cur += two; i++; continue; }
+    if (body[i] === '|' && depth === 0) { out.push(cur); cur = ''; continue; }
+    cur += body[i];
+  }
+  out.push(cur);
+  const pos = [], named = {};
+  out.forEach((p, i) => {
+    const m = i > 0 && p.match(/^\s*([a-z0-9_-]+)\s*=([\s\S]*)$/i);
+    if (m) named[m[1]] = m[2].trim(); else pos.push(p.trim());
+  });
+  return { name: (pos.shift() || '').trim(), pos, named };
+}
+// Iterate over top-level templates on a line: returns [{name,pos,named,start,end}]
+function templates(line) {
+  const res = []; let i = 0;
+  while ((i = line.indexOf('{{', i)) !== -1) {
+    let depth = 0, j = i;
+    for (; j < line.length; j++) {
+      if (line.startsWith('{{', j)) { depth++; j++; } else if (line.startsWith('}}', j)) { depth--; j++; if (depth === 0) break; }
+    }
+    if (depth !== 0) break;
+    res.push({ ...splitParams(line.slice(i + 2, j - 1)), start: i, end: j + 1 });
+    i = j + 1;
+  }
+  return res;
+}
+const stripLinks = (s) => String(s || '')
+  .replace(/\[\[(?:[^\]|]*\|)?([^\]]*)\]\]/g, '$1')
+  .replace(/'''?/g, '')
+  .replace(/<[^>]+>/g, '')
+  .trim();
+
+function langSection(text, lang) {
+  const re = new RegExp('^==\\s*' + lang + '\\s*==\\s*$', 'm');
+  const m = re.exec(text);
+  if (!m) return '';
+  const rest = text.slice(m.index + m[0].length);
+  const next = /^==[^=].*==\s*$/m.exec(rest);
+  return next ? rest.slice(0, next.index) : rest;
+}
+
+const POS_NAMES = new Set(['Noun', 'Verb', 'Adjective', 'Adverb', 'Pronoun', 'Preposition', 'Conjunction', 'Interjection',
+  'Determiner', 'Article', 'Numeral', 'Particle', 'Phrase', 'Prepositional phrase', 'Proper noun', 'Prefix', 'Suffix',
+  'Idiom', 'Contraction', 'Proverb', 'Symbol', 'Letter', 'Abbreviation', 'Initialism', 'Acronym']);
+
+function parseIPA(section) {
+  const res = { uk: null, us: null, any: null };
+  const regionOf = (s) => {
+    if (/\b(UK|RP|Received Pronunciation|British|England|SSB)\b/i.test(s)) return 'uk';
+    if (/\b(US|GA|GenAm|General American|American)\b/.test(s)) return 'us';
+    return null;
+  };
+  for (const line of section.split('\n')) {
+    if (!/\{\{IPA\|en\|/.test(line)) continue;
+    const tps = templates(line);
+    let accents = [];
+    for (const t of tps) {
+      if (t.name === 'a' || t.name === 'accent' || t.name === 'lb') accents.push(...t.pos);
+      if (t.name === 'IPA' && t.pos[0] === 'en') {
+        const ipa = t.pos.slice(1).find((p) => /^\//.test(p)) || t.pos.slice(1).find((p) => /^\[/.test(p));
+        if (!ipa) continue;
+        if (t.named.a) accents.push(...t.named.a.split(','));
+        const regions = new Set(accents.map(regionOf).filter(Boolean));
+        if (!regions.size && accents.length === 0) res.any = res.any || ipa;
+        for (const r of regions) if (!res[r]) res[r] = ipa;
+      }
+    }
+  }
+  return res;
+}
+
+const GENDER_RU = { m: 'м.', f: 'ж.', n: 'ср.', p: 'мн.', impf: 'несов.', pf: 'сов.', 'm-p': 'м. мн.', 'f-p': 'ж. мн.', 'n-p': 'ср. мн.', 'm-an': 'м. одуш.', 'f-an': 'ж. одуш.' };
+const T_NAMES = new Set(['t', 't+', 'tt', 'tt+', 't-check', 't+check', 't-simple']);
+const QUAL_NAMES = new Set(['q', 'qual', 'qualifier', 'i', 'qf', 'gloss', 'gl', 'lb']);
+
+function parseTranslationLine(line, lang) {
+  const out = []; let qual = [];
+  for (const t of templates(line)) {
+    if (QUAL_NAMES.has(t.name)) { qual.push(...t.pos.filter((p) => p !== lang).map(stripLinks)); continue; }
+    if (!T_NAMES.has(t.name) || t.pos[0] !== lang) continue;
+    let term = stripLinks(t.named.alt || t.pos[1] || '');
+    if (!term) continue;
+    let reading = '', tr = t.named.tr || t.named.ts || '';
+    if (lang === 'ja') {
+      const m = term.match(/^(.+?)[(（]([^)）]+)[)）]$/);
+      if (m) { term = m[1]; reading = m[2]; }
+      if (tr) {
+        const parts = tr.split(/,\s*/);
+        if (!reading && parts.length > 1 && /[぀-ヿ]/.test(parts[0])) { reading = parts[0]; tr = parts.slice(1).join(', '); }
+        else if (!reading && /[぀-ヿ]/.test(tr)) { reading = tr; tr = ''; }
+      }
+    }
+    const genders = t.pos.slice(2).filter(Boolean).map((g) => GENDER_RU[g] || g);
+    out.push({ term, reading, tr: stripLinks(tr), genders, qual: qual.join(', '), lit: t.named.lit || '' });
+    qual = [];
+  }
+  return out;
+}
+
+function parseTranslations(section) {
+  const groups = []; let pos = null, inTrans = false, cur = null, jaLine = false;
+  for (const raw of section.split('\n')) {
+    const line = raw.trim();
+    const h = line.match(/^(={3,6})\s*([^=]+?)\s*\1$/);
+    if (h) {
+      const name = h[2].trim();
+      if (POS_NAMES.has(name)) pos = name;
+      inTrans = name === 'Translations';
+      cur = null;
+      continue;
+    }
+    if (!inTrans) continue;
+    const tps = /^\{\{/.test(line) ? templates(line) : [];
+    const head = tps[0];
+    if (head && /^(trans-top|trans-top-also|checktrans-top|ttbc-top)$/.test(head.name)) {
+      const gloss = head.named['1'] || head.pos.filter(Boolean).slice(-1)[0] || (head.name === 'checktrans-top' ? 'требует проверки' : '');
+      cur = { pos, gloss: stripLinks(gloss), ru: [], ja: [] };
+      groups.push(cur);
+      continue;
+    }
+    if (head && head.name === 'trans-see') {
+      const target = head.pos[1] || head.pos[0];
+      groups.push({ pos, gloss: stripLinks(head.pos[0]), see: stripLinks(target), ru: [], ja: [] });
+      cur = null;
+      continue;
+    }
+    if (head && head.name === 'trans-bottom') { cur = null; continue; }
+    if (!cur) continue;
+    if (/^\*\s*Russian\s*:/.test(line)) { cur.ru.push(...parseTranslationLine(line, 'ru')); jaLine = false; continue; }
+    if (/^\*\s*Japanese\s*:/.test(line)) { cur.ja.push(...parseTranslationLine(line, 'ja')); jaLine = true; continue; }
+    if (/^\*[^:]/.test(line)) jaLine = false;
+    // Occasionally scripts are split onto sub-lines under "* Japanese:".
+    if (jaLine && /^\*:/.test(line) && /\{\{t\+?\|ja\|/.test(line)) cur.ja.push(...parseTranslationLine(line, 'ja'));
+  }
+  return groups;
+}
+
+/* ============ Sanitizing Wiktionary HTML ============ */
+function cleanWikiHTML(html) {
+  const doc = new DOMParser().parseFromString('<div>' + (html || '') + '</div>', 'text/html');
+  const walk = (node) => {
+    let s = '';
+    for (const n of node.childNodes) {
+      if (n.nodeType === 3) { s += esc(n.textContent); continue; }
+      if (n.nodeType !== 1) continue;
+      const tag = n.tagName.toLowerCase();
+      if (tag === 'style' || tag === 'script' || tag === 'sup' && n.classList.contains('reference')) continue;
+      if (n.classList && (n.classList.contains('mw-ref') || n.classList.contains('reference'))) continue;
+      const inner = walk(n);
+      if (tag === 'a') {
+        const href = n.getAttribute('href') || '';
+        const m = href.match(/^\/wiki\/([^#?]+)/);
+        const title = m ? decodeURIComponent(m[1]).replace(/_/g, ' ') : '';
+        if (title && !title.includes(':')) s += '<a href="' + esc(wordHref(title)) + '">' + inner + '</a>';
+        else s += inner;
+      } else if (tag === 'b' || tag === 'strong') s += '<b>' + inner + '</b>';
+      else if (tag === 'i' || tag === 'em') s += '<i>' + inner + '</i>';
+      else if (tag === 'ul' || tag === 'ol' || tag === 'dl') s += '';
+      else s += inner;
+    }
+    return s;
+  };
+  return walk(doc.body.firstChild).trim();
+}
+
+/* ============ Lookup (assemble one entry from all sources) ============ */
+const cache = new Map();
+function lookup(word) {
+  const key = word.toLowerCase();
+  if (!cache.has(key)) cache.set(key, doLookup(word).catch((e) => { cache.delete(key); throw e; }));
+  return cache.get(key);
+}
+
+async function doLookup(word) {
+  const foreign = isCyr(word) || isJa(word);
+  const [fd, wt, wd] = await Promise.all([
+    settle(foreign ? Promise.resolve(null) : api.freeDict(word)),
+    settle(foreign ? Promise.resolve(null) : api.wikitext(word)),
+    settle(api.wikiDefs(word)),
+  ]);
+  if (!fd.ok && !wt.ok && !wd.ok) throw fd.e || wt.e || wd.e;
+
+  const entry = { word, foreign, blocks: [], ipa: { uk: null, us: null, any: null }, audio: {}, trans: [], rev: [], source: 'freedict' };
+
+  // Definitions: Free Dictionary API
+  if (fd.ok && Array.isArray(fd.v)) {
+    const byPos = new Map();
+    for (const e of fd.v) {
+      entry.word = e.word || entry.word;
+      if (e.phonetic && !entry.ipa.any) entry.ipa.any = e.phonetic;
+      for (const p of e.phonetics || []) {
+        if (p.audio) {
+          const r = /-uk\.mp3/.test(p.audio) ? 'uk' : /-us\.mp3/.test(p.audio) ? 'us' : /-au\.mp3/.test(p.audio) ? 'au' : 'any';
+          if (!entry.audio[r]) entry.audio[r] = p.audio;
+          if (p.text && (r === 'uk' || r === 'us') && !entry.ipa[r + 'Fd']) entry.ipa[r + 'Fd'] = p.text;
+        }
+        if (p.text && !entry.ipa.any) entry.ipa.any = p.text;
+      }
+      for (const m of e.meanings || []) {
+        const pos = m.partOfSpeech || '';
+        if (!byPos.has(pos)) byPos.set(pos, { pos, defs: [], syn: [], ant: [] });
+        const b = byPos.get(pos);
+        for (const d of m.definitions || []) {
+          b.defs.push({ def: esc(d.definition), ex: d.example ? [esc(d.example)] : [], syn: d.synonyms || [], ant: d.antonyms || [] });
+        }
+        b.syn.push(...(m.synonyms || []));
+        b.ant.push(...(m.antonyms || []));
+      }
+    }
+    for (const b of byPos.values()) { b.syn = [...new Set(b.syn)]; b.ant = [...new Set(b.ant)]; entry.blocks.push(b); }
+  }
+
+  // Wiktionary wikitext: UK/US IPA and translations
+  if (wt.ok && wt.v) {
+    const en = langSection(wt.v.text, 'English');
+    if (en) {
+      const ipa = parseIPA(en);
+      entry.ipa.uk = ipa.uk; entry.ipa.us = ipa.us;
+      if (!entry.ipa.any) entry.ipa.any = ipa.any;
+      entry.trans = parseTranslations(en);
+    }
+    entry.wikiTitle = wt.v.title;
+  }
+  entry.ipa.uk = entry.ipa.uk || entry.ipa.ukFd || null;
+  entry.ipa.us = entry.ipa.us || entry.ipa.usFd || null;
+
+  // Wiktionary REST definitions: fallback for English, main source for Russian/Japanese words
+  if (wd.ok && wd.v) {
+    const toBlocks = (arr) => (arr || []).map((p) => ({
+      pos: (p.partOfSpeech || '').toLowerCase(),
+      defs: (p.definitions || []).map((d) => ({
+        def: cleanWikiHTML(d.definition),
+        ex: (d.parsedExamples || []).map((x) => cleanWikiHTML(x.example)).concat(d.parsedExamples ? [] : (d.examples || []).map(cleanWikiHTML)).filter(Boolean).slice(0, 3),
+        syn: [], ant: [],
+      })).filter((d) => d.def),
+      syn: [], ant: [],
+    })).filter((b) => b.defs.length);
+    if (foreign) {
+      const langs = isJa(word) ? ['ja', 'zh'] : ['ru', 'uk', 'be'];
+      for (const l of langs) {
+        if (wd.v[l]) { entry.rev = toBlocks(wd.v[l]); entry.revLang = l; entry.revLangName = wd.v[l][0]?.language; break; }
+      }
+    } else if (!entry.blocks.length && wd.v.en) {
+      entry.blocks = toBlocks(wd.v.en);
+      entry.source = 'wiktionary';
+    }
+  }
+
+  entry.found = entry.blocks.length > 0 || entry.rev.length > 0 || entry.trans.some((g) => g.ru.length || g.ja.length);
+  return entry;
+}
+
+/* ============ Speech ============ */
+let currentAudio = null;
+function speak(text, lang, btn) {
+  if (!('speechSynthesis' in window)) { toast('Озвучка недоступна в этом браузере'); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang;
+  const voice = speechSynthesis.getVoices().find((v) => v.lang.replace('_', '-').toLowerCase() === lang.toLowerCase())
+    || speechSynthesis.getVoices().find((v) => v.lang.toLowerCase().startsWith(lang.slice(0, 2)));
+  if (voice) u.voice = voice;
+  u.rate = 0.92;
+  if (btn) { btn.classList.add('is-playing'); u.onend = u.onerror = () => btn.classList.remove('is-playing'); }
+  speechSynthesis.speak(u);
+}
+function playPron(entry, region, btn) {
+  const url = entry.audio[region] || (region === 'uk' ? null : entry.audio.any);
+  if (url) {
+    if (currentAudio) currentAudio.pause();
+    currentAudio = new Audio(url);
+    btn.classList.add('is-playing');
+    const done = () => btn.classList.remove('is-playing');
+    currentAudio.onended = done;
+    currentAudio.onerror = () => { done(); speak(entry.word, region === 'uk' ? 'en-GB' : 'en-US', btn); };
+    currentAudio.play().catch(() => { done(); speak(entry.word, region === 'uk' ? 'en-GB' : 'en-US', btn); });
+  } else speak(entry.word, region === 'uk' ? 'en-GB' : 'en-US', btn);
+}
+
+/* ============ Toast ============ */
+let toastTimer;
+function toast(msg) {
+  const el = $('#toast');
+  el.textContent = msg; el.classList.add('is-on');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('is-on'), 2200);
+}
+
+/* ============ Views ============ */
+const app = $('#app');
+const RU_POS = { noun: 'существительное', verb: 'глагол', adjective: 'прилагательное', adverb: 'наречие', pronoun: 'местоимение',
+  preposition: 'предлог', conjunction: 'союз', interjection: 'междометие', determiner: 'определитель', article: 'артикль',
+  numeral: 'числительное', particle: 'частица', phrase: 'фраза', 'proper noun': 'имя собственное', prefix: 'приставка',
+  suffix: 'суффикс', idiom: 'идиома', exclamation: 'восклицание', abbreviation: 'сокращение', 'prepositional phrase': 'предложная фраза',
+  contraction: 'стяжение', proverb: 'пословица', symbol: 'символ' };
+const ruPos = (p) => RU_POS[(p || '').toLowerCase()] || (p || '').toLowerCase();
+
+function scopeChips() {
+  return '<div class="scopes" role="group" aria-label="Словарь">' + SCOPES.map((s) =>
+    `<button type="button" class="scope" data-scope="${s.id}" aria-pressed="${scope === s.id}">${esc(s.label)}${s.tag ? `<span class="scope__tag">${s.tag}</span>` : ''}</button>`
+  ).join('') + '</div>';
+}
+function bindScopes(root, onChange) {
+  $$('.scope', root).forEach((b) => b.addEventListener('click', () => {
+    scope = b.dataset.scope; store.set('scope', scope);
+    $$('.scope', root).forEach((x) => x.setAttribute('aria-pressed', x.dataset.scope === scope));
+    onChange && onChange();
+  }));
+}
+
+const WOTD = ['serendipity', 'ephemeral', 'resilient', 'eloquent', 'wanderlust', 'meticulous', 'ubiquitous', 'benevolent', 'candid',
+  'diligent', 'nostalgia', 'pragmatic', 'quaint', 'tenacious', 'whimsical', 'zealous', 'ambiguous', 'catalyst', 'dazzling', 'enigma',
+  'frugal', 'gregarious', 'haven', 'intrepid', 'jubilant', 'kindle', 'luminous', 'mellow', 'nimble', 'oblivious', 'placid', 'quench',
+  'reverie', 'solace', 'thrive', 'unravel', 'vivid', 'wistful', 'yearn', 'zest', 'breeze', 'cherish', 'delight', 'embrace', 'flourish',
+  'glimmer', 'harmony', 'insight', 'journey', 'kinship', 'linger', 'marvel', 'nurture', 'overcome', 'ponder', 'radiant', 'savour',
+  'tranquil', 'uplift', 'venture', 'wonder'];
+const wordOfDay = () => WOTD[Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 864e5) % WOTD.length];
+
+function renderHome() {
+  document.title = 'Лексикон — английский словарь';
+  const hist = history.all().slice(0, 14);
+  const fav = favs.all().slice(0, 14);
+  const w = wordOfDay();
+  const tries = ['run', 'beautiful', 'take off', 'кошка', '猫'];
+  app.innerHTML = `
+    <section class="hero fade-in">
+      <h1 class="hero__title">Слова, которые <em>открываются</em></h1>
+      <p class="hero__sub">Толковый английский, англо-русский и англо-японский словарь: определения, произношение UK и US, примеры и переводы.</p>
+      <form class="search search--hero" id="heroSearch" role="search" autocomplete="off">
+        ${ICON.search.replace('<svg', '<svg class="search__icon"')}
+        <input class="search__input" type="search" name="q" placeholder="English, русский или 日本語" aria-label="Поиск слова" spellcheck="false" autocapitalize="off" enterkeyhint="search" autofocus>
+        <button class="search__go" type="submit">Найти</button>
+        <ul class="suggest" role="listbox" hidden></ul>
+      </form>
+      ${scopeChips()}
+      <p class="hero__try">Попробуйте: ${tries.map((t) => `<a href="${wordHref(t)}">${esc(t)}</a>`).join(' · ')}</p>
+    </section>
+
+    <div class="home-grid">
+      <article class="card wotd fade-in">
+        <h2 class="panel__title">${ICON.spark} Слово дня</h2>
+        <div class="wotd__word"><a href="${wordHref(w)}">${esc(w)}</a></div>
+        <div class="wotd__meta" id="wotdMeta"></div>
+        <p class="wotd__def is-loading" id="wotdDef">Загружаем определение…</p>
+        <a class="btn" href="${wordHref(w)}">Открыть статью ${ICON.arrow}</a>
+      </article>
+      <div style="display:flex;flex-direction:column;gap:24px">
+        <section class="card panel fade-in">
+          <h2 class="panel__title">${ICON.clock} Недавние ${hist.length ? '<a href="#/history">Вся история</a>' : ''}</h2>
+          ${hist.length ? `<div class="chips">${hist.map((h) => `<a class="chip" href="${wordHref(h.word)}">${esc(h.word)}</a>`).join('')}</div>` : '<p class="empty">Здесь появятся слова, которые вы искали.</p>'}
+        </section>
+        <section class="card panel fade-in">
+          <h2 class="panel__title">${ICON.star} Избранное ${fav.length ? '<a href="#/favorites">Все</a>' : ''}</h2>
+          ${fav.length ? `<div class="chips">${fav.map((h) => `<a class="chip" href="${wordHref(h.word)}">${esc(h.word)}</a>`).join('')}</div>` : '<p class="empty">Нажмите звёздочку в статье, чтобы сохранить слово.</p>'}
+        </section>
+      </div>
+    </div>
+
+    <div class="features">
+      <div class="card feature" style="--band:var(--band-en)"><span class="code">EN</span><h3>Толковый словарь</h3><p>Значения по частям речи, примеры, синонимы и антонимы.</p></div>
+      <div class="card feature" style="--band:var(--band-ru)"><span class="code">EN · RU</span><h3>Англо-русский</h3><p>Переводы по значениям, с родом и видом глагола. Работает и в обратную сторону.</p></div>
+      <div class="card feature" style="--band:var(--band-ja)"><span class="code">EN · JA</span><h3>Англо-японский</h3><p>Кандзи с чтением каной и ромадзи, озвучка на японском.</p></div>
+    </div>`;
+  setupSearch($('#heroSearch'));
+  bindScopes(app);
+
+  lookup(w).then((e) => {
+    const def = $('#wotdDef'); if (!def) return;
+    const b = e.blocks[0];
+    def.classList.remove('is-loading');
+    def.innerHTML = b ? b.defs[0].def : 'Откройте статью, чтобы узнать значение.';
+    const ipa = e.ipa.uk || e.ipa.any;
+    $('#wotdMeta').innerHTML = (b ? `<span class="pos">${esc(b.pos)}</span>` : '') + (ipa ? `<span class="pron__ipa">${esc(ipa)}</span>` : '');
+  }).catch(() => { const def = $('#wotdDef'); if (def) { def.classList.remove('is-loading'); def.textContent = 'Нет соединения — определение появится, когда вы будете онлайн.'; } });
+}
+
+function skeleton() {
+  return `<div class="layout"><div><div class="card head"><div class="sk sk--title"></div><div class="sk sk--line" style="width:30%"></div></div>
+    <div class="card dict"><div class="dict__body" style="padding-top:20px">${'<div class="sk sk--line"></div>'.repeat(3)}<div class="sk sk--line" style="width:60%"></div></div></div></div><div></div></div>`;
+}
+
+let renderSeq = 0;
+async function renderEntry(word) {
+  const seq = ++renderSeq;
+  document.title = word + ' — Лексикон';
+  app.innerHTML = skeleton();
+  let e;
+  try { e = await lookup(word); } catch (err) {
+    if (seq !== renderSeq) return;
+    app.innerHTML = `<div class="emptystate fade-in"><div class="emptystate__art">⌁</div><h2>Нет связи со словарём</h2>
+      <p>Проверьте интернет и попробуйте ещё раз. Слова, которые вы уже открывали, доступны офлайн.</p>
+      <button class="btn" id="retry">Повторить</button></div>`;
+    $('#retry').onclick = () => renderEntry(word);
+    return;
+  }
+  if (seq !== renderSeq) return;
+  if (!e.found) return renderNotFound(word, seq);
+
+  const firstDef = e.blocks[0]?.defs[0]?.def || e.rev[0]?.defs[0]?.def || '';
+  const snap = { word: e.word, ipa: e.ipa.uk || e.ipa.any || '', def: firstDef.replace(/<[^>]+>/g, '') };
+  history.add(snap);
+  favs.refresh(snap);
+
+  const jp = isJa(e.word);
+  const posList = [...new Set((e.foreign ? e.rev : e.blocks).map((b) => b.pos).filter(Boolean))];
+  const prons = [];
+  if (!e.foreign) {
+    const uk = e.ipa.uk || e.ipa.any, us = e.ipa.us || e.ipa.any;
+    prons.push(`<button class="pron" data-region="uk" type="button" title="Британское произношение"><span class="pron__region">UK</span><span class="pron__ipa">${esc(uk || '')}</span>${ICON.speaker}</button>`);
+    prons.push(`<button class="pron" data-region="us" type="button" title="Американское произношение"><span class="pron__region pron__region--us">US</span><span class="pron__ipa">${esc(us || '')}</span>${ICON.speaker}</button>`);
+  } else if (jp) {
+    prons.push(`<button class="pron" data-say="ja-JP" type="button"><span class="pron__region">JA</span>${ICON.speaker}</button>`);
+  } else {
+    prons.push(`<button class="pron" data-say="ru-RU" type="button"><span class="pron__region">RU</span>${ICON.speaker}</button>`);
+  }
+
+  const sections = [];
+  const show = (id) => scope === 'all' || scope === id;
+  if (e.foreign) sections.push(revSection(e));
+  else {
+    if (show('en')) sections.push(enSection(e));
+    if (show('ru')) sections.push(transSection(e, 'ru'));
+    if (show('ja')) sections.push(transSection(e, 'ja'));
+  }
+
+  app.innerHTML = `
+    <div class="layout fade-in">
+      <div>
+        <div class="crumbs"><a href="#/">Лексикон</a> › ${e.foreign ? (jp ? 'Японско-английский' : 'Русско-английский') : 'Английский'} › ${esc(e.word)}</div>
+        <article class="card head">
+          <div class="head__row">
+            <h1 class="headword${jp ? ' is-jp' : ''}">${esc(e.word)}</h1>
+            <div class="head__actions">
+              <button class="roundbtn" id="shareBtn" type="button" title="Поделиться" aria-label="Поделиться">${ICON.share}</button>
+              <button class="roundbtn${favs.has(e.word) ? ' is-on' : ''}" id="favBtn" type="button" aria-pressed="${favs.has(e.word)}" title="В избранное" aria-label="В избранное">${ICON.star}</button>
+            </div>
+          </div>
+          ${posList.length ? `<div class="pos-list">${posList.map((p) => `<span class="pos">${esc(p)}</span>`).join('')}</div>` : ''}
+          <div class="prons">${prons.join('')}</div>
+        </article>
+        ${e.foreign ? '' : scopeChips().replace('class="scopes"', 'class="scopes" style="justify-content:flex-start;margin-top:18px"')}
+        <div id="sections">${sections.join('')}</div>
+      </div>
+      <aside class="aside">
+        <section class="card panel" id="relatedPanel" ${e.foreign ? 'hidden' : ''}>
+          <h2 class="panel__title">${ICON.link} Похожие слова</h2>
+          <div class="chips" id="related"><span class="empty">Загружаем…</span></div>
+        </section>
+        <section class="card panel">
+          <h2 class="panel__title">${ICON.clock} Недавние <a href="#/history">Все</a></h2>
+          <ul class="wordlist">${history.all().slice(1, 9).map((h) => `<li><a href="${wordHref(h.word)}">${esc(h.word)}<small>${esc(h.ipa || '')}</small></a></li>`).join('') || '<li class="empty">Пока пусто</li>'}</ul>
+        </section>
+      </aside>
+    </div>`;
+
+  $$('.pron').forEach((b) => b.addEventListener('click', () => b.dataset.say ? speak(e.word, b.dataset.say, b) : playPron(e, b.dataset.region, b)));
+  const favBtn = $('#favBtn');
+  favBtn.onclick = () => {
+    const on = favs.toggle(snap);
+    favBtn.classList.toggle('is-on', on); favBtn.setAttribute('aria-pressed', on);
+    favBtn.classList.remove('pop'); void favBtn.offsetWidth; favBtn.classList.add('pop');
+    toast(on ? 'Добавлено в избранное' : 'Убрано из избранного');
+  };
+  $('#shareBtn').onclick = async () => {
+    const url = location.href;
+    if (navigator.share) { try { await navigator.share({ title: e.word, text: snap.def, url }); return; } catch (x) { return; } }
+    try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); } catch (x) { toast(url); }
+  };
+  bindSections(e);
+  bindScopes(app, () => {
+    const s = [];
+    if (scope === 'all' || scope === 'en') s.push(enSection(e));
+    if (scope === 'all' || scope === 'ru') s.push(transSection(e, 'ru'));
+    if (scope === 'all' || scope === 'ja') s.push(transSection(e, 'ja'));
+    $('#sections').innerHTML = s.join('');
+    bindSections(e);
+  });
+
+  if (!e.foreign) api.related(e.word).then((list) => {
+    const el = $('#related'); if (!el || seq !== renderSeq) return;
+    if (!list.length) { $('#relatedPanel').hidden = true; return; }
+    el.innerHTML = list.map((w) => `<a class="chip" href="${wordHref(w)}">${esc(w)}</a>`).join('');
+  }).catch(() => { const p = $('#relatedPanel'); if (p) p.hidden = true; });
+}
+
+function bindSections(e) {
+  $$('.tword__say').forEach((b) => b.addEventListener('click', () => speak(b.dataset.text, b.dataset.lang, b)));
+  $$('.linkbtn[data-more]').forEach((b) => b.addEventListener('click', () => {
+    $$('[data-extra="' + b.dataset.more + '"]').forEach((x) => (x.hidden = false));
+    b.remove();
+  }));
+}
+
+function nyms(label, list, cls) {
+  if (!list || !list.length) return '';
+  return `<div class="nyms ${cls || ''}"><span class="nyms__label">${label}</span>${list.slice(0, 12).map((w) => `<a class="chip" href="${wordHref(w)}">${esc(w)}</a>`).join('')}</div>`;
+}
+
+function defBlocks(blocks, word, isJp) {
+  return blocks.map((b, bi) => {
+    const LIMIT = 8;
+    const senses = b.defs.map((d, i) => `
+      <li class="sense"${i >= LIMIT ? ` data-extra="b${bi}" hidden` : ''}>
+        <div class="sense__def">${d.def}</div>
+        ${d.ex.length ? `<ul class="ex-list">${d.ex.map((x) => `<li class="ex">${x}</li>`).join('')}</ul>` : ''}
+        ${nyms('Синонимы', d.syn)}${nyms('Антонимы', d.ant, 'nyms--ant')}
+      </li>`).join('');
+    return `<section class="posblock">
+      <div class="posblock__head"><span class="posblock__word${isJp ? ' is-jp' : ''}">${esc(word)}</span><span class="posblock__pos">${esc(b.pos)}</span></div>
+      <ol class="senses">${senses}</ol>
+      ${b.defs.length > LIMIT ? `<div class="more"><button class="linkbtn" data-more="b${bi}" type="button">Ещё ${b.defs.length - LIMIT} значений</button></div>` : ''}
+      ${nyms('Синонимы', b.syn)}${nyms('Антонимы', b.ant, 'nyms--ant')}
+    </section>`;
+  }).join('');
+}
+
+function band(cls, code, title, srcUrl, srcName) {
+  return `<div class="dict__band"><span class="dict__code">${code}</span><h2>${title}</h2>${srcUrl ? `<a class="dict__src" href="${esc(srcUrl)}" target="_blank" rel="noopener">${srcName}</a>` : ''}</div>`;
+}
+const wiktUrl = (e) => 'https://en.wiktionary.org/wiki/' + encodeURIComponent((e.wikiTitle || e.word).replace(/ /g, '_'));
+
+function enSection(e) {
+  const body = e.blocks.length ? defBlocks(e.blocks, e.word) : '<p class="note">Толкование для этого слова не найдено — посмотрите переводы ниже.</p>';
+  const src = e.source === 'wiktionary' ? [wiktUrl(e) + '#English', 'Wiktionary'] : ['https://dictionaryapi.dev', 'Free Dictionary'];
+  return `<section class="card dict dict--en">${band('en', 'EN', 'Толковый словарь английского', src[0], src[1])}<div class="dict__body">${body}</div></section>`;
+}
+
+function transSection(e, lang) {
+  const groups = e.trans.filter((g) => g[lang].length || g.see);
+  const title = lang === 'ru' ? 'Англо-русский словарь' : 'Англо-японский словарь';
+  const code = lang === 'ru' ? 'EN · RU' : 'EN · JA';
+  let body;
+  if (!groups.some((g) => g[lang].length) && !groups.some((g) => g.see)) {
+    body = `<p class="note">${lang === 'ru' ? 'Переводы на русский' : 'Переводы на японский'} для «${esc(e.word)}» пока не найдены в открытых источниках.</p>`;
+  } else {
+    const LIMIT = 8;
+    body = groups.map((g, i) => `
+      <div class="tgroup"${i >= LIMIT ? ` data-extra="t${lang}" hidden` : ''}>
+        <div class="tgroup__gloss">${g.pos ? `<span class="pos">${esc(ruPos(g.pos))}</span>` : ''}<span class="tgroup__text">${esc(g.gloss)}</span></div>
+        ${g.see ? `<p class="note" style="margin:0">Переводы — в статье <a href="${wordHref(g.see)}">${esc(g.see)}</a></p>` : `<div class="tlist">${g[lang].map((t) => tword(t, lang)).join('')}</div>`}
+      </div>`).join('') + (groups.length > LIMIT ? `<div class="more"><button class="linkbtn" data-more="t${lang}" type="button">Ещё ${groups.length - LIMIT} значений</button></div>` : '');
+  }
+  return `<section class="card dict dict--${lang}">${band(lang, code, title, wiktUrl(e) + '#Translations', 'Wiktionary')}<div class="dict__body">${body}</div></section>`;
+}
+
+function tword(t, lang) {
+  const say = `<button class="tword__say" type="button" data-text="${esc(lang === 'ja' ? (t.reading || t.term) : t.term.normalize('NFD').replace(/́/g, '').normalize('NFC'))}" data-lang="${lang === 'ja' ? 'ja-JP' : 'ru-RU'}" title="Произнести" aria-label="Произнести">${ICON.speaker}</button>`;
+  const q = t.qual ? `<span class="tword__q">(${esc(t.qual)})</span>` : '';
+  if (lang === 'ja') {
+    const romaji = t.tr ? `<span class="tword__meta">${esc(t.tr)}</span>` : '';
+    return `<span class="tword tword--ja">${q}<span class="tword__stack"><a class="tword__text" href="${wordHref(t.term)}" style="color:inherit">${esc(t.term)}</a>${t.reading && t.reading !== t.term ? `<span class="tword__read">${esc(t.reading)}</span>` : ''}</span>${romaji}${say}</span>`;
+  }
+  const g = t.genders.length ? `<span class="tword__meta">${esc(t.genders.join(' '))}</span>` : '';
+  return `<span class="tword">${q}<a class="tword__text" href="${wordHref(t.term.normalize('NFD').replace(/́/g, '').normalize('NFC'))}" style="color:inherit">${esc(t.term)}</a>${g}${say}</span>`;
+}
+
+function revSection(e) {
+  const jp = isJa(e.word);
+  const title = (jp ? 'Японско-английский' : 'Русско-английский') + ' словарь';
+  const code = jp ? 'JA · EN' : 'RU · EN';
+  const lang = e.revLangName || (jp ? 'Japanese' : 'Russian');
+  return `<section class="card dict dict--rev">${band('rev', code, title, wiktUrl(e) + '#' + lang, 'Wiktionary')}<div class="dict__body">${defBlocks(e.rev, e.word, jp)}</div></section>`;
+}
+
+async function renderNotFound(word, seq) {
+  app.innerHTML = `<div class="emptystate fade-in"><div class="emptystate__art">?</div>
+    <h2>«${esc(word)}» не найдено</h2><p>Проверьте написание или выберите похожее слово.</p>
+    <div class="chips" id="spell" style="justify-content:center"></div></div>`;
+  const list = isCyr(word) || isJa(word) ? await api.suggest(word).catch(() => []) : await api.spell(word).catch(() => []);
+  if (seq !== renderSeq) return;
+  $('#spell').innerHTML = list.filter((w) => w.toLowerCase() !== word.toLowerCase()).map((w) => `<a class="chip" href="${wordHref(w)}">${esc(w)}</a>`).join('') || '<a class="btn btn--ghost" href="#/">На главную</a>';
+}
+
+function renderFavorites() {
+  document.title = 'Избранное — Лексикон';
+  const list = favs.all();
+  app.innerHTML = `
+    <div class="pagehead fade-in"><div><h1>Избранное</h1><p>${list.length ? plural(list.length, 'слово', 'слова', 'слов') : 'Сохранённых слов пока нет'}</p></div></div>
+    ${list.length ? `<div class="cards fade-in">${list.map((f) => `
+      <a class="card wcard" href="${wordHref(f.word)}">
+        <div class="wcard__word">${esc(f.word)}</div>
+        ${f.ipa ? `<div class="wcard__ipa">${esc(f.ipa)}</div>` : ''}
+        ${f.def ? `<p class="wcard__def">${esc(f.def)}</p>` : ''}
+        <button class="wcard__x" type="button" data-remove="${esc(f.word)}" title="Убрать" aria-label="Убрать из избранного">${ICON.x}</button>
+      </a>`).join('')}</div>`
+      : `<div class="card emptystate"><div class="emptystate__art">☆</div><h2>Здесь будут ваши слова</h2><p>Откройте статью и нажмите звёздочку рядом со словом.</p><a class="btn" href="#/">Искать слова</a></div>`}`;
+  $$('[data-remove]').forEach((b) => b.addEventListener('click', (ev) => {
+    ev.preventDefault(); ev.stopPropagation();
+    favs.remove(b.dataset.remove); renderFavorites(); toast('Убрано из избранного');
+  }));
+}
+
+function plural(n, one, few, many) {
+  const m10 = n % 10, m100 = n % 100;
+  const w = m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many;
+  return n + ' ' + w;
+}
+
+function renderHistory() {
+  document.title = 'История — Лексикон';
+  const list = history.all();
+  const fmtDay = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const fmtTime = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const today = new Date().toDateString(), yest = new Date(Date.now() - 864e5).toDateString();
+  const groups = new Map();
+  for (const h of list) {
+    const d = new Date(h.t), ds = d.toDateString();
+    const label = ds === today ? 'Сегодня' : ds === yest ? 'Вчера' : fmtDay.format(d);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(h);
+  }
+  app.innerHTML = `
+    <div class="pagehead fade-in"><div><h1>История</h1><p>${list.length ? plural(list.length, 'слово', 'слова', 'слов') : 'Вы ещё ничего не искали'}</p></div>
+      ${list.length ? '<button class="btn btn--ghost" id="clearHist" type="button">Очистить</button>' : ''}</div>
+    ${list.length ? [...groups].map(([label, items]) => `<div class="daygroup">${esc(label)}</div>
+      <ul class="card hist fade-in">${items.map((h) => `<li><a href="${wordHref(h.word)}">${esc(h.word)}</a>
+        <span class="wcard__ipa">${esc(h.ipa || '')}</span><time>${fmtTime.format(new Date(h.t))}</time>
+        <button class="wcard__x" style="position:static" type="button" data-remove="${esc(h.word)}" aria-label="Удалить из истории">${ICON.x}</button></li>`).join('')}</ul>`).join('')
+      : `<div class="card emptystate"><div class="emptystate__art">⌚</div><h2>История пуста</h2><p>Найдите первое слово — оно появится здесь.</p><a class="btn" href="#/">Искать слова</a></div>`}`;
+  const clr = $('#clearHist');
+  if (clr) clr.onclick = () => { if (confirm('Очистить всю историю поиска?')) { history.clear(); renderHistory(); } };
+  $$('[data-remove]').forEach((b) => b.addEventListener('click', () => { history.remove(b.dataset.remove); renderHistory(); }));
+}
+
+/* ============ Search box + autocomplete ============ */
+function setupSearch(form) {
+  const input = $('input', form), box = $('.suggest', form);
+  let items = [], sel = -1, reqId = 0;
+
+  const close = () => { box.hidden = true; sel = -1; input.setAttribute('aria-expanded', 'false'); };
+  const go = (w) => { w = norm(w); if (!w) return; close(); input.blur(); location.hash = wordHref(w); };
+  const paint = (q) => {
+    if (!items.length) return close();
+    const ql = q.toLowerCase();
+    box.innerHTML = items.map((it, i) => {
+      const w = it.word, hit = w.toLowerCase().startsWith(ql) ? `<mark>${esc(w.slice(0, q.length))}</mark>${esc(w.slice(q.length))}` : esc(w);
+      return `<li role="option" data-i="${i}" aria-selected="${i === sel}">${it.recent ? ICON.clock : ICON.search}<span>${hit}</span>${it.recent ? '<span class="suggest__hint">недавнее</span>' : ''}</li>`;
+    }).join('');
+    box.hidden = false; input.setAttribute('aria-expanded', 'true');
+  };
+  const load = debounce(async (q) => {
+    const id = ++reqId;
+    const ql = q.toLowerCase();
+    const recent = history.all().filter((h) => h.word.toLowerCase().startsWith(ql)).slice(0, 3).map((h) => ({ word: h.word, recent: true }));
+    items = recent; sel = -1; paint(q);
+    const remote = await api.suggest(q).catch(() => []);
+    if (id !== reqId || input.value.trim() !== q) return;
+    const seen = new Set(recent.map((r) => r.word.toLowerCase()));
+    items = recent.concat(remote.filter((w) => !seen.has(w.toLowerCase())).map((w) => ({ word: w }))).slice(0, 9);
+    paint(q);
+  }, 140);
+
+  input.addEventListener('input', () => { const q = input.value.trim(); if (!q) { items = []; close(); return; } load(q); });
+  input.addEventListener('keydown', (ev) => {
+    if (box.hidden) return;
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      // Cycle through -1 (the typed text) and the suggestions.
+      const n = items.length + 1;
+      sel = ((sel + 1 + (ev.key === 'ArrowDown' ? 1 : -1)) % n + n) % n - 1;
+      $$('li', box).forEach((li, i) => li.setAttribute('aria-selected', i === sel));
+    } else if (ev.key === 'Escape') close();
+  });
+  input.addEventListener('blur', () => setTimeout(close, 150));
+  input.addEventListener('focus', () => { if (input.value.trim() && items.length) paint(input.value.trim()); });
+  box.addEventListener('mousedown', (ev) => { const li = ev.target.closest('li'); if (li) { ev.preventDefault(); go(items[+li.dataset.i].word); } });
+  form.addEventListener('submit', (ev) => { ev.preventDefault(); go(sel >= 0 ? items[sel].word : input.value); });
+}
+
+/* ============ Router ============ */
+function route() {
+  const hash = location.hash || '#/';
+  const top = $('#topSearch input');
+  $$('.nav__link').forEach((a) => a.classList.toggle('is-active', hash === '#/' + a.dataset.nav));
+  document.body.classList.toggle('is-home', hash === '#/' || hash === '#');
+  if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+  const m = hash.match(/^#\/w\/(.+)$/);
+  if (m) {
+    const w = norm(decodeURIComponent(m[1]));
+    top.value = w;
+    renderEntry(w);
+  } else {
+    top.value = '';
+    renderSeq++;
+    if (hash === '#/favorites') renderFavorites();
+    else if (hash === '#/history') renderHistory();
+    else renderHome();
+  }
+  window.scrollTo(0, 0);
+}
+
+/* ============ Global wiring ============ */
+setupSearch($('#topSearch'));
+window.addEventListener('hashchange', route);
+
+// Double-click any word in an article to look it up.
+app.addEventListener('dblclick', (ev) => {
+  if (ev.target.closest('input, button, .headword')) return;
+  const sel = window.getSelection();
+  const w = norm(String(sel || '')).replace(/^[^\p{L}]+|[^\p{L}'-]+$/gu, '');
+  if (w && w.length < 40 && !/\s/.test(w)) location.hash = wordHref(w.toLowerCase() === w ? w : w.toLowerCase());
+});
+
+// "/" focuses search.
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== '/' || /INPUT|TEXTAREA/.test(document.activeElement.tagName)) return;
+  ev.preventDefault();
+  const el = document.body.classList.contains('is-home') ? $('#heroSearch input') : $('#topSearch input');
+  el && el.focus();
+});
+
+$('#themeToggle').addEventListener('click', () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('lex.theme', root.dataset.theme); } catch (e) {}
+});
+
+if ('speechSynthesis' in window) speechSynthesis.getVoices();
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+
+route();
