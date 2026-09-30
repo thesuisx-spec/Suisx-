@@ -1,7 +1,7 @@
 name: Package Lexikon for Windows
 
 # Publishes Lexikon-Windows.zip at a permanent link:
-# https://github.com/<owner>/<repo>/releases/download/lexikon/Lexikon-Windows.zip
+# https://github.com/thesuisx-spec/Suisx-/releases/download/lexikon/Lexikon-Windows.zip
 on:
   push:
     branches: [claude/falling-words-japanese-game-rnzfjp]
