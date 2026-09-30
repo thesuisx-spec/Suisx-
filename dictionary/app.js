@@ -366,8 +366,11 @@ async function doLookup(word) {
 
 /* ============ Offline dictionary (data/ built by tools/build_dict.py) ============ */
 const keyOf = (w) => String(w || '').toLowerCase().replace(/ё/g, 'е').normalize('NFD').replace(/\p{M}/gu, '').normalize('NFC').trim();
-// ASCII file name of a shard ("ко_" → "x43a-43e-5f"), mirrors file_name() in tools/build_dict.py.
-const shardFile = (name) => (/^[a-z0-9_]+$/.test(name) ? name : 'x' + [...name].map((c) => c.codePointAt(0).toString(16)).join('-'));
+// ASCII, Windows-safe file name of a shard ("ко_" → "x43a-43e-5f", "aux" → "r-aux"), mirrors file_name() in tools/build_dict.py.
+const shardFile = (name) => {
+  const f = /^[a-z0-9_]+$/.test(name) ? name : 'x' + [...name].map((c) => c.codePointAt(0).toString(16)).join('-');
+  return /^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/.test(f) ? 'r-' + f : f;   // names Windows forbids
+};
 const safePrefix = (k, n) => [...k.padEnd(n, '_').slice(0, n)].map((c) => (/[a-z0-9а-я]/.test(c) ? c : '_')).join('');
 const TAG_RU = { m: 'м.', f: 'ж.', n: 'ср.', p: 'мн.', impf: 'несов.', pf: 'сов.', an: 'одуш.', colloq: 'разг.', formal: 'офиц.', informal: 'неформ.' };
 const POS_EN = { adj: 'adjective', adv: 'adverb', pron: 'pronoun', prep: 'preposition', conj: 'conjunction', intj: 'interjection',
