@@ -8,7 +8,8 @@ Runs in GitHub Actions (.github/workflows/build-hsk.yml), which has open network
 
     /tmp/tatoeba must hold sentences.csv, links.csv and sentences_with_audio.csv
     (https://downloads.tatoeba.org/exports/). /tmp/zh.jsonl is the Chinese extract of English Wiktionary
-    (https://kaikki.org/dictionary/Chinese/). Either input may be left out.
+    (https://kaikki.org/dictionary/Chinese/). Either input may be left out. --lingualibre adds recordings
+    from the Lingua Libre project on Wikimedia Commons for words Wiktionary has none for.
 
 Output
     hsk/data/sentences.js  window.HSK_SENTENCES = [[tatoeba id, chinese, pinyin, russian, HSK 2.0 level,
@@ -148,7 +149,12 @@ def build_sentences(tatoeba, words):
                     audio.add(int(r[0]))
         print(f'  recordings: {sum(licences.values())} {dict(licences)}; freely licensed: {len(audio)}', file=sys.stderr)
 
-    pool = sorted(ru, key=lambda s: (len(graded[s][0]), s))
+    # Very short lines ("是我。") teach little: prefer sentences of a comfortable length for the level.
+    def comfort(sid):
+        text, tokens, old, new = graded[sid]
+        lv = min(x for x in (old, new) if x)
+        return abs(len(text) - (6 + 2 * lv)), sid
+    pool = sorted(ru, key=comfort)
     keep, per_level = set(), collections.Counter()
     for sid in pool:
         text, tokens, old, new = graded[sid]
@@ -157,6 +163,7 @@ def build_sentences(tatoeba, words):
                 per_level[(std, lv)] += 1
                 keep.add(sid)
     examples = collections.defaultdict(list)
+    pool = sorted(ru, key=lambda s: (abs(len(graded[s][0]) - 10), s))
     for sid in pool:
         text, tokens, old, new = graded[sid]
         for t in set(tokens):
@@ -180,10 +187,42 @@ def build_sentences(tatoeba, words):
     return out, ex
 
 
-# ---------- Wiktionary recordings ----------
+# ---------- recordings ----------
+MARKS = {'ā': 'a1', 'á': 'a2', 'ǎ': 'a3', 'à': 'a4', 'ē': 'e1', 'é': 'e2', 'ě': 'e3', 'è': 'e4', 'ī': 'i1', 'í': 'i2',
+         'ǐ': 'i3', 'ì': 'i4', 'ō': 'o1', 'ó': 'o2', 'ǒ': 'o3', 'ò': 'o4', 'ū': 'u1', 'ú': 'u2', 'ǔ': 'u3', 'ù': 'u4',
+         'ǖ': 'ü1', 'ǘ': 'ü2', 'ǚ': 'ü3', 'ǜ': 'ü4'}
+
+
+def pinyin_key(p):
+    """'ān quán' -> ('anquan', '12'): letters and the tones that are marked."""
+    letters, tones = '', ''
+    for ch in unicodedata.normalize('NFC', p.lower()):
+        if ch in MARKS:
+            letters += MARKS[ch][0]
+            tones += MARKS[ch][1]
+        elif ch.isalpha():
+            letters += 'ü' if ch == 'v' else ch
+    return letters, tones
+
+
+def reading_fits(name, pinyin):
+    """Wiktionary's own files are named after the reading (Zh-anquán.ogg): drop recordings of another
+    reading of a polyphonic word (长 zhǎng for cháng). Neutral tones may differ, so only equal-length
+    tone sequences are compared."""
+    m = re.match(r'(?i)(?:zh|cmn)-(.+)\.(?:ogg|wav|mp3|flac|oga)$', name)
+    if not m or not re.search(r'[a-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]', m.group(1)):
+        return True
+    got = pinyin_key(m.group(1))
+    for alt in pinyin.split(' / '):
+        want = pinyin_key(alt)
+        if got[0] == want[0] and (len(got[1]) != len(want[1]) or got[1] == want[1]):
+            return True
+    return False
+
+
 def build_audio(kaikki, words):
-    wanted = {w[0] for w in words}
-    found, seen, samples = {}, 0, []
+    wanted = {w[0]: w for w in words}
+    found, seen, samples, rejected = {}, 0, [], []
     with open(kaikki, encoding='utf-8') as f:
         for line in f:
             try:
@@ -198,21 +237,110 @@ def build_audio(kaikki, words):
                 name = s.get('audio') or ''
                 if not name or not (s.get('mp3_url') or s.get('ogg_url')):
                     continue
-                tags = ' '.join((s.get('tags') or []) + (s.get('raw_tags') or [])).lower()
+                tags = set(re.findall(r'[a-z]+', ' '.join((s.get('tags') or []) + (s.get('raw_tags') or [])).lower()))
                 low = name.lower()
                 mandarin = ('mandarin' in tags or '(cmn)' in low or low.startswith('cmn-') or low.startswith('zh-')
-                            or 'standard chinese' in tags)
-                other = any(x in tags for x in ('cantonese', 'hokkien', 'min nan', 'hakka', 'wu', 'taiwan'))
-                if mandarin and not other:
-                    url = s.get('mp3_url') or s.get('ogg_url')
-                    found[w] = [name, url.replace(COMMONS, '')]
-                    if len(samples) < 8:
-                        samples.append((w, name, s.get('mp3_url') or s.get('ogg_url'), tags))
-                    break
-    print(f'  Wiktionary entries for HSK words: {seen}; with a Mandarin recording: {len(found)}', file=sys.stderr)
+                            or {'standard', 'chinese'} <= tags)
+                other = tags & {'cantonese', 'hokkien', 'min', 'hakka', 'wu', 'taiwan', 'taiwanese', 'teochew', 'shanghainese'}
+                if not mandarin or other:
+                    continue
+                if not reading_fits(name, wanted[w][1]):
+                    rejected.append((w, name, wanted[w][1]))
+                    continue
+                url = s.get('mp3_url') or s.get('ogg_url')
+                found[w] = [name, url.replace(COMMONS, '')]
+                if len(samples) < 8:
+                    samples.append((w, name, url, ' '.join(sorted(tags))))
+                break
+    print(f'  Wiktionary entries for HSK words: {seen}; with a Mandarin recording: {len(found)}; '
+          f'other reading skipped: {len(rejected)} {rejected[:12]}', file=sys.stderr)
     for s in samples:
         print('   ', *s, file=sys.stderr)
     return found
+
+
+def commons_files(category):
+    """All file names in a Wikimedia Commons category (API, 500 per request)."""
+    import time, urllib.parse, urllib.request
+    names, cont = [], ''
+    while True:
+        q = {'action': 'query', 'list': 'categorymembers', 'cmtitle': 'Category:' + category, 'cmtype': 'file',
+             'cmlimit': '500', 'format': 'json'}
+        if cont:
+            q['cmcontinue'] = cont
+        req = urllib.request.Request('https://commons.wikimedia.org/w/api.php?' + urllib.parse.urlencode(q),
+                                     headers={'User-Agent': 'Suisx-HSK-app/1.0 (https://github.com/thesuisx-spec/Suisx-)'})
+        for attempt in range(5):
+            try:
+                with urllib.request.urlopen(req, timeout=60) as r:
+                    data = json.loads(r.read().decode('utf-8'))
+                break
+            except Exception as e:                     # noqa: BLE001 - retry any network error
+                print('   retry', e, file=sys.stderr)
+                time.sleep(5 * (attempt + 1))
+        else:
+            break
+        names += [m['title'][5:] for m in data.get('query', {}).get('categorymembers', [])]
+        cont = data.get('continue', {}).get('cmcontinue')
+        if not cont:
+            break
+        time.sleep(0.3)
+    return names
+
+
+def build_lingualibre(words, found, simplified_only, traditional_only):
+    """Lingua Libre recordings of Mandarin (files "LL-Q9192 (cmn)-Speaker-Word.wav") for words that
+    Wiktionary has no recording of. Only speakers who write simplified characters are used, so the
+    recordings follow the mainland (Putonghua) standard of the HSK."""
+    import hashlib
+    names = commons_files('Lingua_Libre_pronunciation-cmn')
+    by_speaker = collections.defaultdict(list)
+    for n in names:
+        m = re.match(r'LL-Q9192 \(cmn\)-(.+?)-([^-]+)\.(wav|ogg|flac|mp3)$', n)
+        if m:
+            by_speaker[m.group(1)].append((m.group(2), n))
+    mainland = set()
+    for sp, files in by_speaker.items():
+        simp = sum(1 for w, _ in files if any(c in simplified_only for c in w))
+        trad = sum(1 for w, _ in files if any(c in traditional_only for c in w))
+        if simp > 2 * trad and simp >= 3:
+            mainland.add(sp)
+    print(f'  Lingua Libre (cmn): {len(names)} files, {len(by_speaker)} speakers, '
+          f'mainland: {len(mainland)} {sorted(mainland, key=lambda s: -len(by_speaker[s]))[:10]}', file=sys.stderr)
+    wanted = {w[0] for w in words}
+    added = 0
+    for sp in sorted(mainland, key=lambda s: -len(by_speaker[s])):
+        for w, n in by_speaker[sp]:
+            if w in wanted and w not in found:
+                u = n.replace(' ', '_')
+                h = hashlib.md5(u.encode('utf-8')).hexdigest()
+                found[w] = [n, f'transcoded/{h[0]}/{h[:2]}/{u}/{u}.mp3']
+                added += 1
+    print(f'  Lingua Libre added {added} words; total with recordings: {len(found)}/{len(words)}', file=sys.stderr)
+    return found
+
+
+COMPLETE = 'https://raw.githubusercontent.com/drkameleon/complete-hsk-vocabulary/7ac65bf1a6387d35f1ade478906172a19311c7f9/complete.json'
+
+
+def script_chars(src):
+    """Characters that exist only in simplified or only in traditional writing (from the HSK list)."""
+    import urllib.request
+    if re.match(r'https?://', src):
+        with urllib.request.urlopen(src, timeout=120) as r:
+            data = json.loads(r.read().decode('utf-8'))
+    else:
+        data = json.load(open(src, encoding='utf-8'))
+    simp, trad = set(), set()
+    for e in data:
+        for f in e['forms']:
+            t = f.get('traditional') or ''
+            if len(t) == len(e['simplified']):
+                for a, b in zip(e['simplified'], t):
+                    if a != b:
+                        simp.add(a)
+                        trad.add(b)
+    return simp - trad, trad - simp
 
 
 def write_js(path, header, **values):
@@ -230,6 +358,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--tatoeba', help='directory with the unpacked Tatoeba exports')
     ap.add_argument('--kaikki', help='Chinese JSONL extract of English Wiktionary from kaikki.org')
+    ap.add_argument('--lingualibre', action='store_true', help='add Lingua Libre recordings from Wikimedia Commons')
+    ap.add_argument('--complete', default=COMPLETE, help='complete.json of complete-hsk-vocabulary (simplified vs traditional)')
     args = ap.parse_args()
     words = load_words()
     if args.tatoeba:
@@ -238,8 +368,11 @@ def main():
                  'Generated by hsk/tools/build_extras.py from Tatoeba (tatoeba.org, CC BY 2.0 FR). '
                  '[tatoeba id, chinese, pinyin, russian, HSK 2.0 level, HSK 3.0 level, has recording]',
                  HSK_SENTENCES=sentences, HSK_EXAMPLES=examples)
-    if args.kaikki:
-        audio = build_audio(args.kaikki, words)
+    if args.kaikki or args.lingualibre:
+        audio = build_audio(args.kaikki, words) if args.kaikki else {}
+        if args.lingualibre:
+            simp, trad = script_chars(args.complete)
+            audio = build_lingualibre(words, audio, simp, trad)
         write_js(os.path.join(DATA, 'audio.js'),
                  'Generated by hsk/tools/build_extras.py from English Wiktionary via kaikki.org. '
                  'Word -> [Wikimedia Commons file, path of its MP3/OGG under upload.wikimedia.org/wikipedia/commons/] '
