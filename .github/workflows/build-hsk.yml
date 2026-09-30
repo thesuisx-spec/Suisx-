@@ -1,0 +1,87 @@
+name: Build HSK sentences and recordings
+
+# Downloads the Tatoeba exports and the Chinese extract of English Wiktionary (kaikki.org),
+# builds hsk/data/sentences.js and hsk/data/audio.js with hsk/tools/build_extras.py
+# and commits them to the branch.
+on:
+  push:
+    branches: [claude/peaceful-noether-3yb1b8]
+    paths:
+      - hsk/tools/build_extras.py
+      - .github/workflows/build-hsk.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-hsk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pypinyin
+        run: pip install pypinyin
+
+      - name: Download Tatoeba exports
+        run: |
+          mkdir -p /tmp/tatoeba
+          cd /tmp/tatoeba
+          for f in sentences links sentences_with_audio; do
+            curl -fL --retry 5 --retry-delay 10 -o $f.tar.bz2 https://downloads.tatoeba.org/exports/$f.tar.bz2
+            tar xjf $f.tar.bz2
+          done
+          ls -lh
+          head -n 3 sentences_with_audio.csv
+
+      - name: Download Wiktionary (Chinese)
+        run: |
+          curl -sL "https://kaikki.org/dictionary/Chinese/index.html" | grep -oE 'href="[^"]+\.jsonl[^"]*"' | head -n 5 || true
+          curl -fL --retry 5 --retry-delay 10 -o /tmp/zh.jsonl https://kaikki.org/dictionary/Chinese/kaikki.org-dictionary-Chinese.jsonl
+          ls -lh /tmp/zh.jsonl
+
+      - name: Build
+        run: python3 hsk/tools/build_extras.py --tatoeba /tmp/tatoeba --kaikki /tmp/zh.jsonl
+
+      - name: Check recording links
+        run: |
+          python3 - <<'EOF'
+          import json, re, urllib.request
+          src = open('hsk/data/audio.js', encoding='utf-8').read()
+          audio = json.loads(src[src.index('= {') + 2:src.rindex('}') + 1])
+          for word, (name, path) in list(audio.items())[:5]:
+              url = path if path.startswith('http') else 'https://upload.wikimedia.org/wikipedia/commons/' + path
+              req = urllib.request.Request(url, method='HEAD', headers={'User-Agent': 'hsk-build'})
+              try:
+                  print(word, urllib.request.urlopen(req, timeout=30).status, url)
+              except Exception as e:
+                  print(word, 'ERROR', e, url)
+          src = open('hsk/data/sentences.js', encoding='utf-8').read()
+          ids = re.findall(r'^\[(\d+),.*,1\],?$', src, re.M)[:3]
+          for sid in ids:
+              for url in (f'https://audio.tatoeba.org/sentences/cmn/{sid}.mp3',):
+                  req = urllib.request.Request(url, method='HEAD', headers={'User-Agent': 'hsk-build'})
+                  try:
+                      print(sid, urllib.request.urlopen(req, timeout=30).status, url)
+                  except Exception as e:
+                      print(sid, 'ERROR', e, url)
+          EOF
+
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add hsk/data/sentences.js hsk/data/audio.js
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -q -m "Build HSK example sentences (Tatoeba) and word recordings (Wiktionary)"
+          git pull --rebase -q origin ${GITHUB_REF_NAME}
+          git push origin HEAD:${GITHUB_REF_NAME}
