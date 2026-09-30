@@ -361,7 +361,9 @@ def attach_phrases(k, ents, phrases):
 
 def file_name(shard):
     """ASCII file name for a shard ("ко_" → "x43a-43e-5f"): archive tools on Windows mangle Cyrillic names."""
-    return shard if re.fullmatch(r'[a-z0-9_]+', shard) else 'x' + '-'.join(format(ord(c), 'x') for c in shard)
+    name = shard if re.fullmatch(r'[a-z0-9_]+', shard) else 'x' + '-'.join(format(ord(c), 'x') for c in shard)
+    # Windows forbids these names with any extension ("aux.json.gz" cannot be checked out or unzipped).
+    return 'r-' + name if re.fullmatch(r'con|prn|aux|nul|com[0-9]|lpt[0-9]', name) else name
 
 
 def finish_shards(tmpdir, outdir, phrases=None):
