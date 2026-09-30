@@ -57,6 +57,18 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <script>
+    // ES5 on purpose: tell users of Internet Explorer / very old browsers what to do instead of showing a blank page.
+    (function () {
+      var ok = window.fetch && window.Promise && window.DecompressionStream && window.CSS && CSS.supports && CSS.supports('display', 'grid');
+      if (!ok) {
+        window.LEX_UNSUPPORTED = true;
+        document.getElementById('app').innerHTML = '<div class="emptystate"><h2>Браузер устарел</h2>' +
+          '<p>Словарь работает в Google Chrome, Microsoft Edge или Mozilla Firefox.<br>' +
+          'Для Windows 7 подойдут Chrome 109, Edge 109 или Firefox 115.</p></div>';
+      }
+    })();
+  </script>
   <script src="app.js"></script>
 </body>
 </html>

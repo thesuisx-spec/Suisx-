@@ -1143,4 +1143,4 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
 
-route();
+if (!window.LEX_UNSUPPORTED) route();

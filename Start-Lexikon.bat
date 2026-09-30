@@ -1,11 +1,10 @@
 @echo off
-chcp 65001 >nul
-rem Lexikon: double-click to open the dictionary (no installation needed).
+rem Lexikon: double-click to open the dictionary (Windows 7/8/10/11, no installation needed).
 cd /d "%~dp0"
 if not exist "%~dp0dictionary\tools\serve-windows.ps1" (
   echo.
-  echo   ╨б╨╜╨░╤З╨░╨╗╨░ ╤А╨░╤Б╨┐╨░╨║╤Г╨╣╤В╨╡ ╨░╤А╤Е╨╕╨▓: ╨┐╤А╨░╨▓╨╛╨╣ ╨║╨╜╨╛╨┐╨║╨╛╨╣ ╨┐╨╛ ╤Д╨░╨╣╨╗╤Г .zip - "╨Ш╨╖╨▓╨╗╨╡╤З╤М ╨▓╤Б╨╡",
-  echo   ╨╖╨░╤В╨╡╨╝ ╨╛╤В╨║╤А╨╛╨╣╤В╨╡ ╤А╨░╤Б╨┐╨░╨║╨╛╨▓╨░╨╜╨╜╤Г╤О ╨┐╨░╨┐╨║╤Г ╨╕ ╨╖╨░╨┐╤Г╤Б╤В╨╕╤В╨╡ Start-Lexikon.bat ╨╡╤Й╤С ╤А╨░╨╖.
+  echo   Сначала распакуйте архив: правой кнопкой по файлу .zip - "Извлечь все",
+  echo   затем откройте распакованную папку и запустите Start-Lexikon.bat ещё раз.
   echo.
   pause
   exit /b 1

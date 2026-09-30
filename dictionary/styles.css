@@ -432,3 +432,14 @@ body.is-home .search--compact { visibility: hidden; }
 
 /* Russian words carry stress marks (U+0301); PT Sans places them correctly. */
 .headword:lang(ru), .posblock__word:lang(ru), .ex:lang(ru) { font-family: 'PT Sans', var(--sans); }
+
+/* Older browsers (Chrome/Edge 109, the last ones for Windows 7) have no color-mix(): plain fallbacks. */
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  .search__input:focus { box-shadow: 0 0 0 4px rgba(242, 184, 75, .3); }
+  .hero { background: radial-gradient(1200px 400px at 50% -120px, rgba(242, 184, 75, .18), transparent 70%), var(--paper); }
+  .wotd::after { background: radial-gradient(circle, rgba(242, 184, 75, .3), transparent 70%); }
+  .feature .code { color: var(--ink-soft); }
+  .roundbtn.is-on { border-color: rgba(227, 160, 8, .5); background: rgba(227, 160, 8, .12); }
+  .nyms--ant .chip { background: rgba(155, 44, 60, .1); }
+  .offline.is-done { background: linear-gradient(135deg, var(--card), rgba(15, 122, 108, .1)); }
+}
