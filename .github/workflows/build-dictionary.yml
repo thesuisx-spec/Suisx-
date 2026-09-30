@@ -1,0 +1,65 @@
+name: Build offline dictionary
+
+# Downloads the Wiktionary extracts from kaikki.org, builds dictionary/data
+# with dictionary/tools/build_dict.py and commits the result to the branch.
+on:
+  push:
+    branches: [claude/falling-words-japanese-game-rnzfjp]
+    paths:
+      - dictionary/tools/**
+      - .github/workflows/build-dictionary.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-dictionary-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install wordfreq
+        run: pip install wordfreq
+
+      - name: List kaikki.org downloads
+        run: |
+          for lang in English Russian; do
+            echo "== $lang"
+            curl -sL "https://kaikki.org/dictionary/$lang/index.html" | grep -oE 'href="[^"]+\.jsonl[^"]*"' | head -n 5 || true
+          done
+
+      - name: Download extracts
+        run: |
+          curl -fL --retry 5 --retry-delay 10 -o /tmp/en.jsonl https://kaikki.org/dictionary/English/kaikki.org-dictionary-English.jsonl
+          curl -fL --retry 5 --retry-delay 10 -o /tmp/ru.jsonl https://kaikki.org/dictionary/Russian/kaikki.org-dictionary-Russian.jsonl
+          ls -lh /tmp/*.jsonl
+          head -c 1500 /tmp/en.jsonl; echo
+
+      - name: Build
+        run: python3 dictionary/tools/build_dict.py --en /tmp/en.jsonl --ru /tmp/ru.jsonl
+
+      - name: Report
+        run: |
+          du -sh dictionary/data
+          find dictionary/data -type f | wc -l
+          find dictionary/data -type f -size +20M -exec ls -lh {} \;
+          python3 -c "import json; m=json.load(open('dictionary/data/meta.json')); print({k: (v['count'], len(v['shards'])) for k, v in m['langs'].items()}, m['bytes'])"
+
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A dictionary/data
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -q -m "Build offline dictionary data from Wiktionary (kaikki.org)"
+          git push origin HEAD:${GITHUB_REF_NAME}
