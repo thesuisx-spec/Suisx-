@@ -501,14 +501,21 @@ const local = {
     if (!(await local.init())) return null;
     const lang = isCyr(word) ? 'ru' : 'en';
     const ents = await local.entries(lang, word);
-    const formNote = [];
-    for (const x of ents) {
-      if (x.f) formNote.push({ w: x.w, g: x.g, f: x.f });
-      for (const f of x.fo || []) formNote.push({ w: x.w, g: f.g, f: f.f });
-    }
     let lemmas = ents.filter((x) => !x.f);
     // "went", "was", "ran": the word's own entries are rare homographs without translations → lead with the lemma.
     const weak = lang === 'en' ? !lemmas.some((x) => x.tr) : !lemmas.length;
+    // Skip notes from other spellings ("WAs" for "was") and, next to a real entry, links to rare words ("run" → "rin").
+    const main = (lemmas[0] || ents[0] || {}).w;
+    const rank = await local.rankMap(lang).catch(() => new Map());
+    const formNote = [];
+    for (const x of ents) {
+      const notes = (x.f ? [{ g: x.g, f: x.f }] : []).concat(x.fo || []);
+      for (const f of notes) {
+        if (x.w !== main && ents.some((y) => y.w === main)) continue;
+        if (!weak && !((rank.get(keyOf(f.f)) ?? 1e9) < (rank.get(keyOf(x.w)) ?? 1e9))) continue;
+        formNote.push({ w: x.w, g: f.g, f: f.f });
+      }
+    }
     if (formNote.length && weak) {
       const target = (await local.entries(lang, formNote[0].f)).filter((x) => !x.f);
       if (target.length) lemmas = target.concat(lemmas);
