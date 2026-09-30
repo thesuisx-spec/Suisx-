@@ -822,7 +822,7 @@ async function renderEntry(word) {
         <div class="crumbs"><a href="#/">Лексикон</a> › ${e.foreign ? 'Русско-английский' : 'Английский'} › ${esc(e.word)}</div>
         <article class="card head">
           <div class="head__row">
-            <h1 class="headword">${esc(e.word)}</h1>
+            <h1 class="headword"${e.foreign ? ' lang="ru"' : ''}>${esc(e.word)}</h1>
             <div class="head__actions">
               <button class="roundbtn" id="shareBtn" type="button" title="Поделиться" aria-label="Поделиться">${ICON.share}</button>
               <button class="roundbtn${favs.has(e.word) ? ' is-on' : ''}" id="favBtn" type="button" aria-pressed="${favs.has(e.word)}" title="В избранное" aria-label="В избранное">${ICON.star}</button>
@@ -900,7 +900,7 @@ function defBlocks(blocks, word) {
         ${nyms('Синонимы', d.syn)}${nyms('Антонимы', d.ant, 'nyms--ant')}
       </li>`).join('');
     return `<section class="posblock">
-      <div class="posblock__head"><span class="posblock__word">${esc(b.word || word)}</span><span class="posblock__pos">${esc(b.pos)}</span></div>
+      <div class="posblock__head"><span class="posblock__word"${isCyr(b.word || word) ? ' lang="ru"' : ''}>${esc(b.word || word)}</span><span class="posblock__pos">${esc(b.pos)}</span></div>
       <ol class="senses">${senses}</ol>
       ${b.defs.length > LIMIT ? `<div class="more"><button class="linkbtn" data-more="b${bi}" type="button">Ещё ${b.defs.length - LIMIT} значений</button></div>` : ''}
       ${nyms('Синонимы', b.syn)}${nyms('Антонимы', b.ant, 'nyms--ant')}
