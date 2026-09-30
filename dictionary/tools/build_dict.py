@@ -359,6 +359,11 @@ def attach_phrases(k, ents, phrases):
         target['ph'] = out
 
 
+def file_name(shard):
+    """ASCII file name for a shard ("ко_" → "x43a-43e-5f"): archive tools on Windows mangle Cyrillic names."""
+    return shard if re.fullmatch(r'[a-z0-9_]+', shard) else 'x' + '-'.join(format(ord(c), 'x') for c in shard)
+
+
 def finish_shards(tmpdir, outdir, phrases=None):
     os.makedirs(outdir, exist_ok=True)
     shards, split = {}, []
@@ -383,7 +388,7 @@ def finish_shards(tmpdir, outdir, phrases=None):
         else:
             parts = {p2: dict(groups)}
         for name, data in parts.items():
-            path = os.path.join(outdir, name + '.json.gz')
+            path = os.path.join(outdir, file_name(name) + '.json.gz')
             with gzip.open(path, 'wt', encoding='utf-8', compresslevel=9) as g:
                 json.dump(data, g, ensure_ascii=False, separators=(',', ':'))
             shards[name] = os.path.getsize(path)

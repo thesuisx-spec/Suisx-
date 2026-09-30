@@ -366,6 +366,8 @@ async function doLookup(word) {
 
 /* ============ Offline dictionary (data/ built by tools/build_dict.py) ============ */
 const keyOf = (w) => String(w || '').toLowerCase().replace(/ё/g, 'е').normalize('NFD').replace(/\p{M}/gu, '').normalize('NFC').trim();
+// ASCII file name of a shard ("ко_" → "x43a-43e-5f"), mirrors file_name() in tools/build_dict.py.
+const shardFile = (name) => (/^[a-z0-9_]+$/.test(name) ? name : 'x' + [...name].map((c) => c.codePointAt(0).toString(16)).join('-'));
 const safePrefix = (k, n) => [...k.padEnd(n, '_').slice(0, n)].map((c) => (/[a-z0-9а-я]/.test(c) ? c : '_')).join('');
 const TAG_RU = { m: 'м.', f: 'ж.', n: 'ср.', p: 'мн.', impf: 'несов.', pf: 'сов.', an: 'одуш.', colloq: 'разг.', formal: 'офиц.', informal: 'неформ.' };
 const POS_EN = { adj: 'adjective', adv: 'adverb', pron: 'pronoun', prep: 'preposition', conj: 'conjunction', intj: 'interjection',
@@ -435,7 +437,7 @@ const local = {
     if (!(name in local.meta.langs[lang].shards)) return [];
     const id = lang + '/' + name;
     if (!local.shards.has(id)) {
-      local.shards.set(id, local.fetchText(lang + '/' + encodeURIComponent(name) + '.json.gz').then(JSON.parse)
+      local.shards.set(id, local.fetchText(lang + '/' + shardFile(name) + '.json.gz').then(JSON.parse)
         .catch((e) => { local.shards.delete(id); throw e; }));
     }
     return (await local.shards.get(id))[key] || [];
@@ -585,7 +587,7 @@ const offline = {
     const out = [];
     for (const [lang, m] of Object.entries(local.meta.langs)) {
       out.push([lang + '-words.txt.gz', m.words], [lang + '-top.txt.gz', m.top]);
-      for (const [name, size] of Object.entries(m.shards)) out.push([lang + '/' + encodeURIComponent(name) + '.json.gz', size]);
+      for (const [name, size] of Object.entries(m.shards)) out.push([lang + '/' + shardFile(name) + '.json.gz', size]);
     }
     return out;
   },
@@ -751,6 +753,12 @@ async function paintOffline() {
   const m = local.meta.langs, text = $('#offText'), btn = $('#offBtn'), prog = $('#offProg');
   const counts = `${plural(m.en.count, 'английское слово', 'английских слова', 'английских слов')} и ${plural(m.ru.count, 'русское', 'русских', 'русских')}`;
   panel.hidden = false;
+  if (['127.0.0.1', 'localhost'].includes(location.hostname)) {   // Start-Lexikon.bat: the base is already on this computer
+    panel.classList.add('is-done');
+    text.innerHTML = `<b>Словарь установлен на этом компьютере</b> — ${counts}. Интернет не нужен.`;
+    btn.hidden = true; prog.hidden = true;
+    return;
+  }
   if (st.done === st.total) {
     panel.classList.add('is-done');
     text.innerHTML = `<b>Весь словарь на устройстве</b> — ${counts}. Интернет не нужен.`;
@@ -1007,7 +1015,7 @@ function renderFavorites() {
 function plural(n, one, few, many) {
   const m10 = n % 10, m100 = n % 100;
   const w = m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many;
-  return n + ' ' + w;
+  return n.toLocaleString('ru-RU') + ' ' + w;
 }
 
 function renderHistory() {

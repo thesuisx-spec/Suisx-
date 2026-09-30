@@ -1,6 +1,6 @@
 // Service worker: app shell offline, dictionary responses cached for words you have already opened.
-const VERSION = 'lex-v3';
-const SHELL = ['./', './index.html', './styles.css', './app.js', './icon.svg', './manifest.webmanifest'];
+const VERSION = 'lex-v4';
+const SHELL = ['./', './index.html', './styles.css', './app.js', './icon.svg', './manifest.webmanifest', './fonts/fonts.css'];
 const API_HOSTS = ['api.dictionaryapi.dev', 'en.wiktionary.org', 'api.datamuse.com'];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 

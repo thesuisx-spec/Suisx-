@@ -6,7 +6,7 @@ on:
   push:
     branches: [claude/falling-words-japanese-game-rnzfjp]
     paths:
-      - dictionary/tools/**
+      - dictionary/tools/build_dict.py
       - .github/workflows/build-dictionary.yml
   workflow_dispatch:
 
@@ -63,3 +63,14 @@ jobs:
           if git diff --cached --quiet; then echo "No changes"; exit 0; fi
           git commit -q -m "Build offline dictionary data from Wiktionary (kaikki.org)"
           git push origin HEAD:${GITHUB_REF_NAME}
+
+      - name: Package for Windows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          dictionary/tools/package_windows.sh
+          gh release delete lexikon --yes --cleanup-tag || true
+          gh release create lexikon Lexikon-Windows.zip \
+            --target "$(git rev-parse HEAD)" \
+            --title "Лексикон для Windows" \
+            --notes "Скачайте Lexikon-Windows.zip, распакуйте (правой кнопкой → «Извлечь все») и дважды щёлкните Start-Lexikon.bat. Интернет не нужен."
