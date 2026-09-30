@@ -1,0 +1,42 @@
+{
+  "name": "lexikon",
+  "productName": "Lexikon",
+  "version": "1.0.0",
+  "description": "Лексикон — англо-русский словарь, работает без интернета",
+  "author": "Suisx",
+  "license": "MIT",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis zip --x64 && electron-builder --win nsis --ia32 -c.nsis.artifactName=Lexikon-Setup-32bit.exe"
+  },
+  "devDependencies": {
+    "electron": "22.3.27",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "org.suisx.lexikon",
+    "productName": "Lexikon",
+    "copyright": "Словарные статьи: Wiktionary (CC BY-SA 4.0)",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "package.json"],
+    "extraResources": [
+      { "from": "../dictionary", "to": "dictionary", "filter": ["**/*", "!tools/**"] }
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "artifactName": "Lexikon-Portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Лексикон",
+      "uninstallDisplayName": "Лексикон — англо-русский словарь",
+      "artifactName": "Lexikon-Setup.exe"
+    }
+  }
+}

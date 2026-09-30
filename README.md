@@ -73,3 +73,14 @@ python3 dictionary/tools/build_dict.py      # скачивает English и Russ
 
 Данные из открытых источников: [Free Dictionary API](https://dictionaryapi.dev),
 [Wiktionary](https://en.wiktionary.org) (CC BY-SA 4.0), [Datamuse](https://www.datamuse.com/api/).
+
+## Программа для Windows 7, 8, 10, 11 (`desktop/`)
+
+Тот же словарь в собственном окне (Electron 22 — последняя версия с поддержкой Windows 7), база внутри, интернет не нужен.
+GitHub Actions собирают установщики на каждое изменение:
+
+- [Lexikon-Setup.exe](https://github.com/thesuisx-spec/Suisx-/releases/download/lexikon-app/Lexikon-Setup.exe) — установка в один клик, без прав администратора, ярлык на рабочем столе;
+- [Lexikon-Setup-32bit.exe](https://github.com/thesuisx-spec/Suisx-/releases/download/lexikon-app/Lexikon-Setup-32bit.exe) — для 32-битной Windows;
+- [Lexikon-Portable.zip](https://github.com/thesuisx-spec/Suisx-/releases/download/lexikon-app/Lexikon-Portable.zip) — без установки: распаковать и запустить `Lexikon.exe`.
+
+Локально: `cd desktop && npm install && npm start`.

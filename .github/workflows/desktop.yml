@@ -1,0 +1,56 @@
+name: Build Lexikon Windows app
+
+# Builds the Electron app (Windows 7+) and publishes it at permanent links:
+# https://github.com/thesuisx-spec/Suisx-/releases/download/lexikon-app/Lexikon-Setup.exe
+on:
+  push:
+    branches: [claude/falling-words-japanese-game-rnzfjp]
+    paths:
+      - desktop/**
+      - dictionary/**
+      - '!dictionary/tools/**'
+      - .github/workflows/desktop.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-app
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        working-directory: desktop
+        run: npm ci --no-audit --no-fund
+
+      - name: Build installers
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          npm run dist:win
+          ls -la dist
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete lexikon-app --yes --cleanup-tag || true
+          gh release create lexikon-app \
+            desktop/dist/Lexikon-Setup.exe desktop/dist/Lexikon-Setup-32bit.exe desktop/dist/Lexikon-Portable.zip \
+            --target "$GITHUB_SHA" \
+            --title "Лексикон — программа для Windows 7, 8, 10, 11" \
+            --notes "Lexikon-Setup.exe — установка в один клик (64-битная Windows, подходит почти всем). Lexikon-Setup-32bit.exe — для старых 32-битных Windows. Lexikon-Portable.zip — без установки: распакуйте и запустите Lexikon.exe. Интернет не нужен."

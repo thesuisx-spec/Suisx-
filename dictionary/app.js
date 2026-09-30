@@ -373,6 +373,8 @@ const TAG_RU = { m: 'м.', f: 'ж.', n: 'ср.', p: 'мн.', impf: 'несов.'
 const POS_EN = { adj: 'adjective', adv: 'adverb', pron: 'pronoun', prep: 'preposition', conj: 'conjunction', intj: 'interjection',
   det: 'determiner', num: 'number', abbrev: 'abbreviation', prep_phrase: 'prepositional phrase', affix: 'affix', infix: 'infix', circumfix: 'circumfix' };
 const posName = (p) => POS_EN[p] || (p || '').replace(/_/g, ' ');
+// Cache Storage only accepts http(s); the Windows app (app://) reads the base from disk anyway.
+const canCache = 'caches' in window && /^https?:$/.test(location.protocol);
 const AUDIO_BASE = 'https://upload.wikimedia.org/wikipedia/commons/';
 
 const local = {
@@ -392,15 +394,15 @@ const local = {
         clearTimeout(t);
         if (res.ok) {
           meta = await res.clone().json();
-          if ('caches' in window) (await caches.open('lex-meta')).put('data/meta.json', res);
+          if (canCache) (await caches.open('lex-meta')).put('data/meta.json', res);
         }
       } catch (e) {}
-      if (!meta && 'caches' in window) {
+      if (!meta && canCache) {
         const hit = await caches.open('lex-meta').then((c) => c.match('data/meta.json')).catch(() => null);
         if (hit) meta = await hit.json();
       }
       local.meta = meta;
-      if (meta && 'caches' in window) {   // drop data of older builds
+      if (meta && canCache) {   // drop data of older builds
         caches.keys().then((ks) => ks.filter((k) => k.startsWith('lex-data-') && k !== local.cacheName()).forEach((k) => caches.delete(k)));
       }
       return !!meta;
@@ -411,7 +413,7 @@ const local = {
   async fetchText(path) {
     const url = local.url(path);
     let res = null, cache = null;
-    if ('caches' in window) { cache = await caches.open(local.cacheName()); res = await cache.match(url); }
+    if (canCache) { cache = await caches.open(local.cacheName()); res = await cache.match(url); }
     if (!res) {
       res = await fetch(url);
       if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -575,7 +577,8 @@ function linkGloss(g) {
 const offline = {
   running: false,
   async status() {
-    if (!(await local.init()) || !('caches' in window)) return null;
+    if (!(await local.init())) return null;
+    if (!canCache) return { done: 0, total: 1, bytes: 0, totalBytes: local.meta.bytes || 0 };
     const files = offline.files();
     const cache = await caches.open(local.cacheName());
     const have = new Set((await cache.keys()).map((r) => new URL(r.url).pathname.split('/data/')[1]));
@@ -753,7 +756,7 @@ async function paintOffline() {
   const m = local.meta.langs, text = $('#offText'), btn = $('#offBtn'), prog = $('#offProg');
   const counts = `${plural(m.en.count, 'английское слово', 'английских слова', 'английских слов')} и ${plural(m.ru.count, 'русское', 'русских', 'русских')}`;
   panel.hidden = false;
-  if (['127.0.0.1', 'localhost'].includes(location.hostname)) {   // Start-Lexikon.bat: the base is already on this computer
+  if (location.protocol === 'app:' || ['127.0.0.1', 'localhost'].includes(location.hostname)) {   // Windows app / Start-Lexikon.bat: the base is already on this computer
     panel.classList.add('is-done');
     text.innerHTML = `<b>Словарь установлен на этом компьютере</b> — ${counts}. Интернет не нужен.`;
     btn.hidden = true; prog.hidden = true;
