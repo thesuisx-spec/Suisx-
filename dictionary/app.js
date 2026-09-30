@@ -500,18 +500,25 @@ const local = {
   async lookup(word) {
     if (!(await local.init())) return null;
     const lang = isCyr(word) ? 'ru' : 'en';
-    let ents = await local.entries(lang, word);
-    let formNote = ents.filter((x) => x.f).map((x) => ({ w: x.w, g: x.g, f: x.f }));
+    const ents = await local.entries(lang, word);
+    const formNote = [];
+    for (const x of ents) {
+      if (x.f) formNote.push({ w: x.w, g: x.g, f: x.f });
+      for (const f of x.fo || []) formNote.push({ w: x.w, g: f.g, f: f.f });
+    }
     let lemmas = ents.filter((x) => !x.f);
-    if (!lemmas.length && formNote.length) {   // "ran" → show "run"
-      lemmas = (await local.entries(lang, formNote[0].f)).filter((x) => !x.f);
+    // "went", "was", "ran": the word's own entries are rare homographs without translations → lead with the lemma.
+    const weak = lang === 'en' ? !lemmas.some((x) => x.tr) : !lemmas.length;
+    if (formNote.length && weak) {
+      const target = (await local.entries(lang, formNote[0].f)).filter((x) => !x.f);
+      if (target.length) lemmas = target.concat(lemmas);
     }
     if (lang === 'ru') return local.toRu(word, lemmas, formNote);
     return local.toEn(word, lemmas, formNote);
   },
 
   toEn(word, ents, formNote) {
-    const e = { word: ents[0]?.w || word, foreign: false, blocks: [], ipa: { uk: null, us: null, any: null }, audio: {}, trans: [], extra: [], rev: [], source: 'local', formNote };
+    const e = { word: ents[0]?.w || word, foreign: false, blocks: [], ipa: { uk: null, us: null, any: null }, audio: {}, trans: [], extra: [], rev: [], source: 'local', formNote, phrases: { pv: [], id: [] } };
     for (const x of ents) {
       e.blocks.push({ pos: posName(x.p), word: x.w,
         defs: (x.s || []).map((s) => ({ def: esc(s.g), ex: (s.e || []).map(esc), syn: s.sy || [], ant: [] })),
@@ -522,6 +529,9 @@ const local = {
         e.trans.push({ pos: posName(x.p), gloss: g.s, ru: g.w.map(([term, tags]) => ({ term, genders: (tags || []).map((t) => TAG_RU[t] || t), qual: '' })) });
       }
       if (x.tx) e.extra.push({ pos: posName(x.p), words: x.tx });
+      for (const kind of ['pv', 'id']) for (const [w, g] of (x.ph && x.ph[kind]) || []) {
+        if (!e.phrases[kind].some((p) => p[0] === w)) e.phrases[kind].push([w, g]);
+      }
     }
     e.found = e.blocks.length > 0;
     return e;
@@ -791,7 +801,7 @@ async function renderEntry(word) {
   const posList = [...new Set((e.foreign ? e.rev : e.blocks).map((b) => b.pos).filter(Boolean))];
   const prons = [];
   if (!e.foreign) {
-    const uk = e.ipa.uk || e.ipa.any, us = e.ipa.us || e.ipa.any;
+    const uk = e.ipa.uk || e.ipa.any || e.ipa.us, us = e.ipa.us || e.ipa.any || e.ipa.uk;
     prons.push(`<button class="pron" data-region="uk" type="button" title="Британское произношение"><span class="pron__region">UK</span><span class="pron__ipa">${esc(uk || '')}</span>${ICON.speaker}</button>`);
     prons.push(`<button class="pron" data-region="us" type="button" title="Американское произношение"><span class="pron__region pron__region--us">US</span><span class="pron__ipa">${esc(us || '')}</span>${ICON.speaker}</button>`);
   } else {
@@ -898,13 +908,24 @@ function defBlocks(blocks, word) {
   }).join('');
 }
 
+function phraseBlock(title, list, id) {
+  if (!list || !list.length) return '';
+  const LIMIT = 10;
+  return `<section class="posblock phr">
+    <div class="posblock__head"><span class="posblock__word">${title}</span><span class="posblock__pos">${list.length}</span></div>
+    <ul class="phrlist">${list.map(([w, g], i) => `<li${i >= LIMIT ? ` data-extra="ph${id}" hidden` : ''}><a href="${wordHref(w)}">${esc(w)}</a>${g ? `<span>${esc(g)}</span>` : ''}</li>`).join('')}</ul>
+    ${list.length > LIMIT ? `<div class="more"><button class="linkbtn" data-more="ph${id}" type="button">Показать все (${list.length})</button></div>` : ''}
+  </section>`;
+}
+
 function band(cls, code, title, srcUrl, srcName) {
   return `<div class="dict__band"><span class="dict__code">${code}</span><h2>${title}</h2>${srcUrl ? `<a class="dict__src" href="${esc(srcUrl)}" target="_blank" rel="noopener">${srcName}</a>` : ''}</div>`;
 }
 const wiktUrl = (e) => 'https://en.wiktionary.org/wiki/' + encodeURIComponent((e.wikiTitle || e.word).replace(/ /g, '_'));
 
 function enSection(e) {
-  const body = e.blocks.length ? defBlocks(e.blocks, e.word) : '<p class="note">Толкование для этого слова не найдено — посмотрите переводы ниже.</p>';
+  const body = (e.blocks.length ? defBlocks(e.blocks, e.word) : '<p class="note">Толкование для этого слова не найдено — посмотрите переводы ниже.</p>')
+    + phraseBlock('Фразовые глаголы', e.phrases && e.phrases.pv, 'pv') + phraseBlock('Выражения и идиомы', e.phrases && e.phrases.id, 'id');
   const src = e.source === 'freedict' ? ['https://dictionaryapi.dev', 'Free Dictionary'] : [wiktUrl(e) + '#English', 'Wiktionary'];
   return `<section class="card dict dict--en">${band('en', 'EN', 'Толковый словарь английского', src[0], src[1])}<div class="dict__body">${body}</div></section>`;
 }

@@ -86,9 +86,25 @@ def form_of(sense):
     return None
 
 
+# "simple past of go", "plural of service", "genitive singular of ко́шка" — also when the sense lacks form_of data.
+FORM_RE = re.compile(
+    r"^(?:[^.]*\b(?:plural|singular|past|participle|present|gerund|comparative|superlative|third-person|first-person|"
+    r"second-person|indicative|subjunctive|imperative|inflection|genitive|dative|accusative|instrumental|prepositional|"
+    r"nominative|locative|vocative|short|alternative (?:form|spelling)|obsolete (?:form|spelling)|archaic (?:form|spelling)|"
+    r"misspelling|eye dialect spelling|pronunciation spelling)\b[^.]*?) of ([^\s(,.;:]+(?: [^\s(,.;:]+){0,2})\s*\.?$", re.I)
+
+
+def form_target(sense):
+    t = form_of(sense)
+    if t:
+        return t
+    m = FORM_RE.match((sense.get('glosses') or [''])[-1].strip())
+    return m.group(1) if m else None
+
+
 def is_form_entry(e):
     senses = e.get('senses') or []
-    return bool(senses) and all(form_of(s) or 'form-of' in (s.get('tags') or []) for s in senses)
+    return bool(senses) and all(form_target(s) or 'form-of' in (s.get('tags') or []) for s in senses)
 
 
 def examples_en(sense):
@@ -176,14 +192,14 @@ def build_russian(src, tmp, freq_ru):
             w = canonical_ru(e)
             senses = e.get('senses') or []
             if is_form_entry(e):
-                tgt = form_of(senses[0]) or ''
+                tgt = form_target(senses[0]) or ''
                 out.add(key_of(e['word']), {'w': w, 'p': e.get('pos'), 'f': tgt, 'g': gloss_of(senses[0])[:120]})
                 words.add(e['word'])
                 continue
             ss = []
             for s in senses[:MAX_SENSES]:
                 g = gloss_of(s)
-                if not g or 'form-of' in (s.get('tags') or []):
+                if not g or 'form-of' in (s.get('tags') or []) or form_target(s):
                     continue
                 item = {'g': g}
                 ex = examples_ru(s)
@@ -203,7 +219,27 @@ def build_russian(src, tmp, freq_ru):
 
 
 # ---------- English pass ----------
-def build_english(src, tmp, inv):
+PARTICLES = {'up', 'out', 'off', 'in', 'on', 'away', 'down', 'over', 'back', 'through', 'around', 'round', 'about',
+             'into', 'along', 'across', 'by', 'for', 'with', 'after', 'forward', 'to', 'at', 'apart', 'aside', 'ahead',
+             'behind', 'onto', 'upon', 'without', 'against', 'from', 'of', 'together', 'under', 'it', 'oneself'}
+PHRASE_STOP = {'a', 'an', 'the', 'of', 'to', 'in', 'on', 'at', 'and', 'or', 'for', 'with', 'by', 'as', 'is', 'be', 'it',
+               "one's", 'one', 'oneself', 'someone', "someone's", 'something', 'somebody', 'sb', 'sth', 'not', 'no', 'your',
+               'my', 'his', 'her', 'their', 'its', 'our', 'from', 'up', 'out', 'off', 'into', 'over', 'down', 'all', 'that'}
+
+
+def phrase_refs(word, pos, gloss, has_tr, phrases):
+    toks = [t for t in re.split(r"[ ]+", key_of(word)) if t]
+    if len(toks) < 2:
+        return
+    kind = 'pv' if pos == 'verb' and all(t in PARTICLES for t in toks[1:]) else 'id'
+    g = re.sub(r'^(\([^)]*\)\s*)+', '', gloss)[:90]
+    for t in set(toks):
+        t = t.strip("'.,!?")
+        if t and t not in PHRASE_STOP and (kind == 'id' or t == toks[0]):
+            phrases[t].append((kind, word, g, has_tr))
+
+
+def build_english(src, tmp, inv, phrases):
     words, n = set(), 0
     with ShardWriter(os.path.join(tmp, 'en')) as out:
         for e in entries(src, 'en'):
@@ -214,14 +250,19 @@ def build_english(src, tmp, inv):
             if not k:
                 continue
             if is_form_entry(e):
-                out.add(k, {'w': e['word'], 'p': e.get('pos'), 'f': form_of(senses[0]) or '', 'g': gloss_of(senses[0])[:140]})
+                out.add(k, {'w': e['word'], 'p': e.get('pos'), 'f': form_target(senses[0]) or '', 'g': gloss_of(senses[0])[:140]})
                 words.add(e['word'])
                 continue
             live = [s for s in senses if 'obsolete' not in (s.get('tags') or [])] or senses
-            ss = []
+            ss, fo = [], []
             for s in live[:MAX_SENSES]:
                 g = gloss_of(s)
                 if not g:
+                    continue
+                t = form_target(s)
+                if t:   # "was": first-person singular simple past of be
+                    if key_of(t) != k and all(key_of(x['f']) != key_of(t) for x in fo) and len(fo) < 3:
+                        fo.append({'g': g[:140], 'f': t})
                     continue
                 item = {'g': g}
                 ex = examples_en(s)
@@ -232,8 +273,13 @@ def build_english(src, tmp, inv):
                     item['sy'] = sy
                 ss.append(item)
             if not ss:
+                if fo:
+                    out.add(k, {'w': e['word'], 'p': e.get('pos'), 'f': fo[0]['f'], 'g': fo[0]['g']})
+                    words.add(e['word'])
                 continue
             ent = {'w': e['word'], 'p': e.get('pos'), 's': ss}
+            if fo:
+                ent['fo'] = fo
             ipa = ipa_of(e)
             if ipa:
                 ent['i'] = ipa
@@ -257,13 +303,14 @@ def build_english(src, tmp, inv):
             if groups:
                 ent['tr'] = [{'s': s, 'w': ws[:16]} for s, ws in groups.items()]
             extra = sorted(((w, sc) for (w, p), sc in inv.get(k, {}).items() if p == e.get('pos')), key=lambda x: -x[1])
-            extra = list(dict.fromkeys(w for w, _ in extra if key_of(w) not in seen))[:12]
+            extra = list(dict.fromkeys(w for w, _ in extra if key_of(w) not in seen))[:6 if groups else 12]
             if extra:
                 ent['tx'] = extra
             for fld, src_key in (('sy', 'synonyms'), ('an', 'antonyms')):
                 v = nyms(e.get(src_key), 12)
                 if v:
                     ent[fld] = v
+            phrase_refs(e['word'], e.get('pos'), ss[0]['g'], bool(groups), phrases)
             out.add(k, ent)
             words.add(e['word'])
             n += 1
@@ -294,7 +341,25 @@ class ShardWriter:
         f.write(json.dumps([key, ent], ensure_ascii=False, separators=(',', ':')) + '\n')
 
 
-def finish_shards(tmpdir, outdir):
+def attach_phrases(k, ents, phrases):
+    refs = phrases.get(k)
+    target = next((x for x in ents if 'f' not in x), None)
+    if not refs or not target:
+        return
+    out = {}
+    for kind in ('pv', 'id'):
+        items = {}
+        for kd, w, g, has_tr in refs:
+            if kd == kind and key_of(w) != k and w not in items:
+                items[w] = (not has_tr, len(w), g)
+        best = sorted(items.items(), key=lambda x: x[1][:2])[:40]
+        if best:
+            out[kind] = [[w, v[2]] for w, v in best]
+    if out:
+        target['ph'] = out
+
+
+def finish_shards(tmpdir, outdir, phrases=None):
     os.makedirs(outdir, exist_ok=True)
     shards, split = {}, []
     for fn in sorted(os.listdir(tmpdir)):
@@ -307,6 +372,8 @@ def finish_shards(tmpdir, outdir):
         # Put the most frequent spelling first when several entries share a key (e.g. "Polish" / "polish").
         for k, ents in groups.items():
             ents.sort(key=lambda x: (x['w'] != k, 'f' in x))
+            if phrases:
+                attach_phrases(k, ents, phrases)
         raw = os.path.getsize(os.path.join(tmpdir, fn))
         if raw > SPLIT_BYTES:
             split.append(p2)
@@ -352,7 +419,9 @@ def main():
         print('Russian pass', file=sys.stderr)
         ru_words, inv = build_russian(args.ru, tmp, freq_ru)
         print('English pass', file=sys.stderr)
-        en_words = build_english(args.en, tmp, inv)
+        phrases = collections.defaultdict(list)
+        en_words = build_english(args.en, tmp, inv, phrases)
+        print(f'  phrases indexed under {len(phrases):,} words', file=sys.stderr)
         del inv
 
         if os.path.isdir(out):
@@ -360,11 +429,11 @@ def main():
                 if d != args.version and os.path.isdir(os.path.join(out, d)):
                     shutil.rmtree(os.path.join(out, d))
         shutil.rmtree(ver_dir, ignore_errors=True)
-        meta = {'version': args.version, 'built': datetime.datetime.utcnow().isoformat(timespec='seconds') + 'Z',
+        meta = {'version': args.version, 'built': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'source': 'Wiktionary via kaikki.org (CC BY-SA 4.0)', 'langs': {}}
         for lang, words, top in (('en', en_words, top_en), ('ru', ru_words, top_ru)):
             print(f'Writing {lang} shards', file=sys.stderr)
-            shards, split = finish_shards(os.path.join(tmp, lang), os.path.join(ver_dir, lang))
+            shards, split = finish_shards(os.path.join(tmp, lang), os.path.join(ver_dir, lang), phrases if lang == 'en' else None)
             wl = sorted(words, key=lambda w: (key_of(w), w))
             present = {key_of(w) for w in words}
             top_present = [w for w in top if key_of(w) in present][:40000]

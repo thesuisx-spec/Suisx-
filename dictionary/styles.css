@@ -307,6 +307,15 @@ body.is-home .search--compact { visibility: hidden; }
 .nyms .chip { padding: 3px 10px; font-size: 13px; }
 .nyms--ant .chip { background: color-mix(in srgb, var(--band-ru) 10%, var(--card)); }
 
+/* Phrasal verbs & idioms */
+.phrlist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.phrlist li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 7px 0; border-bottom: 1px dashed var(--line-soft); }
+.phrlist li:last-child { border-bottom: 0; }
+.phrlist a { font: 600 17px var(--serif); color: var(--ink); text-decoration: none; }
+.phrlist a:hover { color: var(--link); text-decoration: underline; }
+.phrlist span { color: var(--ink-soft); font-size: 14px; }
+.posblock.phr .posblock__pos { font-style: normal; font-family: var(--sans); font-size: 12px; font-weight: 700; color: var(--ink-faint); }
+
 /* Translations */
 .tgroup { padding: 14px 0; border-bottom: 1px solid var(--line-soft); }
 .tgroup:last-child { border-bottom: 0; }
