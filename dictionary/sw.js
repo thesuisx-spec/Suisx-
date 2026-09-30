@@ -1,5 +1,5 @@
 // Service worker: app shell offline, dictionary responses cached for words you have already opened.
-const VERSION = 'lex-v2';
+const VERSION = 'lex-v3';
 const SHELL = ['./', './index.html', './styles.css', './app.js', './icon.svg', './manifest.webmanifest'];
 const API_HOSTS = ['api.dictionaryapi.dev', 'en.wiktionary.org', 'api.datamuse.com'];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
@@ -11,7 +11,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => !k.startsWith(VERSION)).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('lex-v') && !k.startsWith(VERSION)).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -45,6 +45,9 @@ self.addEventListener('fetch', (e) => {
     );
     return;
   }
+
+  // Dictionary data is cached by the page itself (lex-data-<version>), so the worker leaves it alone.
+  if (url.origin === self.location.origin && url.pathname.includes('/data/')) return;
 
   if (url.origin === self.location.origin) {
     // Stale-while-revalidate for the shell.

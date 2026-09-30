@@ -10,6 +10,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const wordHref = (w) => '#/w/' + encodeURIComponent(w);
 const norm = (s) => String(s || '').trim().replace(/\s+/g, ' ');
 const isCyr = (s) => /[Ѐ-ӿ]/.test(s);
+const noStress = (s) => s.normalize('NFD').replace(/\u0301/g, '').normalize('NFC');
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
 const ICON = {
@@ -273,8 +274,16 @@ function cleanWikiHTML(html) {
 const cache = new Map();
 function lookup(word) {
   const key = word.toLowerCase();
-  if (!cache.has(key)) cache.set(key, doLookup(word).catch((e) => { cache.delete(key); throw e; }));
+  if (!cache.has(key)) cache.set(key, lookupAny(word).catch((e) => { cache.delete(key); throw e; }));
   return cache.get(key);
+}
+
+// Offline data first; the online sources are only a fallback for words the local base does not have.
+async function lookupAny(word) {
+  const loc = await local.lookup(word).catch(() => null);
+  if (loc && loc.found) return loc;
+  if (loc && !navigator.onLine) return loc;
+  try { return await doLookup(word); } catch (e) { if (loc) return loc; throw e; }
 }
 
 async function doLookup(word) {
@@ -286,7 +295,7 @@ async function doLookup(word) {
   ]);
   if (!fd.ok && !wt.ok && !wd.ok) throw fd.e || wt.e || wd.e;
 
-  const entry = { word, foreign, blocks: [], ipa: { uk: null, us: null, any: null }, audio: {}, trans: [], rev: [], source: 'freedict' };
+  const entry = { word, foreign, blocks: [], ipa: { uk: null, us: null, any: null }, audio: {}, trans: [], extra: [], rev: [], formNote: [], source: 'freedict' };
 
   // Definitions: Free Dictionary API
   if (fd.ok && Array.isArray(fd.v)) {
@@ -355,6 +364,239 @@ async function doLookup(word) {
   return entry;
 }
 
+/* ============ Offline dictionary (data/ built by tools/build_dict.py) ============ */
+const keyOf = (w) => String(w || '').toLowerCase().replace(/ё/g, 'е').normalize('NFD').replace(/\p{M}/gu, '').normalize('NFC').trim();
+const safePrefix = (k, n) => [...k.padEnd(n, '_').slice(0, n)].map((c) => (/[a-z0-9а-я]/.test(c) ? c : '_')).join('');
+const TAG_RU = { m: 'м.', f: 'ж.', n: 'ср.', p: 'мн.', impf: 'несов.', pf: 'сов.', an: 'одуш.', colloq: 'разг.', formal: 'офиц.', informal: 'неформ.' };
+const POS_EN = { adj: 'adjective', adv: 'adverb', pron: 'pronoun', prep: 'preposition', conj: 'conjunction', intj: 'interjection',
+  det: 'determiner', num: 'number', abbrev: 'abbreviation', prep_phrase: 'prepositional phrase', affix: 'affix', infix: 'infix', circumfix: 'circumfix' };
+const posName = (p) => POS_EN[p] || (p || '').replace(/_/g, ' ');
+const AUDIO_BASE = 'https://upload.wikimedia.org/wikipedia/commons/';
+
+const local = {
+  meta: null,
+  ready: null,
+  shards: new Map(),
+  lists: new Map(),
+  cacheName: () => 'lex-data-' + local.meta.version,
+  url: (path) => 'data/' + local.meta.version + '/' + path,
+
+  init() {
+    if (!local.ready) local.ready = (async () => {
+      let meta = null;
+      try {
+        const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 5000);
+        const res = await fetch('data/meta.json', { cache: 'no-cache', signal: ctl.signal });
+        clearTimeout(t);
+        if (res.ok) {
+          meta = await res.clone().json();
+          if ('caches' in window) (await caches.open('lex-meta')).put('data/meta.json', res);
+        }
+      } catch (e) {}
+      if (!meta && 'caches' in window) {
+        const hit = await caches.open('lex-meta').then((c) => c.match('data/meta.json')).catch(() => null);
+        if (hit) meta = await hit.json();
+      }
+      local.meta = meta;
+      if (meta && 'caches' in window) {   // drop data of older builds
+        caches.keys().then((ks) => ks.filter((k) => k.startsWith('lex-data-') && k !== local.cacheName()).forEach((k) => caches.delete(k)));
+      }
+      return !!meta;
+    })();
+    return local.ready;
+  },
+
+  async fetchText(path) {
+    const url = local.url(path);
+    let res = null, cache = null;
+    if ('caches' in window) { cache = await caches.open(local.cacheName()); res = await cache.match(url); }
+    if (!res) {
+      res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (cache) cache.put(url, res.clone()).catch(() => {});
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf[0] === 0x1f && buf[1] === 0x8b) {   // raw .gz (servers that already decoded it skip this)
+      const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+      return await new Response(stream).text();
+    }
+    return new TextDecoder().decode(buf);
+  },
+
+  shardOf(lang, key) {
+    const p2 = safePrefix(key, 2);
+    return local.meta.langs[lang].split.includes(p2) ? safePrefix(key, 3) : p2;
+  },
+
+  async entries(lang, word) {
+    const key = keyOf(word);
+    if (!key) return [];
+    const name = local.shardOf(lang, key);
+    if (!(name in local.meta.langs[lang].shards)) return [];
+    const id = lang + '/' + name;
+    if (!local.shards.has(id)) {
+      local.shards.set(id, local.fetchText(lang + '/' + encodeURIComponent(name) + '.json.gz').then(JSON.parse)
+        .catch((e) => { local.shards.delete(id); throw e; }));
+    }
+    return (await local.shards.get(id))[key] || [];
+  },
+
+  list(lang, kind) {
+    const id = lang + '-' + kind;
+    if (!local.lists.has(id)) {
+      local.lists.set(id, local.fetchText(id + '.txt.gz').then((t) => t.split('\n'))
+        .catch((e) => { local.lists.delete(id); throw e; }));
+    }
+    return local.lists.get(id);
+  },
+
+  async rankMap(lang) {
+    const id = lang + '-rank';
+    if (!local.lists.has(id)) local.lists.set(id, local.list(lang, 'top').then((l) => new Map(l.map((w, i) => [keyOf(w), i]))));
+    return local.lists.get(id);
+  },
+
+  async suggest(q, n = 8) {
+    const lang = isCyr(q) ? 'ru' : 'en';
+    const [words, rank] = await Promise.all([local.list(lang, 'words'), local.rankMap(lang)]);
+    const k = keyOf(q);
+    let lo = 0, hi = words.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (keyOf(words[mid]) < k) lo = mid + 1; else hi = mid; }
+    const hits = [];
+    for (let i = lo; i < words.length && hits.length < 400; i++) {
+      const wk = keyOf(words[i]);
+      if (!wk.startsWith(k)) break;
+      hits.push(words[i]);
+    }
+    const score = (w) => (keyOf(w) === k ? -1 : rank.get(keyOf(w)) ?? 1e6 + w.length);
+    return [...new Set(hits.sort((a, b) => score(a) - score(b)))].slice(0, n);
+  },
+
+  // Words spelled almost the same (for "not found").
+  async similar(q, n = 10) {
+    const lang = isCyr(q) ? 'ru' : 'en';
+    const [words, rank] = await Promise.all([local.list(lang, 'words'), local.rankMap(lang)]);
+    const k = keyOf(q);
+    const dist = (a, b) => {
+      if (Math.abs(a.length - b.length) > 2) return 9;
+      let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+      for (let i = 1; i <= a.length; i++) {
+        const cur = [i];
+        for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        prev = cur;
+      }
+      return prev[b.length];
+    };
+    const out = [];
+    for (const w of words) {
+      const wk = keyOf(w);
+      if (wk[0] !== k[0] && wk[1] !== k[1]) continue;
+      const d = dist(k, wk);
+      if (d <= 2 && wk !== k) out.push([w, d * 1e6 + (rank.get(wk) ?? 5e5)]);
+    }
+    return out.sort((a, b) => a[1] - b[1]).slice(0, n).map((x) => x[0]);
+  },
+
+  async lookup(word) {
+    if (!(await local.init())) return null;
+    const lang = isCyr(word) ? 'ru' : 'en';
+    let ents = await local.entries(lang, word);
+    let formNote = ents.filter((x) => x.f).map((x) => ({ w: x.w, g: x.g, f: x.f }));
+    let lemmas = ents.filter((x) => !x.f);
+    if (!lemmas.length && formNote.length) {   // "ran" → show "run"
+      lemmas = (await local.entries(lang, formNote[0].f)).filter((x) => !x.f);
+    }
+    if (lang === 'ru') return local.toRu(word, lemmas, formNote);
+    return local.toEn(word, lemmas, formNote);
+  },
+
+  toEn(word, ents, formNote) {
+    const e = { word: ents[0]?.w || word, foreign: false, blocks: [], ipa: { uk: null, us: null, any: null }, audio: {}, trans: [], extra: [], rev: [], source: 'local', formNote };
+    for (const x of ents) {
+      e.blocks.push({ pos: posName(x.p), word: x.w,
+        defs: (x.s || []).map((s) => ({ def: esc(s.g), ex: (s.e || []).map(esc), syn: s.sy || [], ant: [] })),
+        syn: x.sy || [], ant: x.an || [] });
+      if (x.i) { e.ipa.uk = e.ipa.uk || x.i.uk || null; e.ipa.us = e.ipa.us || x.i.us || null; e.ipa.any = e.ipa.any || x.i.x || null; }
+      if (x.a) for (const r of ['uk', 'us']) if (x.a[r] && !e.audio[r]) e.audio[r] = x.a[r].replace(/^~/, AUDIO_BASE);
+      for (const g of x.tr || []) {
+        e.trans.push({ pos: posName(x.p), gloss: g.s, ru: g.w.map(([term, tags]) => ({ term, genders: (tags || []).map((t) => TAG_RU[t] || t), qual: '' })) });
+      }
+      if (x.tx) e.extra.push({ pos: posName(x.p), words: x.tx });
+    }
+    e.found = e.blocks.length > 0;
+    return e;
+  },
+
+  toRu(word, ents, formNote) {
+    const e = { word: ents[0]?.w || word, foreign: true, blocks: [], ipa: {}, audio: {}, trans: [], extra: [], rev: [], source: 'local', formNote, revLangName: 'Russian' };
+    for (const x of ents) {
+      e.rev.push({ pos: posName(x.p), word: x.w,
+        defs: (x.s || []).map((s) => ({ def: linkGloss(s.g),
+          ex: (s.e || []).map(([ru, en]) => esc(ru) + (en ? ` <span class="ex__tr">— ${esc(en)}</span>` : '')), syn: [], ant: [] })),
+        syn: [], ant: [] });
+    }
+    e.found = e.rev.length > 0;
+    return e;
+  },
+};
+
+// "cat, she-cat" → links to both English words; longer glosses stay plain text.
+function linkGloss(g) {
+  const m = g.match(/^((?:\([^)]*\)\s*)*)(.*)$/);
+  const label = m[1], rest = m[2];
+  const parts = rest.split(/([;,]\s*)/);
+  const simple = parts.every((p, i) => i % 2 === 1 || /^(to\s+)?[A-Za-z][A-Za-z' -]{0,30}$/.test(p.trim()) && p.trim().split(/\s+/).length <= 4);
+  const body = simple
+    ? parts.map((p, i) => (i % 2 ? esc(p) : `<a href="${wordHref(p.trim().replace(/^to\s+/, ''))}">${esc(p)}</a>`)).join('')
+    : esc(rest);
+  return (label ? `<i>${esc(label.trim())}</i> ` : '') + body;
+}
+
+// Downloads every shard into the data cache so the whole dictionary works offline.
+const offline = {
+  running: false,
+  async status() {
+    if (!(await local.init()) || !('caches' in window)) return null;
+    const files = offline.files();
+    const cache = await caches.open(local.cacheName());
+    const have = new Set((await cache.keys()).map((r) => new URL(r.url).pathname.split('/data/')[1]));
+    let done = 0, bytes = 0;
+    for (const [path, size] of files) if (have.has(local.meta.version + '/' + path)) { done++; bytes += size; }
+    return { done, total: files.length, bytes, totalBytes: files.reduce((s, f) => s + f[1], 0) };
+  },
+  files() {
+    const out = [];
+    for (const [lang, m] of Object.entries(local.meta.langs)) {
+      out.push([lang + '-words.txt.gz', m.words], [lang + '-top.txt.gz', m.top]);
+      for (const [name, size] of Object.entries(m.shards)) out.push([lang + '/' + encodeURIComponent(name) + '.json.gz', size]);
+    }
+    return out;
+  },
+  async downloadAll(onProgress) {
+    if (offline.running) return;
+    offline.running = true;
+    try {
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+      const cache = await caches.open(local.cacheName());
+      const files = offline.files();
+      const total = files.reduce((s, f) => s + f[1], 0);
+      let bytes = 0, i = 0, failed = 0;
+      const worker = async () => {
+        while (i < files.length) {
+          const [path, size] = files[i++];
+          const url = local.url(path);
+          try { if (!(await cache.match(url))) await cache.add(url); } catch (e) { failed++; }
+          bytes += size;
+          onProgress && onProgress(bytes, total);
+        }
+      };
+      await Promise.all([worker(), worker(), worker(), worker()]);
+      if (failed) throw new Error(failed + ' files failed');
+    } finally { offline.running = false; }
+  },
+};
+const mb = (b) => (b / 1048576).toFixed(b < 10485760 ? 1 : 0).replace('.', ',') + ' МБ';
+
 /* ============ Speech ============ */
 let currentAudio = null;
 function speak(text, lang, btn) {
@@ -396,7 +638,7 @@ const RU_POS = { noun: 'существительное', verb: 'глагол', a
   preposition: 'предлог', conjunction: 'союз', interjection: 'междометие', determiner: 'определитель', article: 'артикль',
   numeral: 'числительное', particle: 'частица', phrase: 'фраза', 'proper noun': 'имя собственное', prefix: 'приставка',
   suffix: 'суффикс', idiom: 'идиома', exclamation: 'восклицание', abbreviation: 'сокращение', 'prepositional phrase': 'предложная фраза',
-  contraction: 'стяжение', proverb: 'пословица', symbol: 'символ' };
+  contraction: 'стяжение', proverb: 'пословица', symbol: 'символ', number: 'числительное', affix: 'аффикс' };
 const ruPos = (p) => RU_POS[(p || '').toLowerCase()] || (p || '').toLowerCase();
 
 function scopeChips() {
@@ -449,6 +691,12 @@ function renderHome() {
         <a class="btn" href="${wordHref(w)}">Открыть статью ${ICON.arrow}</a>
       </article>
       <div style="display:flex;flex-direction:column;gap:24px">
+        <section class="card panel offline fade-in" id="offlinePanel" hidden>
+          <h2 class="panel__title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19.5h14"/></svg> Офлайн-словарь</h2>
+          <p class="offline__text" id="offText"></p>
+          <div class="progress" id="offProg" hidden><div class="progress__bar"></div></div>
+          <button class="btn" id="offBtn" type="button" hidden></button>
+        </section>
         <section class="card panel fade-in">
           <h2 class="panel__title">${ICON.clock} Недавние ${hist.length ? '<a href="#/history">Вся история</a>' : ''}</h2>
           ${hist.length ? `<div class="chips">${hist.map((h) => `<a class="chip" href="${wordHref(h.word)}">${esc(h.word)}</a>`).join('')}</div>` : '<p class="empty">Здесь появятся слова, которые вы искали.</p>'}
@@ -467,6 +715,7 @@ function renderHome() {
     </div>`;
   setupSearch($('#heroSearch'));
   bindScopes(app);
+  paintOffline();
 
   lookup(w).then((e) => {
     const def = $('#wotdDef'); if (!def) return;
@@ -476,6 +725,40 @@ function renderHome() {
     const ipa = e.ipa.uk || e.ipa.any;
     $('#wotdMeta').innerHTML = (b ? `<span class="pos">${esc(b.pos)}</span>` : '') + (ipa ? `<span class="pron__ipa">${esc(ipa)}</span>` : '');
   }).catch(() => { const def = $('#wotdDef'); if (def) { def.classList.remove('is-loading'); def.textContent = 'Нет соединения — определение появится, когда вы будете онлайн.'; } });
+}
+
+async function paintOffline() {
+  const panel = $('#offlinePanel');
+  const st = await offline.status().catch(() => null);
+  if (!panel || !panel.isConnected || !st) return;
+  const m = local.meta.langs, text = $('#offText'), btn = $('#offBtn'), prog = $('#offProg');
+  const counts = `${plural(m.en.count, 'английское слово', 'английских слова', 'английских слов')} и ${plural(m.ru.count, 'русское', 'русских', 'русских')}`;
+  panel.hidden = false;
+  if (st.done === st.total) {
+    panel.classList.add('is-done');
+    text.innerHTML = `<b>Весь словарь на устройстве</b> — ${counts}. Интернет не нужен.`;
+    btn.hidden = true; prog.hidden = true;
+    return;
+  }
+  text.innerHTML = `В словаре ${counts}. Скачайте его целиком, чтобы искать без интернета.` +
+    (st.bytes ? `<br><small>Уже сохранено ${mb(st.bytes)} из ${mb(st.totalBytes)}.</small>` : '');
+  btn.hidden = false;
+  btn.textContent = (st.bytes ? 'Докачать' : 'Скачать весь словарь') + ' · ' + mb(st.totalBytes - st.bytes);
+  btn.onclick = async () => {
+    btn.disabled = true; prog.hidden = false;
+    const bar = $('.progress__bar', prog);
+    try {
+      await offline.downloadAll((b, t) => {
+        bar.style.width = (100 * b / t).toFixed(1) + '%';
+        btn.textContent = 'Скачиваем… ' + Math.floor(100 * b / t) + '%';
+      });
+      toast('Словарь сохранён — теперь он работает без интернета');
+    } catch (e) {
+      toast('Не всё скачалось — нажмите ещё раз, чтобы докачать');
+    }
+    btn.disabled = false;
+    paintOffline();
+  };
 }
 
 function skeleton() {
@@ -537,6 +820,7 @@ async function renderEntry(word) {
           </div>
           ${posList.length ? `<div class="pos-list">${posList.map((p) => `<span class="pos">${esc(p)}</span>`).join('')}</div>` : ''}
           <div class="prons">${prons.join('')}</div>
+          ${e.formNote && e.formNote.length ? `<div class="formnote">${e.formNote.map((f) => `<p><b>${esc(f.w)}</b> — ${esc(f.g)}${keyOf(f.f) !== keyOf(e.word) ? ` → <a href="${wordHref(noStress(f.f))}">${esc(f.f)}</a>` : ''}</p>`).join('')}</div>` : ''}
         </article>
         ${e.foreign ? '' : scopeChips().replace('class="scopes"', 'class="scopes" style="justify-content:flex-start;margin-top:18px"')}
         <div id="sections">${sections.join('')}</div>
@@ -575,7 +859,8 @@ async function renderEntry(word) {
     bindSections(e);
   });
 
-  if (!e.foreign) api.related(e.word).then((list) => {
+  const syns = [...new Set(e.blocks.flatMap((b) => [...b.syn, ...b.defs.flatMap((d) => d.syn)]))];
+  if (!e.foreign) (syns.length || e.source === 'local' ? Promise.resolve(syns.slice(0, 16)) : api.related(e.word)).then((list) => {
     const el = $('#related'); if (!el || seq !== renderSeq) return;
     if (!list.length) { $('#relatedPanel').hidden = true; return; }
     el.innerHTML = list.map((w) => `<a class="chip" href="${wordHref(w)}">${esc(w)}</a>`).join('');
@@ -605,7 +890,7 @@ function defBlocks(blocks, word) {
         ${nyms('Синонимы', d.syn)}${nyms('Антонимы', d.ant, 'nyms--ant')}
       </li>`).join('');
     return `<section class="posblock">
-      <div class="posblock__head"><span class="posblock__word">${esc(word)}</span><span class="posblock__pos">${esc(b.pos)}</span></div>
+      <div class="posblock__head"><span class="posblock__word">${esc(b.word || word)}</span><span class="posblock__pos">${esc(b.pos)}</span></div>
       <ol class="senses">${senses}</ol>
       ${b.defs.length > LIMIT ? `<div class="more"><button class="linkbtn" data-more="b${bi}" type="button">Ещё ${b.defs.length - LIMIT} значений</button></div>` : ''}
       ${nyms('Синонимы', b.syn)}${nyms('Антонимы', b.ant, 'nyms--ant')}
@@ -620,16 +905,17 @@ const wiktUrl = (e) => 'https://en.wiktionary.org/wiki/' + encodeURIComponent((e
 
 function enSection(e) {
   const body = e.blocks.length ? defBlocks(e.blocks, e.word) : '<p class="note">Толкование для этого слова не найдено — посмотрите переводы ниже.</p>';
-  const src = e.source === 'wiktionary' ? [wiktUrl(e) + '#English', 'Wiktionary'] : ['https://dictionaryapi.dev', 'Free Dictionary'];
+  const src = e.source === 'freedict' ? ['https://dictionaryapi.dev', 'Free Dictionary'] : [wiktUrl(e) + '#English', 'Wiktionary'];
   return `<section class="card dict dict--en">${band('en', 'EN', 'Толковый словарь английского', src[0], src[1])}<div class="dict__body">${body}</div></section>`;
 }
 
 function transSection(e, lang) {
   const groups = e.trans.filter((g) => g[lang].length || g.see);
+  const extra = (e.extra || []).filter((x) => x.words.length);
   const title = 'Англо-русский словарь';
   const code = 'EN · RU';
   let body;
-  if (!groups.some((g) => g[lang].length) && !groups.some((g) => g.see)) {
+  if (!groups.some((g) => g[lang].length) && !groups.some((g) => g.see) && !extra.length) {
     body = `<p class="note">Переводы на русский для «${esc(e.word)}» пока не найдены в открытых источниках.</p>`;
   } else {
     const LIMIT = 8;
@@ -637,12 +923,16 @@ function transSection(e, lang) {
       <div class="tgroup"${i >= LIMIT ? ` data-extra="t${lang}" hidden` : ''}>
         <div class="tgroup__gloss">${g.pos ? `<span class="pos">${esc(ruPos(g.pos))}</span>` : ''}<span class="tgroup__text">${esc(g.gloss)}</span></div>
         ${g.see ? `<p class="note" style="margin:0">Переводы — в статье <a href="${wordHref(g.see)}">${esc(g.see)}</a></p>` : `<div class="tlist">${g[lang].map((t) => tword(t)).join('')}</div>`}
-      </div>`).join('') + (groups.length > LIMIT ? `<div class="more"><button class="linkbtn" data-more="t${lang}" type="button">Ещё ${groups.length - LIMIT} значений</button></div>` : '');
+      </div>`).join('') + (groups.length > LIMIT ? `<div class="more"><button class="linkbtn" data-more="t${lang}" type="button">Ещё ${groups.length - LIMIT} значений</button></div>` : '')
+      + extra.map((x) => `
+      <div class="tgroup">
+        <div class="tgroup__gloss"><span class="pos">${esc(ruPos(x.pos))}</span><span class="tgroup__text">${groups.length ? 'Ещё переводы' : 'Переводы'}</span></div>
+        <div class="tlist">${x.words.map((w) => tword({ term: w, genders: [], qual: '' })).join('')}</div>
+      </div>`).join('');
   }
   return `<section class="card dict dict--${lang}">${band(lang, code, title, wiktUrl(e) + '#Translations', 'Wiktionary')}<div class="dict__body">${body}</div></section>`;
 }
 
-const noStress = (s) => s.normalize('NFD').replace(/́/g, '').normalize('NFC');
 function tword(t) {
   const plain = noStress(t.term);
   const say = `<button class="tword__say" type="button" data-text="${esc(plain)}" data-lang="ru-RU" title="Произнести" aria-label="Произнести">${ICON.speaker}</button>`;
@@ -660,7 +950,9 @@ async function renderNotFound(word, seq) {
   app.innerHTML = `<div class="emptystate fade-in"><div class="emptystate__art">?</div>
     <h2>«${esc(word)}» не найдено</h2><p>Проверьте написание или выберите похожее слово.</p>
     <div class="chips" id="spell" style="justify-content:center"></div></div>`;
-  const list = isCyr(word) ? await api.suggest(word).catch(() => []) : await api.spell(word).catch(() => []);
+  const list = (await local.init())
+    ? await local.similar(word).catch(() => [])
+    : isCyr(word) ? await api.suggest(word).catch(() => []) : await api.spell(word).catch(() => []);
   if (seq !== renderSeq) return;
   $('#spell').innerHTML = list.filter((w) => w.toLowerCase() !== word.toLowerCase()).map((w) => `<a class="chip" href="${wordHref(w)}">${esc(w)}</a>`).join('') || '<a class="btn btn--ghost" href="#/">На главную</a>';
 }
@@ -737,7 +1029,7 @@ function setupSearch(form) {
     const ql = q.toLowerCase();
     const recent = history.all().filter((h) => h.word.toLowerCase().startsWith(ql)).slice(0, 3).map((h) => ({ word: h.word, recent: true }));
     items = recent; sel = -1; paint(q);
-    const remote = await api.suggest(q).catch(() => []);
+    const remote = (await local.init()) ? await local.suggest(q).catch(() => []) : await api.suggest(q).catch(() => []);
     if (id !== reqId || input.value.trim() !== q) return;
     const seen = new Set(recent.map((r) => r.word.toLowerCase()));
     items = recent.concat(remote.filter((w) => !seen.has(w.toLowerCase())).map((w) => ({ word: w }))).slice(0, 9);

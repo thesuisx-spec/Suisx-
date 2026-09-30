@@ -330,6 +330,21 @@ body.is-home .search--compact { visibility: hidden; }
 .more { margin-top: 12px; }
 .linkbtn { border: 0; background: none; color: var(--link); cursor: pointer; font-weight: 600; font-size: 14px; padding: 4px 0; }
 
+/* Word forms ("ran" → run) */
+.formnote { margin-top: 16px; padding: 10px 14px; border-radius: 12px; background: var(--accent-soft); font-size: 15px; }
+.formnote p { margin: 2px 0; }
+.ex__tr { font-style: normal; font-family: var(--sans); font-size: 14px; color: var(--ink-faint); }
+
+/* Offline download */
+.offline__text { margin: 0 0 14px; font-size: 15px; color: var(--ink-soft); }
+.offline__text b { color: var(--ink); }
+.offline__text small { color: var(--ink-faint); }
+.offline.is-done { background: linear-gradient(135deg, var(--card), color-mix(in srgb, var(--pos) 10%, var(--card))); }
+.offline.is-done .offline__text { margin: 0; }
+.progress { height: 8px; border-radius: 999px; background: var(--paper-2); overflow: hidden; margin-bottom: 14px; }
+.progress__bar { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--pos)); transition: width .25s ease; }
+.btn:disabled { opacity: .7; cursor: progress; }
+
 /* Aside lists */
 .wordlist { list-style: none; margin: 0; padding: 0; }
 .wordlist li a { display: flex; justify-content: space-between; padding: 7px 10px; margin: 0 -10px; border-radius: 9px; color: var(--ink); font-weight: 500; text-decoration: none !important; }

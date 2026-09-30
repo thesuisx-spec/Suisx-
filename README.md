@@ -56,7 +56,20 @@
 - **Избранное** и **история** (по дням) хранятся в браузере.
 - Светлая и тёмная тема, мобильная версия, установка на телефон и офлайн-доступ к уже открытым словам.
 
-Запуск: открыть `dictionary/index.html` через любой статический сервер (например, GitHub Pages или `npx serve dictionary`).
+## Офлайн
+Словарная база лежит в `dictionary/data/` и собирается скриптом из открытых выгрузок Wiktionary (kaikki.org):
+
+```bash
+pip install wordfreq
+python3 dictionary/tools/build_dict.py      # скачивает English и Russian JSONL с kaikki.org
+```
+
+База разбита на небольшие сжатые файлы: статья подгружается мгновенно, а кнопка «Скачать весь словарь»
+на главной сохраняет всю базу на устройство, после чего интернет не нужен. Если слова нет в базе и есть интернет,
+приложение ищет его в онлайн-источниках.
+
+Запуск: через любой статический сервер по https или localhost (GitHub Pages, `npx serve dictionary`).
+При открытии файла двойным щелчком офлайн-хранилище браузера недоступно.
 
 Данные из открытых источников: [Free Dictionary API](https://dictionaryapi.dev),
 [Wiktionary](https://en.wiktionary.org) (CC BY-SA 4.0), [Datamuse](https://www.datamuse.com/api/).
