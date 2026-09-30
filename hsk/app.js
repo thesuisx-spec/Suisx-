@@ -869,7 +869,7 @@
     dict: { ic: '写', title: 'Диктант: запишите пиньинь', d: 'Слушаете и пишете пиньинь (тоны — цифрами: ni3hao3)',
       make: (x) => ({ word: x, play: (s) => sayWord(x.w, s), slow: true, prompt: `<div class="muted" style="margin-top:8px">${settings.dictTones ? 'Пиньинь с тонами: цифры (hao3) или значки (hǎo)' : 'Пиньинь без тонов'}</div>`,
         input: { placeholder: settings.dictTones ? 'например: xue2xi2' : 'например: xuexi',
-          check: (v) => { const a = parseAnswer(v), e = expectedAnswer(x.p); const ok = a.letters === e.letters && (!settings.dictTones || a.tones === e.tones); return { ok, show: `<span class="zh">${esc(x.w)}</span> ${pyHtml(x.p)}` }; } },
+          check: (v) => { const a = parseAnswer(v), e = expectedAnswer(x.p); const ok = a.letters === e.letters && (!settings.dictTones || a.tones === e.tones); return { ok, show: ok ? '' : `вы написали «${esc(v.trim())}»` }; } },
         reveal: reveal(x) }) },
     read: { ic: '读', title: 'Чтение: иероглифы → перевод', d: 'Видите слово и выбираете перевод',
       make: (x, pool) => ({ word: x, prompt: `<div class="big">${esc(x.w)}</div>`,
@@ -877,7 +877,7 @@
     sent: { ic: '句', title: 'Предложения на слух', d: 'Слушаете фразу носителя или голоса и выбираете перевод', sentences: true },
   };
   function quizPool(level, scope) {
-    const base = scope === 'lesson' ? lessonWords(level) : scope === 'level' ? levelWords(level) : scope === 'mistakes'
+    const base = scope === 'lesson' ? lessonWords(level, currentLesson(level) || 1) : scope === 'level' ? levelWords(level) : scope === 'mistakes'
       ? upTo(level).filter((x) => mistakes[x.w]).sort((a, b) => mistakes[b.w] - mistakes[a.w]).slice(0, 30) : upTo(level);
     return base;
   }
