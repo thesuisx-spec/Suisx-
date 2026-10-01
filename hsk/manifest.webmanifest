@@ -1,0 +1,12 @@
+{
+  "name": "HSK · Китайский по уровням",
+  "short_name": "HSK 汉语",
+  "description": "Слова HSK 1–6 с переводом, озвучкой, видеоуроками и тестами",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8f5ef",
+  "theme_color": "#b3261e",
+  "lang": "ru",
+  "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+}

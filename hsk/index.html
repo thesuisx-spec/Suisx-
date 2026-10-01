@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>HSK · Китайский по уровням</title>
+  <meta name="description" content="Слова HSK 1–6 (HSK 3.0 2026 и HSK 2.0) с переводом на русский, озвучкой, видеоуроками, порядком черт, аудированием, грамматикой и тестами.">
+  <meta name="theme-color" content="#b3261e">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="top-in">
+      <a class="logo" href="#/">
+        <span class="logo-mark">汉</span>
+        <span><b>HSK · 汉语</b><small>Китайский по уровням 1–6</small></span>
+      </a>
+      <span class="top-sp"></span>
+      <div class="seg" id="std" role="group" aria-label="Стандарт HSK">
+        <button data-std="n" title="Новый экзамен HSK 3.0 (программа 2026 года)">HSK 3.0</button>
+        <button data-std="o" title="Классический экзамен HSK 2.0">HSK 2.0</button>
+      </div>
+      <button class="icon-btn" id="open-settings" aria-label="Настройки голоса и приложения" title="Настройки">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main id="app"><div class="empty">Загрузка…</div></main>
+  <footer id="foot"></footer>
+  <div id="print"></div>
+
+  <script src="data/words.js"></script>
+  <script src="data/grammar.js"></script>
+  <script src="data/syllables.js"></script>
+  <script src="lib/hanzi-writer.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
